@@ -33,8 +33,8 @@
       <sub>按 SHA-256 精确追踪文件出处</sub>
     </td>
     <td align="center" width="33%">
-      <img src="https://img.icons8.com/fluency/48/user.png" width="40" /><br />
-      <b>创作者主页</b><br />
+      <a href="https://github.com/FengByX"><img src="https://img.icons8.com/fluency/48/user.png" width="40" /></a><br />
+      <b><a href="https://github.com/FengByX">创作者主页</a></b><br />
       <sub>简介、公告、关联链接、全部作品</sub>
     </td>
   </tr>
