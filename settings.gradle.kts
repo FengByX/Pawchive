@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pawchive Party"
+rootProject.name = "Pawchive"
 include(":app")

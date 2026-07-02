@@ -1,6 +1,6 @@
-# Pawchive Party
+# Pawchive
 
-Pawchive Party 是一款基于 [Pawchive](https://pawchive.st) 平台的第三方 Android 客户端，提供浏览帖子、搜索创作者、收藏管理与个性化设置等功能。
+Pawchive 是一款基于 [Pawchive](https://pawchive.st) 平台的第三方 Android 客户端，提供浏览帖子、搜索创作者、收藏管理与个性化设置等功能。
 
 ## 功能
 
