@@ -24,34 +24,34 @@
   <tr>
     <td align="center" width="33%">
       <img src="https://img.icons8.com/fluency/48/home.png" width="40" /><br />
-      <b>首页帖子流</b><br />
-      <sub>实时浏览最新发布，关键词筛选</sub>
+      <b>浏览发现</b><br />
+      <sub>首页帖子流，支持关键词筛选</sub>
     </td>
     <td align="center" width="33%">
       <img src="https://img.icons8.com/fluency/48/search.png" width="40" /><br />
-      <b>文件哈希搜索</b><br />
-      <sub>按 SHA-256 精确追踪文件出处</sub>
+      <b>精准搜索</b><br />
+      <sub>按文件哈希快速追踪出处</sub>
     </td>
     <td align="center" width="33%">
-      <a href="https://github.com/FengByX"><img src="https://img.icons8.com/fluency/48/user.png" width="40" /></a><br />
-      <b><a href="https://github.com/FengByX">创作者主页</a></b><br />
-      <sub>简介、公告、关联链接、全部作品</sub>
+      <img src="https://img.icons8.com/fluency/48/image.png" width="40" /><br />
+      <b>帖子详情</b><br />
+      <sub>评论 · 修订记录 · 文件下载</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="https://img.icons8.com/fluency/48/image.png" width="40" /><br />
-      <b>沉浸式浏览</b><br />
+      <img src="https://img.icons8.com/fluency/48/video-playlist.png" width="40" /><br />
+      <b>沉浸式媒体</b><br />
       <sub>高清图片查看 · 手势缩放 · 视频播放</sub>
     </td>
     <td align="center" width="33%">
       <img src="https://img.icons8.com/fluency/48/bookmark-ribbon.png" width="40" /><br />
-      <b>双轨收藏</b><br />
+      <b>收藏管理</b><br />
       <sub>账号云端同步 · 本地离线收藏</sub>
     </td>
     <td align="center" width="33%">
       <img src="https://img.icons8.com/fluency/48/color-palette.png" width="40" /><br />
-      <b>个性化</b><br />
+      <b>个性设置</b><br />
       <sub>深色 / 浅色主题 · 多语言切换</sub>
     </td>
   </tr>
