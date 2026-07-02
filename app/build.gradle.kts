@@ -22,6 +22,8 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
             optimization {
                 enable = false
             }
@@ -36,6 +38,14 @@ android {
     }
     lint {
         disable += "UnsafeOptInUsageError"
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("Pawchive-v${android.defaultConfig.versionName}-${variant.name}.apk")
+        }
     }
 }
 
