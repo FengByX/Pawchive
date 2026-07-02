@@ -42,9 +42,14 @@ android {
 }
 
 androidComponents {
+    beforeVariants { builder ->
+        if (builder.buildType == "debug") {
+            builder.enable = false
+        }
+    }
     onVariants { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("Pawchive-v${android.defaultConfig.versionName}-${variant.name}.apk")
+            output.outputFileName.set("Pawchive-v${android.defaultConfig.versionName}.apk")
         }
     }
 }
