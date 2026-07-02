@@ -9,19 +9,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-Android-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Platform" />
-  <img src="https://img.shields.io/badge/minSdk-30-34A853?style=for-the-badge&logo=android" alt="Min SDK" />
-  <img src="https://img.shields.io/badge/targetSdk-36-34A853?style=for-the-badge&logo=android" alt="Target SDK" />
-  <img src="https://img.shields.io/badge/language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Language" />
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License" />
-</p>
-
-<p align="center">
+  <img src="https://img.shields.io/badge/Kotlin-1.9-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
+  <img src="https://img.shields.io/badge/AGP-9.2-3DDC84?style=for-the-badge&logo=androidstudio&logoColor=white" alt="AGP" />
   <a href="https://github.com/FengByX/Pawchive/releases/latest">
-    <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=github&label=Release&color=blue" alt="Release" />
+    <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=android&label=Release&color=blue" alt="Release" />
   </a>
-  <img src="https://img.shields.io/github/repo-size/FengByX/Pawchive?style=for-the-badge&logo=github&color=orange" alt="Repo Size" />
-  <img src="https://img.shields.io/github/last-commit/FengByX/Pawchive?style=for-the-badge&logo=git&color=purple" alt="Last Commit" />
+  <img src="https://img.shields.io/github/downloads/FengByX/Pawchive/total?style=for-the-badge&logo=android&color=orange&label=Downloads" alt="Downloads" />
 </p>
 
 ---
@@ -124,14 +118,11 @@ Pawchive/
 git clone https://github.com/FengByX/Pawchive.git
 cd Pawchive
 
-# Debug 构建
-./gradlew assembleDebug
-
-# Release 构建
+# 构建 Release APK
 ./gradlew assembleRelease
 ```
 
-> APK 输出路径：`app/build/outputs/apk/{variant}/`
+> APK 输出路径：`app/build/outputs/apk/release/Pawchive-v1.0.0.apk`
 
 ### 安装
 
