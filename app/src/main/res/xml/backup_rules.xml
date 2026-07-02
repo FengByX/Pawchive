@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude session SharedPreferences to prevent credential leakage -->
+    <exclude domain="sharedpref" path="pawchive_session.xml"/>
+</full-backup-content>

@@ -1,0 +1,124 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_search">搜索</string>
+    <string name="nav_bookmarks">收藏</string>
+    <string name="nav_account">账户</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">帖子缩略图</string>
+    <string name="bookmark_description">收藏此帖子</string>
+    <string name="bookmark_creator_description">收藏此创作者</string>
+    <string name="sort_label">排序:</string>
+    <string name="no_posts_found">暂无帖子</string>
+    <string name="load_more">加载更多</string>
+    <string name="back">返回</string>
+    <string name="home_subtitle">探索最新帖子</string>
+    <string name="search_hint">搜索帖子或创作者...</string>
+    <string name="search_initial_hint">输入内容开始搜索</string>
+    <string name="sort_default">默认</string>
+    <string name="tab_posts">帖子</string>
+    <string name="tab_creators">创作者</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">账号收藏</string>
+    <string name="please_login_to_view_favorites">请先登录以查看账号收藏</string>
+    <string name="no_favorites">暂无收藏</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">未登录</string>
+    <string name="error_username_password_empty">用户名和密码不能为空</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">已登出</string>
+
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="language">语言</string>
+    <string name="appearance">外观</string>
+    <string name="appearance_light">日间</string>
+    <string name="appearance_dark">夜间</string>
+    <string name="appearance_system">跟随系统</string>
+
+    <!-- Account -->
+    <string name="login">登录</string>
+    <string name="logout">登出</string>
+    <string name="logged_in">已登录</string>
+    <string name="not_logged_in">未登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="login_prompt">登录 Pawchive</string>
+    <string name="login_subtitle">登录以同步您的收藏</string>
+
+    <!-- Post -->
+    <string name="post_details">帖子详情</string>
+    <string name="published">发布于</string>
+    <string name="attachments">附件</string>
+    <string name="revisions">修订历史</string>
+    <string name="comments">评论</string>
+    <string name="previous">上一篇</string>
+    <string name="next">下一篇</string>
+    <string name="other_files">其他文件</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">创作者主页</string>
+    <string name="posts">帖子</string>
+    <string name="announcements">公告</string>
+    <string name="linked_accounts">关联账号</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">帖子收藏</string>
+    <string name="favorite_creators">创作者收藏</string>
+    <string name="fav_sequence">收藏序号</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">最新添加</string>
+    <string name="sort_oldest_added">最早添加</string>
+    <string name="sort_newest_published">最新发布</string>
+    <string name="sort_oldest_published">最早发布</string>
+    <string name="sort_newest_edited">最新编辑</string>
+    <string name="sort_oldest_edited">最早编辑</string>
+    <string name="sort_newest_updated">最新更新</string>
+    <string name="sort_oldest_updated">最早更新</string>
+    <string name="sort_relevance">相关性</string>
+    <string name="sort_fav_newest">收藏时间倒序</string>
+    <string name="sort_fav_oldest">收藏时间升序</string>
+    <string name="sort_name_asc">名称 A-Z</string>
+    <string name="sort_name_desc">名称 Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">选择排序方式</string>
+
+    <!-- Errors -->
+    <string name="connection_error">连接错误</string>
+    <string name="fetch_error">获取数据失败</string>
+    <string name="login_failed">登录失败</string>
+    <string name="bookmark_added">已添加收藏</string>
+    <string name="bookmark_removed">已移除收藏</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">保存图片</string>
+    <string name="save_image_confirm">是否保存这张图片到相册？</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="saving_image">正在保存...</string>
+    <string name="image_saved">图片已保存到相册</string>
+    <string name="save_failed">保存失败</string>
+    <string name="permission_denied">权限被拒绝</string>
+
+    <!-- Video -->
+    <string name="video_attachments">视频附件</string>
+    <string name="video_play_failed">视频播放失败</string>
+    <string name="play_video">播放视频</string>
+    <string name="play">播放</string>
+    <string name="pause">暂停</string>
+    <string name="close">关闭</string>
+    <string name="speed">倍速</string>
+    <string name="cast">投屏</string>
+    <string name="download">下载</string>
+    <string name="fullscreen">全屏</string>
+    <string name="video_downloaded">视频已保存到相册</string>
+</resources>

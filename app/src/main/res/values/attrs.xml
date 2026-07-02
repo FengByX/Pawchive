@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="colorCardBackground" format="reference|color" />
+    <attr name="colorDivider" format="reference|color" />
+    <attr name="colorTextPrimary" format="reference|color" />
+    <attr name="colorTextSecondary" format="reference|color" />
+    <attr name="colorTextMuted" format="reference|color" />
+    <attr name="colorBadgeBackground" format="reference|color" />
+</resources>

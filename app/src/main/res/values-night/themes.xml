@@ -1,0 +1,186 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Apple (default) - Dark mode -->
+    <style name="Theme.Pawchive" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#0A84FF</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">#004299</item>
+        <item name="colorOnPrimaryContainer">#D1E7FF</item>
+        <item name="colorSecondary">#30D158</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondaryContainer">#004020</item>
+        <item name="colorOnSecondaryContainer">#B8F2C8</item>
+        <item name="colorTertiary">#FF9F0A</item>
+        <item name="colorOnTertiary">@color/black</item>
+        <item name="colorTertiaryContainer">#4D2B00</item>
+        <item name="colorOnTertiaryContainer">#FFE0B3</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Custom app attributes -->
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+
+    <!-- Violet - Dark -->
+    <style name="Theme.Pawchive.Violet" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#BA55D3</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">#8A2BE2</item>
+        <item name="colorOnPrimaryContainer">#F5E6FF</item>
+        <item name="colorSecondary">#FF69B4</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">#BE185D</item>
+        <item name="colorOnSecondaryContainer">#FFE4F0</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+
+    <!-- Ocean - Dark -->
+    <style name="Theme.Pawchive.Ocean" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#00B4D8</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">#006994</item>
+        <item name="colorOnPrimaryContainer">#B3E8F5</item>
+        <item name="colorSecondary">#48CAE4</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondaryContainer">#0369A1</item>
+        <item name="colorOnSecondaryContainer">#B3E0ED</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+
+    <!-- Forest - Dark -->
+    <style name="Theme.Pawchive.Forest" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#52B788</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">#2D6A4F</item>
+        <item name="colorOnPrimaryContainer">#B7E4C7</item>
+        <item name="colorSecondary">#95D5B2</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondaryContainer">#1B5E3A</item>
+        <item name="colorOnSecondaryContainer">#B7E4C7</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+
+    <!-- Sunset - Dark -->
+    <style name="Theme.Pawchive.Sunset" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFBA08</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">#E85D04</item>
+        <item name="colorOnPrimaryContainer">#FFE4B3</item>
+        <item name="colorSecondary">#FFD60A</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondaryContainer">#9D6C00</item>
+        <item name="colorOnSecondaryContainer">#FFEFA3</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+
+    <!-- Rose - Dark -->
+    <style name="Theme.Pawchive.Rose" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#F472B6</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">#BE185D</item>
+        <item name="colorOnPrimaryContainer">#FFD1E6</item>
+        <item name="colorSecondary">#FBCFE8</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondaryContainer">#9D174D</item>
+        <item name="colorOnSecondaryContainer">#FFD1E6</item>
+
+        <item name="colorSurface">@color/card_dark</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_dark</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider_dark</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="colorCardBackground">@color/card_dark</item>
+        <item name="colorDivider">@color/divider_dark</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorTextMuted">@color/text_muted</item>
+        <item name="colorBadgeBackground">@color/primary</item>
+    </style>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Exclude session SharedPreferences to prevent credential leakage -->
+        <exclude domain="sharedpref" path="pawchive_session.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <!-- Exclude session SharedPreferences to prevent credential leakage -->
+        <exclude domain="sharedpref" path="pawchive_session.xml"/>
+    </device-transfer>
+</data-extraction-rules>

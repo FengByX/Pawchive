@@ -1,0 +1,199 @@
+package com.pawchive.ui.adapter
+
+import android.content.Context
+import android.content.res.Configuration
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.LifecycleOwner
+import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.pawchive.R
+import com.pawchive.data.model.Post
+import com.pawchive.data.repository.AuthRepository
+import com.pawchive.data.repository.BookmarkManager
+import com.pawchive.data.repository.CreatorNameCache
+import com.pawchive.databinding.ItemLoadMoreFooterBinding
+import com.pawchive.databinding.ItemPostBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+class PostAdapter(
+    private var posts: List<Post>,
+    private val bookmarkManager: BookmarkManager,
+    private val authRepository: AuthRepository?,
+    private val lifecycleScope: CoroutineScope?,
+    private val onPostClicked: (Post) -> Unit,
+    private val onCreatorClicked: (String, String) -> Unit,
+    private val onBookmarkChanged: (Post, Boolean) -> Unit,
+    private val onLoadMore: () -> Unit = {}
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    private var showFooter = false
+
+    companion object {
+        private const val TYPE_POST = 0
+        private const val TYPE_FOOTER = 1
+    }
+
+    fun updatePosts(newPosts: List<Post>) {
+        posts = newPosts
+        notifyDataSetChanged()
+    }
+
+    fun setFooterVisible(visible: Boolean) {
+        if (showFooter == visible) return
+        showFooter = visible
+        if (visible) notifyItemInserted(posts.size) else notifyItemRemoved(posts.size)
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return if (position < posts.size) TYPE_POST else TYPE_FOOTER
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return when (viewType) {
+            TYPE_FOOTER -> FooterViewHolder(
+                ItemLoadMoreFooterBinding.inflate(inflater, parent, false)
+            )
+            else -> PostViewHolder(
+                ItemPostBinding.inflate(inflater, parent, false)
+            )
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (holder is PostViewHolder) {
+            holder.bind(posts[position])
+        } else if (holder is FooterViewHolder) {
+            holder.bind(onLoadMore)
+        }
+    }
+
+    override fun getItemCount(): Int = posts.size + if (showFooter) 1 else 0
+
+    inner class FooterViewHolder(private val binding: ItemLoadMoreFooterBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(onLoadMore: () -> Unit) {
+            binding.btnLoadMore.setOnClickListener { onLoadMore() }
+        }
+    }
+
+    inner class PostViewHolder(private val binding: ItemPostBinding) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(post: Post) {
+            binding.tvTitle.text = post.title
+            binding.tvCreatorName.text = CreatorNameCache.getCachedName(post.service, post.user) ?: post.user
+            binding.tvService.text = post.service.uppercase()
+            binding.tvDate.text = "Published: ${post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: "Unknown"}"
+
+            // Set service badge color based on platform
+            setServiceBadgeColor(binding, post.service, binding.root.context)
+
+            // Simple HTML tag removal for content preview
+            val plainText = post.content?.replace(Regex("<[^>]*>"), "") ?: ""
+            binding.tvPreview.text = if (plainText.length > 120) plainText.take(120) + "..." else plainText
+
+            // Load thumbnail if main file or attachments are images
+            val imagePath = post.file?.path ?: post.attachments?.firstOrNull { 
+                it.path?.endsWith(".jpg", true) == true || it.path?.endsWith(".png", true) == true || it.path?.endsWith(".gif", true) == true || it.path?.endsWith(".webp", true) == true
+            }?.path
+
+            if (!imagePath.isNullOrEmpty()) {
+                binding.ivThumbnail.visibility = View.VISIBLE
+                val fullUrl = "https://img.pawchive.st/thumbnail/data$imagePath"
+                binding.ivThumbnail.load(fullUrl) {
+                    crossfade(true)
+                    placeholder(android.R.drawable.ic_menu_gallery)
+                    error(android.R.drawable.ic_menu_report_image)
+                }
+            } else {
+                binding.ivThumbnail.visibility = View.GONE
+            }
+
+            // Bookmark setup
+            val isBookmarked = bookmarkManager.isPostBookmarked(post.service, post.user, post.id)
+            updateBookmarkIcon(isBookmarked)
+
+            binding.btnBookmark.setOnClickListener {
+                val newStatus = !bookmarkManager.isPostBookmarked(post.service, post.user, post.id)
+                // 本地立即更新，保持界面响应性
+                if (newStatus) {
+                    bookmarkManager.bookmarkPost(post)
+                } else {
+                    bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
+                }
+                updateBookmarkIcon(newStatus)
+                onBookmarkChanged(post, newStatus)
+
+                // 登录状态下同步到服务器
+                if (authRepository != null && authRepository.isLoggedIn() && lifecycleScope != null) {
+                    lifecycleScope.launch {
+                        val result = if (newStatus) {
+                            authRepository.addPostToFavorites(post.service, post.user, post.id)
+                        } else {
+                            authRepository.removePostFromFavorites(post.service, post.user, post.id)
+                        }
+                        if (result.isFailure) {
+                            // 服务器同步失败，回滚本地状态
+                            val rolledBack = !newStatus
+                            if (rolledBack) {
+                                bookmarkManager.bookmarkPost(post)
+                            } else {
+                                bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
+                            }
+                            updateBookmarkIcon(rolledBack)
+                            onBookmarkChanged(post, rolledBack)
+                            Toast.makeText(
+                                binding.root.context,
+                                binding.root.context.getString(R.string.connection_error),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            }
+
+            binding.tvCreatorName.setOnClickListener {
+                onCreatorClicked(post.service, post.user)
+            }
+
+            binding.root.setOnClickListener {
+                onPostClicked(post)
+            }
+        }
+
+        private fun setServiceBadgeColor(binding: ItemPostBinding, service: String, context: Context) {
+            val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            
+            val (bgColorRes, textColorRes) = when (service.lowercase()) {
+                "patreon" -> if (isDarkMode) {
+                    (R.color.patreon_bg_dark to R.color.patreon_text_dark)
+                } else {
+                    (R.color.patreon_bg_light to R.color.patreon_text_light)
+                }
+                "fanbox" -> if (isDarkMode) {
+                    (R.color.fanbox_bg_dark to R.color.fanbox_text_dark)
+                } else {
+                    (R.color.fanbox_bg_light to R.color.fanbox_text_light)
+                }
+                else -> if (isDarkMode) {
+                    (R.color.service_bg_default_dark to R.color.service_text_default_dark)
+                } else {
+                    (R.color.service_bg_default_light to R.color.service_text_default_light)
+                }
+            }
+            
+            binding.cardServiceBadge.setCardBackgroundColor(context.getColor(bgColorRes))
+            binding.tvService.setTextColor(context.getColor(textColorRes))
+        }
+
+        private fun updateBookmarkIcon(isBookmarked: Boolean) {
+            binding.btnBookmark.setImageResource(
+                if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline
+            )
+        }
+    }
+}

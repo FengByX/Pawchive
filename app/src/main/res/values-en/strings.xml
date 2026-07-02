@@ -1,0 +1,124 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_bookmarks">Bookmarks</string>
+    <string name="nav_account">Account</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">Post thumbnail</string>
+    <string name="bookmark_description">Bookmark this post</string>
+    <string name="bookmark_creator_description">Bookmark this creator</string>
+    <string name="sort_label">Sort:</string>
+    <string name="no_posts_found">No posts found</string>
+    <string name="load_more">Load More</string>
+    <string name="back">Back</string>
+    <string name="home_subtitle">Explore the latest posts</string>
+    <string name="search_hint">Search posts or creators...</string>
+    <string name="search_initial_hint">Type something to start searching</string>
+    <string name="sort_default">Default</string>
+    <string name="tab_posts">Posts</string>
+    <string name="tab_creators">Creators</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">Account Favorites</string>
+    <string name="please_login_to_view_favorites">Please login to view your favorites</string>
+    <string name="no_favorites">No favorites yet</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">Not logged in</string>
+    <string name="error_username_password_empty">Username and password cannot be empty</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">Logged out</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="language">Language</string>
+    <string name="appearance">Appearance</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_system">Follow System</string>
+
+    <!-- Account -->
+    <string name="login">Login</string>
+    <string name="logout">Logout</string>
+    <string name="logged_in">Logged In</string>
+    <string name="not_logged_in">Not Logged In</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login_prompt">Login to Pawchive</string>
+    <string name="login_subtitle">Login to sync your bookmarks</string>
+
+    <!-- Post -->
+    <string name="post_details">Post Details</string>
+    <string name="published">Published</string>
+    <string name="attachments">Attachments</string>
+    <string name="revisions">Revisions</string>
+    <string name="comments">Comments</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="other_files">Other Files</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">Creator Profile</string>
+    <string name="posts">Posts</string>
+    <string name="announcements">Announcements</string>
+    <string name="linked_accounts">Linked Accounts</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">Favorite Posts</string>
+    <string name="favorite_creators">Favorite Creators</string>
+    <string name="fav_sequence">Favorite Sequence</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">Newest Added</string>
+    <string name="sort_oldest_added">Oldest Added</string>
+    <string name="sort_newest_published">Newest Published</string>
+    <string name="sort_oldest_published">Oldest Published</string>
+    <string name="sort_newest_edited">Newest Edited</string>
+    <string name="sort_oldest_edited">Oldest Edited</string>
+    <string name="sort_newest_updated">Newest Updated</string>
+    <string name="sort_oldest_updated">Oldest Updated</string>
+    <string name="sort_relevance">Relevance</string>
+    <string name="sort_fav_newest">Newest Favorite</string>
+    <string name="sort_fav_oldest">Oldest Favorite</string>
+    <string name="sort_name_asc">Name A-Z</string>
+    <string name="sort_name_desc">Name Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">Select Sort Method</string>
+
+    <!-- Errors -->
+    <string name="connection_error">Connection Error</string>
+    <string name="fetch_error">Failed to fetch data</string>
+    <string name="login_failed">Login Failed</string>
+    <string name="bookmark_added">Bookmark Added</string>
+    <string name="bookmark_removed">Bookmark Removed</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">Save Image</string>
+    <string name="save_image_confirm">Save this image to gallery?</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="saving_image">Saving...</string>
+    <string name="image_saved">Image saved to gallery</string>
+    <string name="save_failed">Save failed</string>
+    <string name="permission_denied">Permission denied</string>
+
+    <!-- Video -->
+    <string name="video_attachments">Video Attachments</string>
+    <string name="video_play_failed">Video playback failed</string>
+    <string name="play_video">Play video</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="close">Close</string>
+    <string name="speed">Speed</string>
+    <string name="cast">Cast</string>
+    <string name="download">Download</string>
+    <string name="fullscreen">Fullscreen</string>
+    <string name="video_downloaded">Video saved to gallery</string>
+</resources>

@@ -1,0 +1,124 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">ホーム</string>
+    <string name="nav_search">検索</string>
+    <string name="nav_bookmarks">ブックマーク</string>
+    <string name="nav_account">アカウント</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">投稿サムネイル</string>
+    <string name="bookmark_description">この投稿をブックマーク</string>
+    <string name="bookmark_creator_description">このクリエイターをブックマーク</string>
+    <string name="sort_label">並び順:</string>
+    <string name="no_posts_found">投稿がありません</string>
+    <string name="load_more">もっと読み込む</string>
+    <string name="back">戻る</string>
+    <string name="home_subtitle">最新の投稿を探検</string>
+    <string name="search_hint">投稿またはクリエイターを検索...</string>
+    <string name="search_initial_hint">検索キーワードを入力してください</string>
+    <string name="sort_default">デフォルト</string>
+    <string name="tab_posts">投稿</string>
+    <string name="tab_creators">クリエイター</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">アカウントブックマーク</string>
+    <string name="please_login_to_view_favorites">ログインしてブックマークを表示</string>
+    <string name="no_favorites">ブックマークがありません</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">未ログイン</string>
+    <string name="error_username_password_empty">ユーザー名とパスワードは空にできません</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">ログアウトしました</string>
+
+    <!-- Settings -->
+    <string name="settings">設定</string>
+    <string name="language">言語</string>
+    <string name="appearance">外観</string>
+    <string name="appearance_light">ライト</string>
+    <string name="appearance_dark">ダーク</string>
+    <string name="appearance_system">システム設定に従う</string>
+
+    <!-- Account -->
+    <string name="login">ログイン</string>
+    <string name="logout">ログアウト</string>
+    <string name="logged_in">ログイン済み</string>
+    <string name="not_logged_in">未ログイン</string>
+    <string name="username">ユーザー名</string>
+    <string name="password">パスワード</string>
+    <string name="login_prompt">Pawchiveにログイン</string>
+    <string name="login_subtitle">ブックマークを同期するためにログイン</string>
+
+    <!-- Post -->
+    <string name="post_details">投稿詳細</string>
+    <string name="published">公開日</string>
+    <string name="attachments">添付ファイル</string>
+    <string name="revisions"> revision履歴</string>
+    <string name="comments">コメント</string>
+    <string name="previous">前の投稿</string>
+    <string name="next">次の投稿</string>
+    <string name="other_files">その他のファイル</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">クリエイター詳細</string>
+    <string name="posts">投稿</string>
+    <string name="announcements">お知らせ</string>
+    <string name="linked_accounts">連携アカウント</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">投稿ブックマーク</string>
+    <string name="favorite_creators">クリエイターブックマーク</string>
+    <string name="fav_sequence">ブックマーク順序</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">追加日が新しい順</string>
+    <string name="sort_oldest_added">追加日が古い順</string>
+    <string name="sort_newest_published">公開日が新しい順</string>
+    <string name="sort_oldest_published">公開日が古い順</string>
+    <string name="sort_newest_edited">編集日が新しい順</string>
+    <string name="sort_oldest_edited">編集日が古い順</string>
+    <string name="sort_newest_updated">更新日が新しい順</string>
+    <string name="sort_oldest_updated">更新日が古い順</string>
+    <string name="sort_relevance">関連性</string>
+    <string name="sort_fav_newest">ブックマークが新しい順</string>
+    <string name="sort_fav_oldest">ブックマークが古い順</string>
+    <string name="sort_name_asc">名前 A-Z</string>
+    <string name="sort_name_desc">名前 Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">並び順を選択</string>
+
+    <!-- Errors -->
+    <string name="connection_error">接続エラー</string>
+    <string name="fetch_error">データの取得に失敗</string>
+    <string name="login_failed">ログイン失敗</string>
+    <string name="bookmark_added">ブックマーク追加</string>
+    <string name="bookmark_removed">ブックマーク削除</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">画像を保存</string>
+    <string name="save_image_confirm">この画像をギャラリーに保存しますか？</string>
+    <string name="save">保存</string>
+    <string name="cancel">キャンセル</string>
+    <string name="saving_image">保存中...</string>
+    <string name="image_saved">画像を保存しました</string>
+    <string name="save_failed">保存に失敗しました</string>
+    <string name="permission_denied">権限が拒否されました</string>
+
+    <!-- Video -->
+    <string name="video_attachments">動画添付ファイル</string>
+    <string name="video_play_failed">動画の再生に失敗しました</string>
+    <string name="play_video">動画を再生</string>
+    <string name="play">再生</string>
+    <string name="pause">一時停止</string>
+    <string name="close">閉じる</string>
+    <string name="speed">スピード</string>
+    <string name="cast">キャスト</string>
+    <string name="download">ダウンロード</string>
+    <string name="fullscreen">全画面</string>
+    <string name="video_downloaded">動画をアルバムに保存しました</string>
+</resources>

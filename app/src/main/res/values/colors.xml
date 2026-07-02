@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colors (semantic) -->
+    <color name="primary">#8A2BE2</color>
+    <color name="blue_violet">#8A2BE2</color>
+    <color name="primary_light">#BA55D3</color>
+    <color name="primary_dark">#4B0082</color>
+
+    <color name="accent">#FF1493</color>
+    <color name="deep_pink">#FF1493</color>
+    <color name="accent_light">#FF69B4</color>
+
+    <!-- Neutral Dark Palette -->
+    <color name="bg_dark">#0F0F1A</color>
+    <color name="card_dark">#181828</color>
+    <color name="divider_dark">#2C2C3E</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#E0E0FF</color>
+    <color name="text_secondary">#9E9EB8</color>
+    <color name="text_muted">#666680</color>
+
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="glass_white">#1AFFFFFF</color>
+
+    <!-- Neutral Light Palette (for light mode) -->
+    <color name="bg_light">#F2F2F7</color>
+    <color name="card_light">#FFFFFF</color>
+    <color name="divider_light">#E5E5EA</color>
+
+    <color name="text_primary_light">#1C1C1E</color>
+    <color name="text_secondary_light">#636366</color>
+    <color name="text_muted_light">#8E8E93</color>
+
+    <!-- Service Platform Colors -->
+    <!-- Patreon - Light Pink/Rose -->
+    <color name="patreon_bg_light">#FCE4EC</color>
+    <color name="patreon_text_light">#C2185B</color>
+    <color name="patreon_bg_dark">#3A1A2C</color>
+    <color name="patreon_text_dark">#F48FB1</color>
+
+    <!-- Fanbox - Light Blue -->
+    <color name="fanbox_bg_light">#E3F2FD</color>
+    <color name="fanbox_text_light">#1565C0</color>
+    <color name="fanbox_bg_dark">#1A3A5C</color>
+    <color name="fanbox_text_dark">#64B5F6</color>
+
+    <!-- Default service color (for other platforms) -->
+    <color name="service_bg_default_light">#E8E8E8</color>
+    <color name="service_text_default_light">#666666</color>
+    <color name="service_bg_default_dark">#2A2A2A</color>
+    <color name="service_text_default_dark">#AAAAAA</color>
+</resources>
