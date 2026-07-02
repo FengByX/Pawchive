@@ -12,10 +12,8 @@
   <img src="https://img.shields.io/badge/Kotlin-1.9-7F52FF?style=for-the-badge&amp;logo=kotlin&amp;logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&amp;logo=android&amp;logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/AGP-9.2-3DDC84?style=for-the-badge&amp;logo=androidstudio&amp;logoColor=white" alt="AGP" />
-  <a href="https://github.com/FengByX/Pawchive/releases/latest">
-    <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&amp;logo=android&amp;label=Release&amp;color=blue" alt="Release" />
-  </a>
-  <img src="https://img.shields.io/github/downloads/FengByX/Pawchive/total?style=for-the-badge&amp;logo=android&amp;color=orange&amp;label=Downloads" alt="Downloads" />
+  <img src="https://img.shields.io/badge/Release-v1.0.0-blue?style=for-the-badge&amp;logo=android" alt="Release" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
 ---
