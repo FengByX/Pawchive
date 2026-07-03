@@ -35,10 +35,19 @@ class PostDetailViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val post = api.getPostDetails(service, creatorId, postId)
-                val comments = api.getPostComments(service, creatorId, postId)
-                val revisions = api.getPostRevisions(service, creatorId, postId)
-
                 val videoList = extractVideoUrls(post)
+
+                val comments = try {
+                    api.getPostComments(service, creatorId, postId)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val revisions = try {
+                    api.getPostRevisions(service, creatorId, postId)
+                } catch (e: Exception) {
+                    emptyList()
+                }
 
                 _uiState.value = _uiState.value.copy(
                     post = post,
