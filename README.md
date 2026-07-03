@@ -145,5 +145,5 @@ cd Pawchive
 ---
 
 <p align="center">
-  <sub>图标资源来自 <a href="https://www.iconfont.cn/user/detail?spm=a313x.search_index.0.d214f71f6.4b203a819GYzb1&uid=3866068&nid=90kPUssmIYZQ">Iconfont</a> | 创作者主页 <a href="https://github.com/FengByX">FengByX</a></sub>
+  <sub>图标资源来自 <a href="https://www.iconfont.cn/user/detail?spm=a313x.search_index.0.d214f71f6.4b203a819GYzb1&uid=3866068&nid=90kPUssmIYZQ">Iconfont</a>
 </p>
