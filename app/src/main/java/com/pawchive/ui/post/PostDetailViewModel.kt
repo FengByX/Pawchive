@@ -76,22 +76,28 @@ class PostDetailViewModel : ViewModel() {
 
     private fun extractVideoUrls(post: Post): List<Pair<String, String>> {
         val videoList = mutableListOf<Pair<String, String>>()
-        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts")
+        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts", ".flv", ".wmv", ".ogv", ".m4a")
+
+        fun isVideo(path: String?, name: String?): Boolean {
+            val lowerPath = path?.lowercase().orEmpty()
+            val lowerName = name?.lowercase().orEmpty()
+            return videoExtensions.any { ext ->
+                lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+            }
+        }
 
         val filePath = post.file?.path
-        if (!filePath.isNullOrEmpty()) {
-            if (videoExtensions.any { filePath.lowercase().endsWith(it) }) {
-                val fullUrl = "https://file.pawchive.st/data$filePath"
-                videoList.add(Pair(fullUrl, post.file?.name ?: "video.mp4"))
-            }
+        val fileName = post.file?.name
+        if (isVideo(filePath, fileName)) {
+            val fullUrl = "https://file.pawchive.st/data${filePath.orEmpty()}"
+            videoList.add(Pair(fullUrl, fileName ?: "video.mp4"))
         }
 
         val attachments = post.attachments
         if (!attachments.isNullOrEmpty()) {
             for (attachment in attachments) {
-                val path = attachment.path
-                if (videoExtensions.any { path.lowercase().endsWith(it) }) {
-                    val fullUrl = "https://file.pawchive.st/data$path"
+                if (isVideo(attachment.path, attachment.name)) {
+                    val fullUrl = "https://file.pawchive.st/data${attachment.path.orEmpty()}"
                     videoList.add(Pair(fullUrl, attachment.name ?: "video.mp4"))
                 }
             }

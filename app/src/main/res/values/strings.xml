@@ -122,6 +122,9 @@
     <string name="download">下载</string>
     <string name="fullscreen">全屏</string>
     <string name="video_downloaded">视频已保存到相册</string>
+    <string name="downloading">下载中...</string>
+    <string name="download_timeout">下载超时</string>
+    <string name="network_error">网络错误</string>
 
     <!-- Update Checker -->
     <string name="update_available_title">发现新版本</string>

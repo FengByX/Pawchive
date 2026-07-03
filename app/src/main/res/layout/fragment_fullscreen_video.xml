@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/black">
+
+    <FrameLayout
+        android:id="@+id/video_display_frame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/black">
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/player_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:show_buffering="always"
+            app:resize_mode="fill"
+            app:use_controller="false" />
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/video_controller_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:background="#CC000000">
+
+        <ImageButton
+            android:id="@+id/btn_play_pause"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_pause"
+            android:background="@null"
+            android:tint="@android:color/white"
+            android:contentDescription="@string/play" />
+
+        <TextView
+            android:id="@+id/tv_current_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:layout_marginStart="8dp" />
+
+        <SeekBar
+            android:id="@+id/seekbar_video"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:thumbTint="@android:color/white"
+            android:progressTint="@android:color/white"
+            android:progressBackgroundTint="#88FFFFFF" />
+
+        <TextView
+            android:id="@+id/tv_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textColor="@android:color/white"
+            android:textSize="13sp" />
+
+        <ImageButton
+            android:id="@+id/btn_fullscreen"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_exit_fullscreen"
+            android:background="@null"
+            android:tint="@android:color/white"
+            android:contentDescription="@string/fullscreen" />
+
+        <ImageButton
+            android:id="@+id/btn_close_video"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_close"
+            android:background="@null"
+            android:tint="@android:color/white"
+            android:contentDescription="@string/close" />
+
+    </LinearLayout>
+
+</LinearLayout>

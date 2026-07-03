@@ -21,13 +21,13 @@ data class CreatorProfile(
 )
 
 data class PostFile(
-    val name: String,
-    val path: String
+    val name: String?,
+    val path: String?
 )
 
 data class Attachment(
-    val name: String,
-    val path: String
+    val name: String?,
+    val path: String?
 )
 
 data class Post(
@@ -35,8 +35,8 @@ data class Post(
     val user: String,
     @SerializedName("user_name") val userName: String?,
     val service: String,
-    val title: String,
-    val content: String,
+    val title: String?,
+    val content: String?,
     val added: String?,
     val published: String?,
     val edited: String?,
@@ -52,8 +52,8 @@ data class PostRevision(
     val id: String,
     val user: String,
     val service: String,
-    val title: String,
-    val content: String,
+    val title: String?,
+    val content: String?,
     val added: String?,
     val published: String?,
     val edited: String?,
@@ -63,16 +63,16 @@ data class PostRevision(
 
 data class CommentRevision(
     val id: Int,
-    val content: String,
-    val added: String
+    val content: String?,
+    val added: String?
 )
 
 data class Comment(
     val id: String,
     @SerializedName("parent_id") val parentId: String?,
     val commenter: String,
-    val content: String,
-    val published: String,
+    val content: String?,
+    val published: String?,
     val revisions: List<CommentRevision>?
 )
 
@@ -80,8 +80,8 @@ data class Announcement(
     val service: String,
     @SerializedName("user_id") val userId: String,
     val hash: String,
-    val content: String,
-    val added: String
+    val content: String?,
+    val added: String?
 )
 
 data class FanCard(
@@ -110,7 +110,7 @@ data class FileSearchPost(
     val id: String,
     val user: String,
     val service: String,
-    val title: String,
+    val title: String?,
     val substring: String?,
     val published: String?,
     val file: PostFile?,
@@ -138,7 +138,7 @@ data class FavoritePost(
     val id: String,
     val user: String,
     val service: String,
-    val title: String,
+    val title: String?,
     val content: String?,
     val added: String?,
     val published: String?,

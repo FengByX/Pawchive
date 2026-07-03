@@ -232,7 +232,7 @@ class CreatorProfileFragment : Fragment() {
                     binding.layoutAnnouncements.removeAllViews()
                     for (announcement in announcements) {
                         val textView = TextView(requireContext()).apply {
-                            text = Html.fromHtml(announcement.content, Html.FROM_HTML_MODE_COMPACT)
+                            text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
                             setTextColor(resources.getColor(R.color.text_secondary, null))
                             textSize = 13f
                             setPadding(0, 8, 0, 8)

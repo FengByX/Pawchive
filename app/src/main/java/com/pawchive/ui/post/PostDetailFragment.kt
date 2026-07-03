@@ -65,6 +65,8 @@ class PostDetailFragment : Fragment() {
     private var currentPost: Post? = null
     private var videoList = mutableListOf<Pair<String, String>>()
     private var currentVideoIndex = 0
+    private var isUserSeeking = false
+    private var isFullscreen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,18 +168,19 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun displayPost(post: Post) {
-        binding.tvPostTitle.text = post.title
+        binding.tvPostTitle.text = post.title ?: ""
         binding.tvPostCreator.text = post.user
         binding.tvPostService.text = post.service.uppercase()
         binding.tvPostDate.text = post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: ""
 
         setServiceBadgeColor(post.service)
 
+        val content = post.content ?: ""
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            binding.tvPostContent.text = Html.fromHtml(post.content, Html.FROM_HTML_MODE_COMPACT)
+            binding.tvPostContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
         } else {
             @Suppress("DEPRECATION")
-            binding.tvPostContent.text = Html.fromHtml(post.content)
+            binding.tvPostContent.text = Html.fromHtml(content)
         }
         binding.tvPostContent.movementMethod = LinkMovementMethod.getInstance()
 
@@ -205,9 +208,10 @@ class PostDetailFragment : Fragment() {
         }
 
         val filePath = post.file?.path
-        if (!filePath.isNullOrEmpty()) {
-            val fullUrl = "https://file.pawchive.st/data$filePath"
-            if (isVideoFile(filePath)) {
+        val fileName = post.file?.name
+        if (!filePath.isNullOrEmpty() || !fileName.isNullOrEmpty()) {
+            val fullUrl = "https://file.pawchive.st/data${filePath.orEmpty()}"
+            if (isVideoFile(filePath, fileName)) {
                 binding.imageCard.visibility = View.VISIBLE
                 (binding.imageCard as ViewGroup).removeAllViews()
 
@@ -296,24 +300,16 @@ class PostDetailFragment : Fragment() {
             binding.tvAttachmentsHeader.visibility = View.VISIBLE
             binding.layoutAttachments.removeAllViews()
 
-            val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
-            val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts")
-
             val imageAttachments = attachments.filter { att ->
-                imageExtensions.any { ext ->
-                    att.path?.endsWith(ext, true) == true
-                }
+                isImageFile(att.path, att.name)
             }
 
             val videoAttachments = attachments.filter { att ->
-                videoExtensions.any { ext ->
-                    att.path?.endsWith(ext, true) == true
-                }
+                isVideoFile(att.path, att.name)
             }
 
             val otherAttachments = attachments.filterNot { att ->
-                imageExtensions.any { ext -> att.path?.endsWith(ext, true) == true } ||
-                videoExtensions.any { ext -> att.path?.endsWith(ext, true) == true }
+                isImageFile(att.path, att.name) || isVideoFile(att.path, att.name)
             }
 
             for (attachment in imageAttachments) {
@@ -350,10 +346,10 @@ class PostDetailFragment : Fragment() {
                 }
                 binding.layoutAttachments.addView(videoHeader)
 
-                var videoIndexOffset = if (post.file?.path?.let { isVideoFile(it) } == true) 1 else 0
+                var videoIndexOffset = if (isVideoFile(post.file?.path, post.file?.name)) 1 else 0
 
                 for ((index, attachment) in videoAttachments.withIndex()) {
-                    val fullUrl = "https://file.pawchive.st/data${attachment.path}"
+                    val fullUrl = "https://file.pawchive.st/data${attachment.path ?: ""}"
                     val videoItemView = createVideoAttachmentItem(
                         fullUrl,
                         attachment.name ?: "video.mp4",
@@ -375,12 +371,12 @@ class PostDetailFragment : Fragment() {
 
                 for (attachment in otherAttachments) {
                     val textView = TextView(requireContext()).apply {
-                        text = attachment.name
+                        text = attachment.name ?: "file"
                         setTextColor(resources.getColor(R.color.accent_light, null))
                         textSize = 14f
                         setPadding(0, 8, 0, 8)
                         setOnClickListener {
-                            val url = "https://file.pawchive.st/data${attachment.path}"
+                            val url = "https://file.pawchive.st/data${attachment.path ?: ""}"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             startActivity(intent)
                         }
@@ -540,7 +536,7 @@ class PostDetailFragment : Fragment() {
                         val duration = videoPlayerManager.duration
                         if (duration > 0) {
                             binding.seekbarVideo.max = duration.toInt()
-                            binding.tvDuration.text = videoPlayerManager.formatTime(duration.toInt())
+                            binding.tvDuration.text = videoPlayerManager.formatTime(duration)
                         }
                         updateVideoSize()
                     }
@@ -586,12 +582,18 @@ class PostDetailFragment : Fragment() {
         binding.seekbarVideo.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    videoPlayerManager.seekTo(progress.toLong())
-                    binding.tvCurrentTime.text = videoPlayerManager.formatTime(progress)
+                    binding.tvCurrentTime.text = videoPlayerManager.formatTime(progress.toLong())
                 }
             }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
+                isUserSeeking = true
+            }
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                isUserSeeking = false
+                val progress = seekBar?.progress ?: 0
+                videoPlayerManager.seekTo(progress.toLong())
+                binding.tvCurrentTime.text = videoPlayerManager.formatTime(progress.toLong())
+            }
         })
 
         binding.btnSpeed.setOnClickListener {
@@ -607,22 +609,24 @@ class PostDetailFragment : Fragment() {
         }
 
         binding.btnFullscreen.setOnClickListener {
-            Toast.makeText(context, getString(R.string.fullscreen), Toast.LENGTH_SHORT).show()
+            toggleFullscreen()
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             while (true) {
                 if (videoPlayerManager.player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
-                    videoPlayerManager.updateCurrentPosition()
-                    val currentPos = videoPlayerManager.currentPosition
-                    val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
+                    if (!isUserSeeking) {
+                        videoPlayerManager.updateCurrentPosition()
+                        val currentPos = videoPlayerManager.currentPosition
+                        val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
 
-                    binding.seekbarVideo.progress = currentPos.toInt()
-                    binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos.toInt())
+                        binding.seekbarVideo.progress = currentPos.toInt()
+                        binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
 
-                    binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
+                        binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
+                    }
                 }
-                kotlinx.coroutines.delay(500)
+                kotlinx.coroutines.delay(200)
             }
         }
     }
@@ -644,13 +648,20 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun downloadCurrentVideo() {
-        if (currentVideoIndex >= videoList.size) return
+        if (currentVideoIndex >= videoList.size) {
+            Toast.makeText(context, getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val (url, fileName) = videoList[currentVideoIndex]
 
-        Toast.makeText(context, getString(R.string.saving_image), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "${getString(R.string.downloading)} $fileName", Toast.LENGTH_LONG).show()
+
+        val contextRef = requireContext()
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            var errorMessage: String? = null
+
             try {
                 val okHttpClient = OkHttpClient.Builder()
                     .connectTimeout(30, TimeUnit.SECONDS)
@@ -659,15 +670,23 @@ class PostDetailFragment : Fragment() {
 
                 val request = Request.Builder()
                     .url(url)
+                    .header("Accept", "*/*")
                     .build()
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw Exception("HTTP ${response.code}")
+                    errorMessage = "HTTP ${response.code}: ${response.message}"
+                    throw Exception(errorMessage)
                 }
 
-                val inputStream = response.body?.byteStream()
-                    ?: throw Exception("Empty response body")
+                val body = response.body
+                if (body == null) {
+                    errorMessage = "Empty response body"
+                    throw Exception(errorMessage)
+                }
+
+                val inputStream = body.byteStream()
+                val contentLength = body.contentLength()
 
                 val mimeType = when {
                     fileName.endsWith(".mp4", true) -> "video/mp4"
@@ -687,7 +706,7 @@ class PostDetailFragment : Fragment() {
                     }
                 }
 
-                val resolver = requireContext().contentResolver
+                val resolver = contextRef.contentResolver
                 val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                 } else {
@@ -695,34 +714,64 @@ class PostDetailFragment : Fragment() {
                 }
 
                 val uri = resolver.insert(collection, contentValues)
-                if (uri != null) {
-                    resolver.openOutputStream(uri)?.use { outputStream ->
-                        inputStream.use { input ->
-                            input.copyTo(outputStream)
+                if (uri == null) {
+                    errorMessage = "Failed to create media file entry"
+                    throw Exception(errorMessage)
+                }
+
+                val outputStream = resolver.openOutputStream(uri)
+                if (outputStream == null) {
+                    errorMessage = "Failed to open output stream"
+                    throw Exception(errorMessage)
+                }
+
+                outputStream.use { out ->
+                    inputStream.use { input ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalBytesRead: Long = 0
+
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            out.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                        }
+
+                        if (contentLength > 0 && totalBytesRead != contentLength) {
+                            errorMessage = "Download incomplete: $totalBytesRead/$contentLength bytes"
+                            throw Exception(errorMessage)
                         }
                     }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        contentValues.clear()
-                        contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
-                        resolver.update(uri, contentValues, null, null)
-                    }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            getString(R.string.video_downloaded),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
-                    }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+                }
+
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "${getString(R.string.save_failed)}: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        getString(R.string.video_downloaded),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+
+                return@launch
+
+            } catch (e: java.net.SocketTimeoutException) {
+                errorMessage = getString(R.string.download_timeout)
+            } catch (e: java.net.UnknownHostException) {
+                errorMessage = getString(R.string.network_error)
+            } catch (e: java.io.IOException) {
+                errorMessage = getString(R.string.save_failed) + ": " + e.message
+            } catch (e: Exception) {
+                errorMessage = e.message ?: getString(R.string.save_failed)
+                e.printStackTrace()
+            }
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, errorMessage ?: getString(R.string.save_failed), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -750,9 +799,29 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun stopAndHideVideoPlayer() {
+        if (isFullscreen) {
+            exitFullscreen()
+        }
         videoPlayerManager.stop()
         binding.videoPlayerContainer.visibility = View.GONE
     }
+
+    private fun toggleFullscreen() {
+        if (currentVideoIndex >= videoList.size) return
+
+        val (url, fileName) = videoList[currentVideoIndex]
+        val position = videoPlayerManager.currentPosition
+        val isPlaying = videoPlayerManager.isPlaying
+
+        videoPlayerManager.pause()
+
+        val dialog = FullscreenVideoDialog.newInstance(url, fileName, position, isPlaying)
+        dialog.show(parentFragmentManager, "fullscreen_video")
+    }
+
+    private fun enterFullscreen() {}
+
+    private fun exitFullscreen() {}
 
     private fun updateVideoSize() {
         val videoSize = videoPlayerManager.player?.videoSize ?: return
@@ -870,9 +939,22 @@ class PostDetailFragment : Fragment() {
         return container
     }
 
-    private fun isVideoFile(path: String): Boolean {
-        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts")
-        return videoExtensions.any { path.lowercase().endsWith(it) }
+    private fun isVideoFile(path: String?, name: String? = null): Boolean {
+        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts", ".flv", ".wmv", ".ogv", ".m4a")
+        val lowerPath = path?.lowercase().orEmpty()
+        val lowerName = name?.lowercase().orEmpty()
+        return videoExtensions.any { ext ->
+            lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+        }
+    }
+    
+    private fun isImageFile(path: String?, name: String? = null): Boolean {
+        val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
+        val lowerPath = path?.lowercase().orEmpty()
+        val lowerName = name?.lowercase().orEmpty()
+        return imageExtensions.any { ext ->
+            lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+        }
     }
 
     companion object {

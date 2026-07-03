@@ -122,6 +122,9 @@
     <string name="download">Download</string>
     <string name="fullscreen">Fullscreen</string>
     <string name="video_downloaded">Video saved to gallery</string>
+    <string name="downloading">Downloading...</string>
+    <string name="download_timeout">Download timeout</string>
+    <string name="network_error">Network error</string>
 
     <!-- Update Checker -->
     <string name="update_available_title">New version available</string>

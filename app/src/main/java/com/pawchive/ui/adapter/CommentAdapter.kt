@@ -30,14 +30,15 @@ class CommentAdapter(
     class CommentViewHolder(private val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(comment: Comment) {
             binding.tvCommenter.text = "User #${comment.commenter}"
-            binding.tvCommentDate.text = comment.published.split("T").firstOrNull() ?: ""
+            binding.tvCommentDate.text = comment.published?.split("T")?.firstOrNull() ?: ""
             
             // Render HTML content safely
+            val content = comment.content ?: ""
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                binding.tvCommentContent.text = Html.fromHtml(comment.content, Html.FROM_HTML_MODE_COMPACT)
+                binding.tvCommentContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
             } else {
-                @Suppress("DEPRECATION")
-                binding.tvCommentContent.text = Html.fromHtml(comment.content)
+                @Suppress("DEPRECATED")
+                binding.tvCommentContent.text = Html.fromHtml(content)
             }
         }
     }

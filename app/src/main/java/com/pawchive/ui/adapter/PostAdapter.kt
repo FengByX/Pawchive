@@ -84,7 +84,7 @@ class PostAdapter(
     inner class PostViewHolder(private val binding: ItemPostBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(post: Post) {
-            binding.tvTitle.text = post.title
+            binding.tvTitle.text = post.title ?: ""
             binding.tvCreatorName.text = CreatorNameCache.getCachedName(post.service, post.user) ?: post.user
             binding.tvService.text = post.service.uppercase()
             binding.tvDate.text = "Published: ${post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: "Unknown"}"
@@ -97,9 +97,18 @@ class PostAdapter(
             binding.tvPreview.text = if (plainText.length > 120) plainText.take(120) + "..." else plainText
 
             // Load thumbnail if main file or attachments are images
-            val imagePath = post.file?.path ?: post.attachments?.firstOrNull { 
-                it.path?.endsWith(".jpg", true) == true || it.path?.endsWith(".png", true) == true || it.path?.endsWith(".gif", true) == true || it.path?.endsWith(".webp", true) == true
-            }?.path
+            val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
+            
+            fun isImage(path: String?): Boolean {
+                val lowerPath = path?.lowercase().orEmpty()
+                return imageExtensions.any { ext -> lowerPath.endsWith(ext) }
+            }
+            
+            val imagePath = if (isImage(post.file?.path)) {
+                post.file?.path
+            } else {
+                post.attachments?.firstOrNull { isImage(it.path) }?.path
+            }
 
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE

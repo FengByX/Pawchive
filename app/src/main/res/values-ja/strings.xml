@@ -122,6 +122,9 @@
     <string name="download">ダウンロード</string>
     <string name="fullscreen">全画面</string>
     <string name="video_downloaded">動画をアルバムに保存しました</string>
+    <string name="downloading">ダウンロード中...</string>
+    <string name="download_timeout">ダウンロードタイムアウト</string>
+    <string name="network_error">ネットワークエラー</string>
 
     <!-- Update Checker -->
     <string name="update_available_title">新しいバージョンがあります</string>

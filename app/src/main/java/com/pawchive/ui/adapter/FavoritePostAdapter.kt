@@ -70,7 +70,7 @@ class FavoritePostAdapter(
     inner class FavoritePostViewHolder(private val binding: ItemPostBinding) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(post: FavoritePost) {
-            binding.tvTitle.text = post.title
+            binding.tvTitle.text = post.title ?: ""
             binding.tvCreatorName.text = post.user
             binding.tvService.text = post.service.uppercase()
             binding.tvDate.text = "Published: ${post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: "Unknown"}"

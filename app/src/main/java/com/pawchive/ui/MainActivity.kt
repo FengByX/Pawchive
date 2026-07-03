@@ -231,4 +231,10 @@ class MainActivity : AppCompatActivity() {
         @Suppress("DEPRECATION")
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupWindowInsets()
+        updateBottomNavVisibility()
+    }
 }
