@@ -31,6 +31,7 @@
     <!-- Errors -->
     <string name="error_not_logged_in">Not logged in</string>
     <string name="error_username_password_empty">Username and password cannot be empty</string>
+    <string name="error_auth_expired">Login has expired, please log in again</string>
 
     <!-- Toast Messages -->
     <string name="toast_logged_out">Logged out</string>

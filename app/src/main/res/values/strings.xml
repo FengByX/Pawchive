@@ -31,6 +31,7 @@
     <!-- Errors -->
     <string name="error_not_logged_in">未登录</string>
     <string name="error_username_password_empty">用户名和密码不能为空</string>
+    <string name="error_auth_expired">登录已失效，请重新登录</string>
 
     <!-- Toast Messages -->
     <string name="toast_logged_out">已登出</string>

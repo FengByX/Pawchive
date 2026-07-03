@@ -31,6 +31,7 @@
     <!-- Errors -->
     <string name="error_not_logged_in">未ログイン</string>
     <string name="error_username_password_empty">ユーザー名とパスワードは空にできません</string>
+    <string name="error_auth_expired">ログインが期限切れです。再度ログインしてください</string>
 
     <!-- Toast Messages -->
     <string name="toast_logged_out">ログアウトしました</string>

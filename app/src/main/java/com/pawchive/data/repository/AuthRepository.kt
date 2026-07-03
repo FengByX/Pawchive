@@ -26,22 +26,21 @@ class AuthRepository(private val context: Context) {
                 val loginApi = ApiClient.loginApi
                 val response = loginApi.login(username, password)
 
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(Exception("登录失败，HTTP ${response.code()}"))
+                }
+
                 val cookies = response.headers().values("Set-Cookie")
                 val sessionCookie = cookies.find { it.startsWith("session=") }
                     ?.substringAfter("session=")
                     ?.substringBefore(";")
 
-                if (sessionCookie != null) {
+                if (!sessionCookie.isNullOrEmpty()) {
                     sessionManager.saveSession(sessionCookie)
                     sessionManager.saveUsername(username)
                     Result.success(username)
                 } else {
-                    val isRedirect = response.code() in 300..399
-                    if (isRedirect) {
-                        Result.failure(Exception("登录成功但未找到 session cookie"))
-                    } else {
-                        Result.failure(Exception("登录失败，请检查用户名和密码"))
-                    }
+                    Result.failure(Exception("登录失败，服务器未返回 session cookie"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -185,12 +184,18 @@ class AuthRepository(private val context: Context) {
             is ApiResult.Error.NetworkError -> Result.failure(
                 Exception(apiResult.message, apiResult.cause)
             )
-            is ApiResult.Error.AuthError -> Result.failure(
-                Exception(apiResult.message)
-            )
-            is ApiResult.Error.ServerError -> Result.failure(
-                Exception("HTTP ${apiResult.code}: ${apiResult.message}")
-            )
+            is ApiResult.Error.AuthError -> {
+                sessionManager.clearSession()
+                Result.failure(Exception(context.getString(R.string.error_auth_expired)))
+            }
+            is ApiResult.Error.ServerError -> {
+                if (apiResult.code == 401) {
+                    sessionManager.clearSession()
+                    Result.failure(Exception(context.getString(R.string.error_auth_expired)))
+                } else {
+                    Result.failure(Exception("HTTP ${apiResult.code}: ${apiResult.message}"))
+                }
+            }
             is ApiResult.Error.UnknownError -> Result.failure(
                 apiResult.cause
             )
