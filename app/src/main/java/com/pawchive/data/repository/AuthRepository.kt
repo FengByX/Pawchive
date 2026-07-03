@@ -19,6 +19,8 @@ class AuthRepository(private val context: Context) {
 
     /**
      * 登录并提取 session cookie
+     * Pawchive 使用 Flask session，无论登录成功或失败都会返回 302 + Set-Cookie
+     * 区分方式：检查 Location 头，重定向到首页 / 表示成功，重定向回 /account/login 表示失败
      */
     suspend fun login(username: String, password: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -26,22 +28,29 @@ class AuthRepository(private val context: Context) {
                 val loginApi = ApiClient.loginApi
                 val response = loginApi.login(username, password)
 
+                // 检查响应码（必须是重定向）
+                if (response.code() != 302) {
+                    return@withContext Result.failure(Exception("登录失败，HTTP ${response.code()}"))
+                }
+
+                // 检查重定向目标：重定向到首页表示成功，回到登录页表示失败
+                val locationHeader = response.headers()["Location"]
+                if (locationHeader != null && locationHeader.contains("/account/login")) {
+                    return@withContext Result.failure(Exception("用户名或密码错误"))
+                }
+
+                // 提取 session cookie
                 val cookies = response.headers().values("Set-Cookie")
                 val sessionCookie = cookies.find { it.startsWith("session=") }
                     ?.substringAfter("session=")
                     ?.substringBefore(";")
 
-                // 登录接口 followRedirects=false，服务器成功登录后返回 302 重定向到首页
-                // 因此 2xx 和 3xx 都可能是成功响应，关键看是否有有效的 session cookie
-                val isRedirect = response.code() in 300..399
-                val isSuccessResponse = response.isSuccessful || isRedirect
-
-                if (!sessionCookie.isNullOrEmpty() && isSuccessResponse) {
+                if (!sessionCookie.isNullOrEmpty()) {
                     sessionManager.saveSession(sessionCookie)
                     sessionManager.saveUsername(username)
                     Result.success(username)
                 } else {
-                    Result.failure(Exception("登录失败，请检查用户名和密码"))
+                    Result.failure(Exception("登录失败，服务器未返回 session cookie"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
