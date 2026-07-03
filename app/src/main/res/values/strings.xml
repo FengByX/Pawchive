@@ -132,4 +132,7 @@
     <string name="update_latest_version">最新版本：%1$s</string>
     <string name="update_go_download">前往下载</string>
     <string name="update_later">稍后再说</string>
+    <string name="check_for_updates">检查更新</string>
+    <string name="update_already_latest">已是最新版本</string>
+    <string name="update_check_failed">检查更新失败</string>
 </resources>

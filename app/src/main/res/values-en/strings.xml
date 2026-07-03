@@ -132,4 +132,7 @@
     <string name="update_latest_version">Latest: %1$s</string>
     <string name="update_go_download">Go to Download</string>
     <string name="update_later">Later</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="update_already_latest">Already up to date</string>
+    <string name="update_check_failed">Update check failed</string>
 </resources>

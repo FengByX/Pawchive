@@ -74,6 +74,18 @@
             android:textSize="16sp"
             app:cornerRadius="12dp"
             app:icon="@android:drawable/ic_menu_preferences"
+            app:iconGravity="textStart"
+            android:layout_marginBottom="16dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_check_update_logged_out"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/check_for_updates"
+            android:textSize="16sp"
+            app:cornerRadius="12dp"
+            app:icon="@android:drawable/ic_menu_upload"
             app:iconGravity="textStart"/>
 
     </LinearLayout>
@@ -176,6 +188,18 @@
             android:textSize="16sp"
             app:cornerRadius="12dp"
             app:icon="@android:drawable/ic_menu_preferences"
+            app:iconGravity="textStart"
+            android:layout_marginBottom="16dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_check_update"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/check_for_updates"
+            android:textSize="16sp"
+            app:cornerRadius="12dp"
+            app:icon="@android:drawable/ic_menu_upload"
             app:iconGravity="textStart"/>
 
     </LinearLayout>

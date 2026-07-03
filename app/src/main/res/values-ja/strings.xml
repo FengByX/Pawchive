@@ -132,4 +132,7 @@
     <string name="update_latest_version">最新バージョン：%1$s</string>
     <string name="update_go_download">ダウンロードへ</string>
     <string name="update_later">後で</string>
+    <string name="check_for_updates">アップデート確認</string>
+    <string name="update_already_latest">最新バージョンです</string>
+    <string name="update_check_failed">アップデート確認に失敗しました</string>
 </resources>
