@@ -18,12 +18,14 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import coil.load
 import com.pawchive.R
-import com.pawchive.data.api.PawchiveApi
 import com.pawchive.data.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
@@ -38,10 +40,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import java.io.File
 import java.io.FileOutputStream
@@ -53,22 +51,20 @@ class PostDetailFragment : Fragment() {
     private var _binding: FragmentPostDetailBinding? = null
     private val binding get() = _binding!!
 
-    private val api = PawchiveApi.create()
+    private val viewModel: PostDetailViewModel by viewModels()
+
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
     private lateinit var commentAdapter: CommentAdapter
+    private lateinit var videoPlayerManager: VideoPlayerManager
 
     private var service: String = ""
     private var creatorId: String = ""
     private var postId: String = ""
 
     private var currentPost: Post? = null
-    
     private var videoList = mutableListOf<Pair<String, String>>()
     private var currentVideoIndex = 0
-    
-    private var player: ExoPlayer? = null
-    private var isPlayerInitialized = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,47 +83,50 @@ class PostDetailFragment : Fragment() {
         return binding.root
     }
 
+    @OptIn(UnstableApi::class)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bookmarkManager = BookmarkManager(requireContext())
         authRepository = AuthRepository(requireContext())
+        videoPlayerManager = VideoPlayerManager(requireContext())
 
         binding.btnBack.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
-        setupVideoPlayer()
         setupCommentsRecyclerView()
+        setupVideoPlayer()
+        observeUiState()
         loadPostDetails()
     }
 
     override fun onStart() {
         super.onStart()
         if (binding.videoPlayerContainer.visibility == View.VISIBLE) {
-            initializePlayer()
+            videoPlayerManager.attachPlayerView(binding.playerView)
         }
     }
 
     override fun onResume() {
         super.onResume()
         if (binding.videoPlayerContainer.visibility == View.VISIBLE) {
-            player?.play()
+            videoPlayerManager.resume()
         }
     }
 
     override fun onPause() {
         super.onPause()
-        player?.pause()
+        videoPlayerManager.pause()
     }
 
     override fun onStop() {
         super.onStop()
-        releasePlayer()
+        videoPlayerManager.release()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        releasePlayer()
+        videoPlayerManager.release()
         _binding = null
     }
 
@@ -137,22 +136,33 @@ class PostDetailFragment : Fragment() {
         binding.rvComments.adapter = commentAdapter
     }
 
-    private fun loadPostDetails() {
+    private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val post = api.getPostDetails(service, creatorId, postId)
-                currentPost = post
-                displayPost(post)
-                setupBookmarkButton(post)
-                setupNavigationButtons(post)
-                loadComments()
-                loadRevisions()
-                binding.nestedScrollView.scrollTo(0, 0)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "Error fetching post details: ${e.message}", Toast.LENGTH_SHORT).show()
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    if (state.isLoading) {
+                    } else if (state.errorMessage != null) {
+                        Toast.makeText(context, "Error fetching post details: ${state.errorMessage}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        state.post?.let { post ->
+                            currentPost = post
+                            videoList = state.videoList.toMutableList()
+                            currentVideoIndex = state.currentVideoIndex
+                            displayPost(post)
+                            setupBookmarkButton(post)
+                            setupNavigationButtons(post)
+                            displayComments(state.comments)
+                            displayRevisions(state.revisions)
+                            binding.nestedScrollView.scrollTo(0, 0)
+                        }
+                    }
+                }
             }
         }
+    }
+
+    private fun loadPostDetails() {
+        viewModel.loadPostDetails(service, creatorId, postId)
     }
 
     private fun displayPost(post: Post) {
@@ -198,14 +208,12 @@ class PostDetailFragment : Fragment() {
         if (!filePath.isNullOrEmpty()) {
             val fullUrl = "https://file.pawchive.st/data$filePath"
             if (isVideoFile(filePath)) {
-                videoList.add(Pair(fullUrl, post.file?.name ?: "video.mp4"))
-                
                 binding.imageCard.visibility = View.VISIBLE
                 (binding.imageCard as ViewGroup).removeAllViews()
-                
+
                 val isDarkMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
                 val paddingPx = (16 * resources.displayMetrics.density).toInt()
-                
+
                 val innerLayout = android.widget.LinearLayout(requireContext()).apply {
                     orientation = android.widget.LinearLayout.HORIZONTAL
                     layoutParams = android.widget.FrameLayout.LayoutParams(
@@ -215,7 +223,7 @@ class PostDetailFragment : Fragment() {
                     setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
                     gravity = android.view.Gravity.CENTER_VERTICAL
                 }
-                
+
                 val playIcon = ImageView(requireContext()).apply {
                     layoutParams = android.widget.LinearLayout.LayoutParams(32, 32).apply {
                         marginEnd = (12 * resources.displayMetrics.density).toInt()
@@ -229,7 +237,7 @@ class PostDetailFragment : Fragment() {
                     )
                 }
                 innerLayout.addView(playIcon)
-                
+
                 val nameTextView = TextView(requireContext()).apply {
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         0,
@@ -246,7 +254,7 @@ class PostDetailFragment : Fragment() {
                     )
                 }
                 innerLayout.addView(nameTextView)
-                
+
                 val hintTextView = TextView(requireContext()).apply {
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -262,9 +270,9 @@ class PostDetailFragment : Fragment() {
                     )
                 }
                 innerLayout.addView(hintTextView)
-                
+
                 (binding.imageCard as ViewGroup).addView(innerLayout)
-                
+
                 binding.imageCard.setOnClickListener {
                     playVideoAtIndex(0)
                 }
@@ -290,19 +298,19 @@ class PostDetailFragment : Fragment() {
 
             val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
             val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts")
-            
+
             val imageAttachments = attachments.filter { att ->
                 imageExtensions.any { ext ->
                     att.path?.endsWith(ext, true) == true
                 }
             }
-            
+
             val videoAttachments = attachments.filter { att ->
                 videoExtensions.any { ext ->
                     att.path?.endsWith(ext, true) == true
                 }
             }
-            
+
             val otherAttachments = attachments.filterNot { att ->
                 imageExtensions.any { ext -> att.path?.endsWith(ext, true) == true } ||
                 videoExtensions.any { ext -> att.path?.endsWith(ext, true) == true }
@@ -342,14 +350,15 @@ class PostDetailFragment : Fragment() {
                 }
                 binding.layoutAttachments.addView(videoHeader)
 
-                for (attachment in videoAttachments) {
-                    val fullUrl = "https://file.pawchive.st/data${attachment.path}"
-                    videoList.add(Pair(fullUrl, attachment.name ?: "video.mp4"))
-                }
+                var videoIndexOffset = if (post.file?.path?.let { isVideoFile(it) } == true) 1 else 0
 
                 for ((index, attachment) in videoAttachments.withIndex()) {
                     val fullUrl = "https://file.pawchive.st/data${attachment.path}"
-                    val videoItemView = createVideoAttachmentItem(fullUrl, attachment.name ?: "video.mp4", videoList.size - videoAttachments.size + index)
+                    val videoItemView = createVideoAttachmentItem(
+                        fullUrl,
+                        attachment.name ?: "video.mp4",
+                        videoIndexOffset + index
+                    )
                     binding.layoutAttachments.addView(videoItemView)
                 }
             }
@@ -384,6 +393,32 @@ class PostDetailFragment : Fragment() {
         }
     }
 
+    private fun displayComments(comments: List<com.pawchive.data.model.Comment>) {
+        if (comments.isNotEmpty()) {
+            binding.tvCommentsHeader.visibility = View.VISIBLE
+            commentAdapter = CommentAdapter(comments)
+            binding.rvComments.adapter = commentAdapter
+        }
+    }
+
+    private fun displayRevisions(revisions: List<com.pawchive.data.model.PostRevision>) {
+        if (revisions.isNotEmpty()) {
+            binding.tvRevisionsHeader.visibility = View.VISIBLE
+            binding.layoutRevisions.removeAllViews()
+            for (revision in revisions) {
+                val textView = TextView(requireContext()).apply {
+                    text = "Revision #${revision.revisionId} - ${revision.added?.split("T")?.firstOrNull() ?: ""}"
+                    setTextColor(resources.getColor(R.color.text_secondary, null))
+                    textSize = 13f
+                    setPadding(0, 8, 0, 8)
+                    background = resources.getDrawable(R.drawable.comment_bg, null)
+                    setPadding(12, 12, 12, 12)
+                }
+                binding.layoutRevisions.addView(textView)
+            }
+        }
+    }
+
     private fun openImageViewer(imageUrl: String, imageName: String) {
         val fragment = PhotoViewerFragment.newInstance(imageUrl, imageName)
         (activity as? MainActivity)?.loadFragment(fragment)
@@ -391,7 +426,7 @@ class PostDetailFragment : Fragment() {
 
     private fun setServiceBadgeColor(service: String) {
         val isDarkMode = (requireContext().resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        
+
         val (bgColorRes, textColorRes) = when (service.lowercase()) {
             "patreon" -> if (isDarkMode) {
                 (R.color.patreon_bg_dark to R.color.patreon_text_dark)
@@ -409,24 +444,25 @@ class PostDetailFragment : Fragment() {
                 (R.color.service_bg_default_light to R.color.service_text_default_light)
             }
         }
-        
+
         binding.cardPostService.setCardBackgroundColor(requireContext().getColor(bgColorRes))
         binding.tvPostService.setTextColor(requireContext().getColor(textColorRes))
     }
 
     private fun setupBookmarkButton(post: Post) {
         val isBookmarked = bookmarkManager.isPostBookmarked(service, creatorId, postId)
+        viewModel.setBookmarked(isBookmarked)
         updateBookmarkIcon(isBookmarked)
 
         binding.btnPostBookmark.setOnClickListener {
             val newStatus = !bookmarkManager.isPostBookmarked(service, creatorId, postId)
-            
+
             if (newStatus) {
                 bookmarkManager.bookmarkPost(post)
             } else {
                 bookmarkManager.unbookmarkPost(service, creatorId, postId)
             }
-            
+
             if (authRepository.isLoggedIn()) {
                 viewLifecycleOwner.lifecycleScope.launch {
                     val result = if (newStatus) {
@@ -434,7 +470,7 @@ class PostDetailFragment : Fragment() {
                     } else {
                         authRepository.removePostFromFavorites(service, creatorId, postId)
                     }
-                    
+
                     if (result.isFailure) {
                         Toast.makeText(context, "同步失败: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                         if (newStatus) {
@@ -448,7 +484,8 @@ class PostDetailFragment : Fragment() {
                     }
                 }
             }
-            
+
+            viewModel.setBookmarked(newStatus)
             updateBookmarkIcon(newStatus)
             Toast.makeText(
                 context,
@@ -465,6 +502,9 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun setupNavigationButtons(post: Post) {
+        binding.btnPrevPost.visibility = View.GONE
+        binding.btnNextPost.visibility = View.GONE
+
         post.prev?.let { prevId ->
             if (prevId.isNotEmpty() && prevId != "null") {
                 binding.btnPrevPost.visibility = View.VISIBLE
@@ -486,80 +526,21 @@ class PostDetailFragment : Fragment() {
         }
     }
 
-    private fun loadRevisions() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val revisions = api.getPostRevisions(service, creatorId, postId)
-                if (revisions.isNotEmpty()) {
-                    binding.tvRevisionsHeader.visibility = View.VISIBLE
-                    binding.layoutRevisions.removeAllViews()
-                    for (revision in revisions) {
-                        val textView = TextView(requireContext()).apply {
-                            text = "Revision #${revision.revisionId} - ${revision.added?.split("T")?.firstOrNull() ?: ""}"
-                            setTextColor(resources.getColor(R.color.text_secondary, null))
-                            textSize = 13f
-                            setPadding(0, 8, 0, 8)
-                            background = resources.getDrawable(R.drawable.comment_bg, null)
-                            setPadding(12, 12, 12, 12)
-                        }
-                        binding.layoutRevisions.addView(textView)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun loadComments() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val comments = api.getPostComments(service, creatorId, postId)
-                if (comments.isNotEmpty()) {
-                    binding.tvCommentsHeader.visibility = View.VISIBLE
-                    commentAdapter = CommentAdapter(comments)
-                    binding.rvComments.adapter = commentAdapter
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    /**
-     * 初始化 ExoPlayer
-     */
-    @OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun initializePlayer() {
-        if (player != null) return
-        
-        val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
-                level = okhttp3.logging.HttpLoggingInterceptor.Level.BASIC
-            })
-            .build()
-        
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        
-        player = ExoPlayer.Builder(requireContext())
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
-            .build()
-        
-        binding.playerView.player = player
-        
-        player?.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
+    @OptIn(UnstableApi::class)
+    private fun setupVideoPlayer() {
+        videoPlayerManager.setListener(object : VideoPlayerManager.VideoPlayerListener {
+            override fun onPlaybackStateChanged(state: Int) {
+                when (state) {
                     Player.STATE_BUFFERING -> {
                         binding.videoLoadingProgress.visibility = View.VISIBLE
                     }
                     Player.STATE_READY -> {
                         binding.videoLoadingProgress.visibility = View.GONE
                         binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-                        val duration = player?.duration ?: 0
+                        val duration = videoPlayerManager.duration
                         if (duration > 0) {
                             binding.seekbarVideo.max = duration.toInt()
-                            binding.tvDuration.text = formatTime(duration.toInt())
+                            binding.tvDuration.text = videoPlayerManager.formatTime(duration.toInt())
                         }
                         updateVideoSize()
                     }
@@ -570,116 +551,75 @@ class PostDetailFragment : Fragment() {
                     }
                 }
             }
-            
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 binding.btnPlayPause.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
             }
-            
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
+
+            override fun onVideoSizeChanged(width: Int, height: Int) {
                 updateVideoSize()
             }
-            
-            override fun onPlayerError(error: PlaybackException) {
-                super.onPlayerError(error)
+
+            override fun onError(message: String) {
                 binding.videoLoadingProgress.visibility = View.GONE
-                Toast.makeText(context, "${getString(R.string.video_play_failed)}: ${error.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "${getString(R.string.video_play_failed)}: $message", Toast.LENGTH_SHORT).show()
             }
         })
-        
-        isPlayerInitialized = true
-    }
 
-    @OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun updateVideoSize() {
-        val videoSize = player?.videoSize ?: return
-        val videoWidth = videoSize.width
-        val videoHeight = videoSize.height
-        
-        if (videoWidth <= 0 || videoHeight <= 0) return
-        
-        val screenWidth = resources.displayMetrics.widthPixels
-        val maxHeight = (240 * resources.displayMetrics.density).toInt()
-        
-        val calculatedHeight = (screenWidth.toFloat() / videoWidth * videoHeight).toInt()
-        val finalHeight = minOf(calculatedHeight, maxHeight)
-        
-        val frameLp = binding.videoDisplayFrame.layoutParams
-        frameLp.height = finalHeight
-        binding.videoDisplayFrame.layoutParams = frameLp
-        
-        val playerViewLp = binding.playerView.layoutParams as android.widget.FrameLayout.LayoutParams
-        playerViewLp.width = android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-        playerViewLp.height = android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-        playerViewLp.gravity = android.view.Gravity.CENTER
-        binding.playerView.layoutParams = playerViewLp
-    }
-
-    @OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun releasePlayer() {
-        player?.release()
-        player = null
-        isPlayerInitialized = false
-    }
-
-    /**
-     * 设置视频播放器控件
-     */
-    private fun setupVideoPlayer() {
         binding.btnPlayPause.setOnClickListener {
-            player?.let {
-                if (it.isPlaying) {
-                    it.pause()
-                } else {
-                    it.play()
-                }
+            if (videoPlayerManager.isPlaying) {
+                videoPlayerManager.pause()
+            } else {
+                videoPlayerManager.resume()
             }
         }
-        
+
         binding.videoPlayButton.setOnClickListener {
-            player?.play()
+            videoPlayerManager.resume()
             binding.videoPlayButton.visibility = View.GONE
         }
-        
+
         binding.btnCloseVideo.setOnClickListener {
             stopAndHideVideoPlayer()
         }
-        
+
         binding.seekbarVideo.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    player?.seekTo(progress.toLong())
-                    binding.tvCurrentTime.text = formatTime(progress)
+                    videoPlayerManager.seekTo(progress.toLong())
+                    binding.tvCurrentTime.text = videoPlayerManager.formatTime(progress)
                 }
             }
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
         })
-        
+
         binding.btnSpeed.setOnClickListener {
             showSpeedDialog()
         }
-        
+
         binding.btnCast.setOnClickListener {
             Toast.makeText(context, getString(R.string.cast), Toast.LENGTH_SHORT).show()
         }
-        
+
         binding.btnDownload.setOnClickListener {
             downloadCurrentVideo()
         }
-        
+
         binding.btnFullscreen.setOnClickListener {
             Toast.makeText(context, getString(R.string.fullscreen), Toast.LENGTH_SHORT).show()
         }
-        
+
         viewLifecycleOwner.lifecycleScope.launch {
             while (true) {
-                if (player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
-                    val currentPos = player?.currentPosition ?: 0
-                    val bufferedPos = player?.bufferedPosition ?: 0
-                    
+                if (videoPlayerManager.player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
+                    videoPlayerManager.updateCurrentPosition()
+                    val currentPos = videoPlayerManager.currentPosition
+                    val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
+
                     binding.seekbarVideo.progress = currentPos.toInt()
-                    binding.tvCurrentTime.text = formatTime(currentPos.toInt())
-                    
+                    binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos.toInt())
+
                     binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
                 }
                 kotlinx.coroutines.delay(500)
@@ -687,54 +627,48 @@ class PostDetailFragment : Fragment() {
         }
     }
 
-    /**
-     * 显示倍速选择对话框
-     */
     private fun showSpeedDialog() {
         val speeds = arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
         val speedValues = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
-        
-        val currentSpeed = player?.playbackParameters?.speed ?: 1.0f
+
+        val currentSpeed = videoPlayerManager.playbackSpeed
         val currentIndex = speedValues.indexOfFirst { it == currentSpeed }.takeIf { it >= 0 } ?: 2
-        
+
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.speed))
             .setSingleChoiceItems(speeds, currentIndex) { dialog, which ->
-                player?.setPlaybackParameters(PlaybackParameters(speedValues[which]))
+                videoPlayerManager.setPlaybackSpeed(speedValues[which])
                 dialog.dismiss()
             }
             .show()
     }
 
-    /**
-     * 下载当前视频到系统相册
-     */
     private fun downloadCurrentVideo() {
         if (currentVideoIndex >= videoList.size) return
-        
+
         val (url, fileName) = videoList[currentVideoIndex]
-        
+
         Toast.makeText(context, getString(R.string.saving_image), Toast.LENGTH_SHORT).show()
-        
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val okHttpClient = OkHttpClient.Builder()
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(120, TimeUnit.SECONDS)
                     .build()
-                
+
                 val request = Request.Builder()
                     .url(url)
                     .build()
-                
+
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
                     throw Exception("HTTP ${response.code}")
                 }
-                
+
                 val inputStream = response.body?.byteStream()
                     ?: throw Exception("Empty response body")
-                
+
                 val mimeType = when {
                     fileName.endsWith(".mp4", true) -> "video/mp4"
                     fileName.endsWith(".webm", true) -> "video/webm"
@@ -743,7 +677,7 @@ class PostDetailFragment : Fragment() {
                     fileName.endsWith(".avi", true) -> "video/x-msvideo"
                     else -> "video/mp4"
                 }
-                
+
                 val contentValues = ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                     put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
@@ -752,14 +686,14 @@ class PostDetailFragment : Fragment() {
                         put(MediaStore.MediaColumns.IS_PENDING, 1)
                     }
                 }
-                
+
                 val resolver = requireContext().contentResolver
                 val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                 } else {
                     MediaStore.Video.Media.EXTERNAL_CONTENT_URI
                 }
-                
+
                 val uri = resolver.insert(collection, contentValues)
                 if (uri != null) {
                     resolver.openOutputStream(uri)?.use { outputStream ->
@@ -793,47 +727,60 @@ class PostDetailFragment : Fragment() {
         }
     }
 
-    /**
-     * 播放指定视频
-     */
+    @OptIn(UnstableApi::class)
     private fun playVideoAtIndex(index: Int) {
         if (index < 0 || index >= videoList.size) return
-        
+
         currentVideoIndex = index
+        viewModel.setCurrentVideoIndex(index)
         val (url, fileName) = videoList[index]
-        
+
         binding.videoPlayerContainer.visibility = View.VISIBLE
         binding.videoLoadingProgress.visibility = View.VISIBLE
         binding.videoPlayButton.visibility = View.GONE
         binding.tvVideoName.text = fileName
         binding.tvVideoCount.text = "${index + 1}/${videoList.size}"
-        
-        initializePlayer()
-        
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
-        player?.play()
-        
+
+        videoPlayerManager.attachPlayerView(binding.playerView)
+        videoPlayerManager.play(url)
+
         binding.nestedScrollView.post {
             binding.nestedScrollView.scrollTo(0, 0)
         }
     }
 
-    /**
-     * 停止并隐藏视频播放器
-     */
     private fun stopAndHideVideoPlayer() {
-        player?.stop()
+        videoPlayerManager.stop()
         binding.videoPlayerContainer.visibility = View.GONE
     }
 
-    /**
-     * 创建视频附件项视图
-     */
+    private fun updateVideoSize() {
+        val videoSize = videoPlayerManager.player?.videoSize ?: return
+        val videoWidth = videoSize.width
+        val videoHeight = videoSize.height
+
+        if (videoWidth <= 0 || videoHeight <= 0) return
+
+        val screenWidth = resources.displayMetrics.widthPixels
+        val maxHeight = (240 * resources.displayMetrics.density).toInt()
+
+        val calculatedHeight = (screenWidth.toFloat() / videoWidth * videoHeight).toInt()
+        val finalHeight = minOf(calculatedHeight, maxHeight)
+
+        val frameLp = binding.videoDisplayFrame.layoutParams
+        frameLp.height = finalHeight
+        binding.videoDisplayFrame.layoutParams = frameLp
+
+        val playerViewLp = binding.playerView.layoutParams as android.widget.FrameLayout.LayoutParams
+        playerViewLp.width = android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        playerViewLp.height = android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        playerViewLp.gravity = android.view.Gravity.CENTER
+        binding.playerView.layoutParams = playerViewLp
+    }
+
     private fun createVideoAttachmentItem(url: String, fileName: String, index: Int): View {
         val isDarkMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        
+
         val container = com.google.android.material.card.MaterialCardView(requireContext()).apply {
             layoutParams = ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -855,7 +802,7 @@ class PostDetailFragment : Fragment() {
                 )
             )
         }
-        
+
         val paddingPx = (16 * resources.displayMetrics.density).toInt()
         val innerLayout = android.widget.LinearLayout(requireContext()).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
@@ -866,7 +813,7 @@ class PostDetailFragment : Fragment() {
             setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
-        
+
         val playIcon = ImageView(requireContext()).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(32, 32).apply {
                 marginEnd = (12 * resources.displayMetrics.density).toInt()
@@ -880,7 +827,7 @@ class PostDetailFragment : Fragment() {
             )
         }
         innerLayout.addView(playIcon)
-        
+
         val nameTextView = TextView(requireContext()).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 0,
@@ -897,7 +844,7 @@ class PostDetailFragment : Fragment() {
             )
         }
         innerLayout.addView(nameTextView)
-        
+
         val countTextView = TextView(requireContext()).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -913,31 +860,19 @@ class PostDetailFragment : Fragment() {
             )
         }
         innerLayout.addView(countTextView)
-        
+
         container.addView(innerLayout)
-        
+
         container.setOnClickListener {
             playVideoAtIndex(index)
         }
-        
+
         return container
     }
 
-    /**
-     * 判断是否为视频文件
-     */
     private fun isVideoFile(path: String): Boolean {
         val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts")
         return videoExtensions.any { path.lowercase().endsWith(it) }
-    }
-
-    /**
-     * 格式化时间
-     */
-    private fun formatTime(ms: Int): String {
-        val seconds = (ms / 1000) % 60
-        val minutes = (ms / 1000) / 60
-        return String.format("%02d:%02d", minutes, seconds)
     }
 
     companion object {

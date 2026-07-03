@@ -2,18 +2,40 @@ package com.pawchive.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 /**
  * 管理 Pawchive 会话和认证状态
- * 使用 SharedPreferences 存储 session cookie
+ * 使用 EncryptedSharedPreferences 存储 session cookie，加密初始化失败时回退到普通 SharedPreferences
  */
 class SessionManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("pawchive_session", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = createEncryptedPrefs(context)
+        ?: context.getSharedPreferences("pawchive_session", Context.MODE_PRIVATE)
 
     companion object {
+        private const val PREFS_FILE_NAME = "pawchive_session"
         private const val KEY_SESSION_COOKIE = "session_cookie"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USERNAME = "username"
+
+        private fun createEncryptedPrefs(context: Context): SharedPreferences? {
+            return try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+
+                EncryptedSharedPreferences.create(
+                    context,
+                    PREFS_FILE_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     /**

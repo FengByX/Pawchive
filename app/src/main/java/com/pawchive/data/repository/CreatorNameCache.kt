@@ -1,6 +1,6 @@
 package com.pawchive.data.repository
 
-import com.pawchive.data.api.PawchiveApi
+import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -48,5 +48,5 @@ object CreatorNameCache {
         cache.clear()
     }
 
-    private val api = PawchiveApi.create()
+    private val api = ApiClient.publicApi
 }

@@ -13,7 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.pawchive.R
-import com.pawchive.data.api.PawchiveApi
+import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Creator
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
@@ -36,7 +36,7 @@ class SearchFragment : Fragment() {
         private const val KEY_SEARCHING_POSTS = "searching_posts"
     }
 
-    private val api = PawchiveApi.create()
+    private val api = ApiClient.publicApi
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
 

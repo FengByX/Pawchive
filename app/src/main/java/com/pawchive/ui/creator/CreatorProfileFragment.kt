@@ -13,7 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
 import com.pawchive.R
-import com.pawchive.data.api.PawchiveApi
+import com.pawchive.data.api.ApiClient
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.data.repository.CreatorNameCache
@@ -31,7 +31,7 @@ class CreatorProfileFragment : Fragment() {
     private lateinit var postAdapter: PostAdapter
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
-    private val api = PawchiveApi.create()
+    private val api = ApiClient.publicApi
 
     private var service: String = ""
     private var creatorId: String = ""

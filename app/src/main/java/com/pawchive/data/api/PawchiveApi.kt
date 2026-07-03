@@ -11,11 +11,6 @@ import com.pawchive.data.model.FileSearchResult
 import com.pawchive.data.model.Post
 import com.pawchive.data.model.PostRevision
 import com.pawchive.data.model.User
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Call
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.Field
@@ -24,7 +19,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import java.util.concurrent.TimeUnit
 
 interface PawchiveApi {
 
@@ -176,65 +170,6 @@ interface PawchiveApi {
         @Path("service") service: String,
         @Path("creator_id") creatorId: String
     ): Response<Void>
-
-    companion object {
-        private const val BASE_URL = "https://pawchive.st/api/v1/"
-
-        private fun createOkHttpClient(vararg interceptors: okhttp3.Interceptor): OkHttpClient {
-            return OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .callTimeout(60, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(true)
-                .followRedirects(true)
-                .followSslRedirects(true)
-                .apply {
-                    interceptors.forEach { addInterceptor(it) }
-                }
-                .build()
-        }
-
-        fun create(): PawchiveApi {
-            val logger = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.NONE
-            }
-
-            val client = createOkHttpClient(logger)
-
-            return Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(PawchiveApi::class.java)
-        }
-
-        /**
-         * 创建带有 session cookie 认证的 API 客户端
-         */
-        fun createWithSession(sessionCookie: String): PawchiveApi {
-            val logger = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.NONE
-            }
-
-            val cookieInterceptor = okhttp3.Interceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Cookie", "session=$sessionCookie")
-                    .build()
-                chain.proceed(request)
-            }
-
-            val client = createOkHttpClient(cookieInterceptor, logger)
-
-            return Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(PawchiveApi::class.java)
-        }
-    }
 }
 
 /**
@@ -243,26 +178,9 @@ interface PawchiveApi {
 interface PawchiveLoginApi {
     @FormUrlEncoded
     @POST("account/login")
-    fun login(
+    suspend fun login(
         @Field("username") username: String,
         @Field("password") password: String,
         @Field("location") location: String = ""
-    ): Call<Void>
-
-    companion object {
-        private const val BASE_URL = "https://pawchive.st/"
-
-        fun create(): PawchiveLoginApi {
-            val client = OkHttpClient.Builder()
-                .followRedirects(false)
-                .build()
-
-            return Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(PawchiveLoginApi::class.java)
-        }
-    }
+    ): Response<Void>
 }

@@ -2,8 +2,10 @@ package com.pawchive.data.repository
 
 import android.content.Context
 import com.pawchive.R
+import com.pawchive.data.api.ApiCallHandler
+import com.pawchive.data.api.ApiClient
+import com.pawchive.data.api.ApiResult
 import com.pawchive.data.api.PawchiveApi
-import com.pawchive.data.api.PawchiveLoginApi
 import com.pawchive.data.model.FavoriteCreator
 import com.pawchive.data.model.FavoritePost
 import kotlinx.coroutines.Dispatchers
@@ -21,22 +23,19 @@ class AuthRepository(private val context: Context) {
     suspend fun login(username: String, password: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val loginApi = PawchiveLoginApi.create()
-                val response = loginApi.login(username, password).execute()
-                
-                // 登录成功后通常会重定向（302），我们从响应头中提取 cookie
+                val loginApi = ApiClient.loginApi
+                val response = loginApi.login(username, password)
+
                 val cookies = response.headers().values("Set-Cookie")
                 val sessionCookie = cookies.find { it.startsWith("session=") }
                     ?.substringAfter("session=")
                     ?.substringBefore(";")
-                
+
                 if (sessionCookie != null) {
                     sessionManager.saveSession(sessionCookie)
                     sessionManager.saveUsername(username)
                     Result.success(username)
                 } else {
-                    // 如果没有从 Set-Cookie 中获取到，可能是登录失败
-                    // 检查响应码，302 通常表示登录成功并重定向
                     val isRedirect = response.code() in 300..399
                     if (isRedirect) {
                         Result.failure(Exception("登录成功但未找到 session cookie"))
@@ -81,9 +80,9 @@ class AuthRepository(private val context: Context) {
     fun getAuthenticatedApi(): PawchiveApi {
         val cookie = sessionManager.getSessionCookie()
         return if (cookie != null) {
-            PawchiveApi.createWithSession(cookie)
+            ApiClient.authApi(cookie)
         } else {
-            PawchiveApi.create()
+            ApiClient.publicApi
         }
     }
 
@@ -92,15 +91,9 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun syncFavoritePosts(offset: Int? = null): Result<List<FavoritePost>> {
         return withContext(Dispatchers.IO) {
-            try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
-                }
-                val api = getAuthenticatedApi()
-                val favorites = api.getFavoritePosts(offset = offset)
-                Result.success(favorites)
-            } catch (e: Exception) {
-                Result.failure(e)
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallDirect { api.getFavoritePosts(offset = offset) }
+                apiResultToResult(result)
             }
         }
     }
@@ -110,15 +103,9 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun syncFavoriteCreators(): Result<List<FavoriteCreator>> {
         return withContext(Dispatchers.IO) {
-            try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
-                }
-                val api = getAuthenticatedApi()
-                val favorites = api.getFavoriteCreators()
-                Result.success(favorites)
-            } catch (e: Exception) {
-                Result.failure(e)
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallDirect { api.getFavoriteCreators() }
+                apiResultToResult(result)
             }
         }
     }
@@ -128,20 +115,11 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun addPostToFavorites(service: String, creatorId: String, postId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
-            try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallUnit {
+                    api.addPostToFavorites(service, creatorId, postId)
                 }
-                val api = getAuthenticatedApi()
-                val response = api.addPostToFavorites(service, creatorId, postId)
-                if (response.isSuccessful) {
-                    Result.success(Unit)
-                } else {
-                    val errorBody = response.errorBody()?.string()?.take(100) ?: ""
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()} $errorBody"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
+                apiResultToResult(result)
             }
         }
     }
@@ -151,20 +129,11 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun removePostFromFavorites(service: String, creatorId: String, postId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
-            try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallUnit {
+                    api.removePostFromFavorites(service, creatorId, postId)
                 }
-                val api = getAuthenticatedApi()
-                val response = api.removePostFromFavorites(service, creatorId, postId)
-                if (response.isSuccessful) {
-                    Result.success(Unit)
-                } else {
-                    val errorBody = response.errorBody()?.string()?.take(100) ?: ""
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()} $errorBody"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
+                apiResultToResult(result)
             }
         }
     }
@@ -174,20 +143,11 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun addCreatorToFavorites(service: String, creatorId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
-            try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallUnit {
+                    api.addCreatorToFavorites(service, creatorId)
                 }
-                val api = getAuthenticatedApi()
-                val response = api.addCreatorToFavorites(service, creatorId)
-                if (response.isSuccessful) {
-                    Result.success(Unit)
-                } else {
-                    val errorBody = response.errorBody()?.string()?.take(100) ?: ""
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()} $errorBody"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
+                apiResultToResult(result)
             }
         }
     }
@@ -197,21 +157,43 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun removeCreatorFromFavorites(service: String, creatorId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
+            ensureLoggedIn { api ->
+                val result = ApiCallHandler.safeApiCallUnit {
+                    api.removeCreatorFromFavorites(service, creatorId)
+                }
+                apiResultToResult(result)
+            }
+        }
+    }
+
+    private suspend fun <T> ensureLoggedIn(block: suspend (PawchiveApi) -> Result<T>): Result<T> {
+        return if (!sessionManager.isLoggedIn()) {
+            Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
+        } else {
             try {
-                if (!sessionManager.isLoggedIn()) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.error_not_logged_in)))
-                }
                 val api = getAuthenticatedApi()
-                val response = api.removeCreatorFromFavorites(service, creatorId)
-                if (response.isSuccessful) {
-                    Result.success(Unit)
-                } else {
-                    val errorBody = response.errorBody()?.string()?.take(100) ?: ""
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()} $errorBody"))
-                }
+                block(api)
             } catch (e: Exception) {
                 Result.failure(e)
             }
+        }
+    }
+
+    private fun <T> apiResultToResult(apiResult: ApiResult<T>): Result<T> {
+        return when (apiResult) {
+            is ApiResult.Success -> Result.success(apiResult.data)
+            is ApiResult.Error.NetworkError -> Result.failure(
+                Exception(apiResult.message, apiResult.cause)
+            )
+            is ApiResult.Error.AuthError -> Result.failure(
+                Exception(apiResult.message)
+            )
+            is ApiResult.Error.ServerError -> Result.failure(
+                Exception("HTTP ${apiResult.code}: ${apiResult.message}")
+            )
+            is ApiResult.Error.UnknownError -> Result.failure(
+                apiResult.cause
+            )
         }
     }
 }
