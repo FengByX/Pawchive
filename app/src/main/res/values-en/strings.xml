@@ -122,4 +122,11 @@
     <string name="download">Download</string>
     <string name="fullscreen">Fullscreen</string>
     <string name="video_downloaded">Video saved to gallery</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">New version available</string>
+    <string name="update_current_version">Current: %1$s</string>
+    <string name="update_latest_version">Latest: %1$s</string>
+    <string name="update_go_download">Go to Download</string>
+    <string name="update_later">Later</string>
 </resources>

@@ -122,4 +122,11 @@
     <string name="download">下载</string>
     <string name="fullscreen">全屏</string>
     <string name="video_downloaded">视频已保存到相册</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">发现新版本</string>
+    <string name="update_current_version">当前版本：%1$s</string>
+    <string name="update_latest_version">最新版本：%1$s</string>
+    <string name="update_go_download">前往下载</string>
+    <string name="update_later">稍后再说</string>
 </resources>

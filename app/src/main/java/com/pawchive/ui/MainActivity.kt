@@ -12,8 +12,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import com.pawchive.BuildConfig
 import com.pawchive.R
 import com.pawchive.data.SettingsManager
+import com.pawchive.data.github.UpdateChecker
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.databinding.ActivityMainBinding
 import com.pawchive.ui.account.AccountFragment
@@ -81,6 +83,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateBottomNavVisibility()
+
+        // 检查 GitHub Release 更新（带 24 小时间隔，静默处理）
+        UpdateChecker(this).checkAndShowDialog(
+            lifecycleOwner = this,
+            currentVersion = BuildConfig.VERSION_NAME,
+            context = this
+        )
     }
 
     override fun onResume() {

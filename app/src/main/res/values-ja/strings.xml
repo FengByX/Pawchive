@@ -122,4 +122,11 @@
     <string name="download">ダウンロード</string>
     <string name="fullscreen">全画面</string>
     <string name="video_downloaded">動画をアルバムに保存しました</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">新しいバージョンがあります</string>
+    <string name="update_current_version">現在のバージョン：%1$s</string>
+    <string name="update_latest_version">最新バージョン：%1$s</string>
+    <string name="update_go_download">ダウンロードへ</string>
+    <string name="update_later">後で</string>
 </resources>
