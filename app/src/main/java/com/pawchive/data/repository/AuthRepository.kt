@@ -26,21 +26,22 @@ class AuthRepository(private val context: Context) {
                 val loginApi = ApiClient.loginApi
                 val response = loginApi.login(username, password)
 
-                if (!response.isSuccessful) {
-                    return@withContext Result.failure(Exception("登录失败，HTTP ${response.code()}"))
-                }
-
                 val cookies = response.headers().values("Set-Cookie")
                 val sessionCookie = cookies.find { it.startsWith("session=") }
                     ?.substringAfter("session=")
                     ?.substringBefore(";")
 
-                if (!sessionCookie.isNullOrEmpty()) {
+                // 登录接口 followRedirects=false，服务器成功登录后返回 302 重定向到首页
+                // 因此 2xx 和 3xx 都可能是成功响应，关键看是否有有效的 session cookie
+                val isRedirect = response.code() in 300..399
+                val isSuccessResponse = response.isSuccessful || isRedirect
+
+                if (!sessionCookie.isNullOrEmpty() && isSuccessResponse) {
                     sessionManager.saveSession(sessionCookie)
                     sessionManager.saveUsername(username)
                     Result.success(username)
                 } else {
-                    Result.failure(Exception("登录失败，服务器未返回 session cookie"))
+                    Result.failure(Exception("登录失败，请检查用户名和密码"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
