@@ -15,18 +15,18 @@ android {
         minSdk = 30
         targetSdk = 36
         versionCode = 10
-        versionName = "1.0.9"
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             optimization {
                 enable = false
             }
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -43,11 +43,6 @@ android {
 }
 
 androidComponents {
-    beforeVariants { builder ->
-        if (builder.buildType == "debug") {
-            builder.enable = false
-        }
-    }
     onVariants { variant ->
         variant.outputs.forEach { output ->
             output.outputFileName.set("Pawchive-v${android.defaultConfig.versionName}.apk")
@@ -59,7 +54,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
-    
+
     // KTX & Lifecycle ViewModel
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.ktx)

@@ -7,11 +7,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.pawchive.R
-import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
@@ -28,15 +27,14 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
+    private val viewModel: HomeViewModel by viewModels()
+
     private lateinit var postAdapter: PostAdapter
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
-    private val api = ApiClient.publicApi
 
     private var showBookmarksOnly = false
     private val loadedPosts = mutableListOf<Post>()
-    private var currentOffset = 0
-    private val pageSize = 50
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         NEWEST_ADDED(R.string.sort_newest_added),
@@ -76,7 +74,54 @@ class HomeFragment : Fragment() {
         if (showBookmarksOnly) {
             loadBookmarks(isRefresh = false)
         } else {
-            loadRecentPosts(isRefresh = false)
+            observeHomeState()
+            viewModel.loadInitial()
+        }
+    }
+
+    private fun observeHomeState() {
+        viewModel.posts.observe(viewLifecycleOwner) { posts ->
+            loadedPosts.clear()
+            loadedPosts.addAll(posts)
+            if (posts.isEmpty()) {
+                binding.tvEmpty.visibility = View.VISIBLE
+            } else {
+                binding.tvEmpty.visibility = View.GONE
+                applySort()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    CreatorNameCache.prefetchCreatorNames(posts)
+                    postAdapter.notifyDataSetChanged()
+                }
+            }
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.progressBar.visibility = if (isLoading && !binding.swipeRefresh.isRefreshing) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+            if (!isLoading) {
+                binding.swipeRefresh.isRefreshing = false
+            }
+        }
+
+        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            if (!message.isNullOrBlank()) {
+                Toast.makeText(
+                    context,
+                    "${getString(R.string.fetch_error)}: $message",
+                    Toast.LENGTH_LONG
+                ).show()
+                if (loadedPosts.isEmpty()) {
+                    binding.tvEmpty.text = getString(R.string.connection_error)
+                    binding.tvEmpty.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        viewModel.hasMore.observe(viewLifecycleOwner) { hasMore ->
+            postAdapter.setFooterVisible(hasMore)
         }
     }
 
@@ -108,12 +153,10 @@ class HomeFragment : Fragment() {
 
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
-            currentOffset = 0
-            loadedPosts.clear()
             if (showBookmarksOnly) {
                 loadBookmarks(isRefresh = true)
             } else {
-                loadRecentPosts(isRefresh = true)
+                viewModel.refresh()
             }
         }
         binding.swipeRefresh.setColorSchemeColors(
@@ -168,66 +211,10 @@ class HomeFragment : Fragment() {
         postAdapter.updatePosts(sorted)
     }
 
-    private fun loadRecentPosts(isRefresh: Boolean = false) {
-        if (!isRefresh) {
-            binding.progressBar.visibility = View.VISIBLE
-        }
-        binding.tvEmpty.visibility = View.GONE
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val posts = api.getRecentPosts(offset = currentOffset)
-                loadedPosts.clear()
-                loadedPosts.addAll(posts)
-                if (posts.isEmpty()) {
-                    binding.tvEmpty.visibility = View.VISIBLE
-                } else {
-                    applySort()
-                    updateLoadMoreButton(posts.size)
-                    launch {
-                        CreatorNameCache.prefetchCreatorNames(posts)
-                        postAdapter.notifyDataSetChanged()
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "${getString(R.string.fetch_error)}: ${e.message}", Toast.LENGTH_LONG).show()
-                binding.tvEmpty.text = getString(R.string.connection_error)
-                binding.tvEmpty.visibility = View.VISIBLE
-            } finally {
-                binding.progressBar.visibility = View.GONE
-                binding.swipeRefresh.isRefreshing = false
-            }
-        }
-    }
-
     private fun loadMorePosts() {
-        postAdapter.setFooterVisible(false)
-        binding.progressBar.visibility = View.VISIBLE
-        currentOffset += pageSize
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val morePosts = api.getRecentPosts(offset = currentOffset)
-                loadedPosts.addAll(morePosts)
-                applySort()
-                updateLoadMoreButton(morePosts.size)
-                launch {
-                    CreatorNameCache.prefetchCreatorNames(morePosts)
-                    postAdapter.notifyDataSetChanged()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                currentOffset -= pageSize
-                postAdapter.setFooterVisible(true)
-            } finally {
-                binding.progressBar.visibility = View.GONE
-            }
+        if (!showBookmarksOnly) {
+            viewModel.loadMore()
         }
-    }
-
-    private fun updateLoadMoreButton(loadedCount: Int) {
-        postAdapter.setFooterVisible(loadedCount >= pageSize)
     }
 
     private fun loadBookmarks(isRefresh: Boolean = false) {

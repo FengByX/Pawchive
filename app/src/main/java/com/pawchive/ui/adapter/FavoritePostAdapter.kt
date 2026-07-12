@@ -89,7 +89,7 @@ class FavoritePostAdapter(
 
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE
-                val fullUrl = "https://img.pawchive.st/thumbnail/data$imagePath"
+                val fullUrl = "https://img.pawchive.pw/thumbnail/data$imagePath"
                 binding.ivThumbnail.load(fullUrl) {
                     crossfade(true)
                     placeholder(android.R.drawable.ic_menu_gallery)

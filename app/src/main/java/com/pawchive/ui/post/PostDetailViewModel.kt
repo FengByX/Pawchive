@@ -89,7 +89,7 @@ class PostDetailViewModel : ViewModel() {
         val filePath = post.file?.path
         val fileName = post.file?.name
         if (isVideo(filePath, fileName)) {
-            val fullUrl = "https://file.pawchive.st/data${filePath.orEmpty()}"
+            val fullUrl = "https://file.pawchive.pw/data${filePath.orEmpty()}"
             videoList.add(Pair(fullUrl, fileName ?: "video.mp4"))
         }
 
@@ -97,7 +97,7 @@ class PostDetailViewModel : ViewModel() {
         if (!attachments.isNullOrEmpty()) {
             for (attachment in attachments) {
                 if (isVideo(attachment.path, attachment.name)) {
-                    val fullUrl = "https://file.pawchive.st/data${attachment.path.orEmpty()}"
+                    val fullUrl = "https://file.pawchive.pw/data${attachment.path.orEmpty()}"
                     videoList.add(Pair(fullUrl, attachment.name ?: "video.mp4"))
                 }
             }

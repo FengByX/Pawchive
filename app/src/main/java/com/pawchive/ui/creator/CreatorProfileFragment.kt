@@ -215,7 +215,7 @@ class CreatorProfileFragment : Fragment() {
     }
 
     private fun loadAvatar() {
-        val avatarUrl = "https://pawchive.st/icons/$service/$creatorId"
+        val avatarUrl = "https://pawchive.pw/icons/$service/$creatorId"
         binding.ivCreatorAvatar.load(avatarUrl) {
             crossfade(true)
             placeholder(android.R.drawable.ic_menu_gallery)

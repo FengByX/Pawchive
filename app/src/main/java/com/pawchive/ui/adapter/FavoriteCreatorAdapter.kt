@@ -43,7 +43,7 @@ class FavoriteCreatorAdapter(
             val favSeq = creator.favedSeq ?: 0
             binding.tvFavCount.text = "收藏序号: $favSeq"
 
-            val avatarUrl = "https://pawchive.st/icons/${creator.service}/${creator.id}"
+            val avatarUrl = "https://pawchive.pw/icons/${creator.service}/${creator.id}"
             binding.ivAvatar.load(avatarUrl) {
                 crossfade(true)
                 placeholder(android.R.drawable.ic_menu_gallery)

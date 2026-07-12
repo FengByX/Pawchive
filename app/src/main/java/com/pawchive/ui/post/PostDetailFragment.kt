@@ -210,7 +210,7 @@ class PostDetailFragment : Fragment() {
         val filePath = post.file?.path
         val fileName = post.file?.name
         if (!filePath.isNullOrEmpty() || !fileName.isNullOrEmpty()) {
-            val fullUrl = "https://file.pawchive.st/data${filePath.orEmpty()}"
+            val fullUrl = "https://file.pawchive.pw/data${filePath.orEmpty()}"
             if (isVideoFile(filePath, fileName)) {
                 binding.imageCard.visibility = View.VISIBLE
                 (binding.imageCard as ViewGroup).removeAllViews()
@@ -323,7 +323,7 @@ class PostDetailFragment : Fragment() {
                     }
                     adjustViewBounds = true
                     scaleType = ImageView.ScaleType.FIT_CENTER
-                    val fullUrl = "https://file.pawchive.st/data${attachment.path}"
+                    val fullUrl = "https://file.pawchive.pw/data${attachment.path}"
                     load(fullUrl) {
                         crossfade(true)
                         placeholder(android.R.drawable.ic_menu_gallery)
@@ -349,7 +349,7 @@ class PostDetailFragment : Fragment() {
                 var videoIndexOffset = if (isVideoFile(post.file?.path, post.file?.name)) 1 else 0
 
                 for ((index, attachment) in videoAttachments.withIndex()) {
-                    val fullUrl = "https://file.pawchive.st/data${attachment.path ?: ""}"
+                    val fullUrl = "https://file.pawchive.pw/data${attachment.path ?: ""}"
                     val videoItemView = createVideoAttachmentItem(
                         fullUrl,
                         attachment.name ?: "video.mp4",
@@ -376,7 +376,7 @@ class PostDetailFragment : Fragment() {
                         textSize = 14f
                         setPadding(0, 8, 0, 8)
                         setOnClickListener {
-                            val url = "https://file.pawchive.st/data${attachment.path ?: ""}"
+                            val url = "https://file.pawchive.pw/data${attachment.path ?: ""}"
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             startActivity(intent)
                         }

@@ -17,7 +17,6 @@ class PawchiveApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
-        clearCache()
     }
 
     override fun newImageLoader(): ImageLoader {

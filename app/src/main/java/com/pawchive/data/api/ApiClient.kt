@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
-    private const val API_BASE_URL = "https://pawchive.st/api/v1/"
-    private const val LOGIN_BASE_URL = "https://pawchive.st/"
+    private const val API_BASE_URL = "https://pawchive.pw/api/v1/"
+    private const val LOGIN_BASE_URL = "https://pawchive.pw/"
 
     private val okHttpClient: OkHttpClient by lazy {
         val logger = HttpLoggingInterceptor().apply {

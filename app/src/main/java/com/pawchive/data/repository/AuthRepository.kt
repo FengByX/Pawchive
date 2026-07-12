@@ -28,14 +28,15 @@ class AuthRepository(private val context: Context) {
                 val loginApi = ApiClient.loginApi
                 val response = loginApi.login(username, password)
 
-                // 检查响应码（必须是重定向）
-                if (response.code() != 302) {
-                    return@withContext Result.failure(Exception("登录失败，HTTP ${response.code()}"))
+                // 检查响应码（登录接口通常返回 30x 重定向）
+                val statusCode = response.code()
+                if (statusCode !in 300..399) {
+                    return@withContext Result.failure(Exception("登录失败，HTTP $statusCode"))
                 }
 
-                // 检查重定向目标：重定向到首页表示成功，回到登录页表示失败
-                val locationHeader = response.headers()["Location"]
-                if (locationHeader != null && locationHeader.contains("/account/login")) {
+                // 检查重定向目标：重定向到登录页表示失败，其他目标通常表示成功
+                val locationHeader = response.headers()["Location"]?.lowercase().orEmpty()
+                if (locationHeader.contains("/account/login") || locationHeader.endsWith("/login")) {
                     return@withContext Result.failure(Exception("用户名或密码错误"))
                 }
 
