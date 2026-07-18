@@ -89,9 +89,20 @@ class HomeFragment : Fragment() {
                 binding.tvEmpty.visibility = View.GONE
                 // 立即渲染首屏（DiffUtil 局部刷新），不等待创作者名称预取
                 applySort()
-                // 后台预取创作者名称，完成后仅局部刷新已渲染的条目
+                // 后台预取创作者名称：限制并发避免请求风暴，名称逐个解析时节流增量刷新,
+                // 无需等待全部完成，用户可更早看到真实创作者名。
                 viewLifecycleOwner.lifecycleScope.launch {
-                    CreatorNameCache.prefetchCreatorNames(posts)
+                    var lastRefreshAt = 0L
+                    // 回调可能在 IO 线程触发，刷新 UI 必须切回主线程
+                    CreatorNameCache.prefetchCreatorNames(posts) {
+                        val now = System.currentTimeMillis()
+                        // 节流：至少间隔 300ms 才触发一次局部刷新，避免高频重绘
+                        if (now - lastRefreshAt >= 300L) {
+                            lastRefreshAt = now
+                            _binding?.rvPosts?.post { postAdapter.refreshCreatorNames() }
+                        }
+                    }
+                    // 全部完成后做一次最终刷新，确保最后一批名称也生效
                     postAdapter.refreshCreatorNames()
                 }
             }
