@@ -51,4 +51,7 @@
     <color name="service_text_default_light">#666666</color>
     <color name="service_bg_default_dark">#2A2A2A</color>
     <color name="service_text_default_dark">#AAAAAA</color>
+
+    <!-- Thumbnail placeholder (neutral gray shown while image loads) -->
+    <color name="thumbnail_placeholder">#E0E0E0</color>
 </resources>

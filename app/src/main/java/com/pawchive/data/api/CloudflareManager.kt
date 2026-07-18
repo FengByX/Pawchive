@@ -2,12 +2,15 @@ package com.pawchive.data.api
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -32,8 +35,23 @@ object CloudflareManager {
     // 轮询 cookie 的间隔（毫秒）
     private const val POLL_INTERVAL_MS = 500L
 
+    // 持久化存储相关
+    private const val PREFS_NAME = "cloudflare_clearance"
+    private const val KEY_COOKIE = "cf_cookie"
+    private const val KEY_USER_AGENT = "cf_user_agent"
+    private const val KEY_SAVED_AT = "cf_saved_at"
+    // cf_clearance 通常有效期约 30 分钟，这里保守设为 20 分钟，过期后主动重新过盾
+    private const val CLEARANCE_TTL_MS = 20 * 60 * 1000L
+
     @Volatile
     private var appContext: Context? = null
+
+    @Volatile
+    private var prefs: SharedPreferences? = null
+
+    // 缓存凭据的保存时间戳（毫秒）
+    @Volatile
+    private var cachedSavedAt: Long = 0L
 
     // 缓存的完整 cookie 字符串（含 cf_clearance 等），用于注入 OkHttp
     @Volatile
@@ -49,6 +67,56 @@ object CloudflareManager {
 
     fun init(context: Context) {
         appContext = context.applicationContext
+        loadPersisted()
+    }
+
+    /**
+     * 从加密存储中恢复上次过盾成功的凭据，避免冷启动重新过盾。
+     * 若凭据已超过 TTL 则视为过期，不恢复。
+     */
+    private fun loadPersisted() {
+        val ctx = appContext ?: return
+        try {
+            val sp = prefs ?: run {
+                val masterKey = MasterKey.Builder(ctx)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    ctx,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                ).also { prefs = it }
+            }
+            val cookie = sp.getString(KEY_COOKIE, null)
+            val ua = sp.getString(KEY_USER_AGENT, null)
+            val savedAt = sp.getLong(KEY_SAVED_AT, 0L)
+            if (!cookie.isNullOrEmpty() && !ua.isNullOrEmpty() &&
+                System.currentTimeMillis() - savedAt < CLEARANCE_TTL_MS
+            ) {
+                cachedCookie = cookie
+                cachedUserAgent = ua
+                cachedSavedAt = savedAt
+            }
+        } catch (_: Exception) {
+            // 加密存储不可用时降级为仅内存缓存，不影响功能
+   }
+    }
+
+    /**
+     * 将过盾凭据持久化到加密存储。
+     */
+    private fun persist(cookie: String, userAgent: String) {
+        val now = System.currentTimeMillis()
+        cachedSavedAt = now
+        try {
+            prefs?.edit()
+                ?.putString(KEY_COOKIE, cookie)
+                ?.putString(KEY_USER_AGENT, userAgent)
+                ?.putLong(KEY_SAVED_AT, now)
+                ?.apply()
+        } catch (_: Exception) {}
     }
 
     /**
@@ -62,9 +130,13 @@ object CloudflareManager {
     fun currentUserAgent(): String? = cachedUserAgent
 
     /**
-     * 是否已有可用的 Cloudflare 通行凭据。
+     * 是否已有可用的 Cloudflare 通行凭据（且未过期）。
      */
-    fun hasClearance(): Boolean = !cachedCookie.isNullOrEmpty()
+    fun hasClearance(): Boolean {
+        if (cachedCookie.isNullOrEmpty()) return false
+        // 凭据超过 TTL 视为过期，需要重新过盾
+        return System.currentTimeMillis() - cachedSavedAt < CLEARANCE_TTL_MS
+    }
 
     /**
      * 确保已通过 Cloudflare 挑战。若已缓存则直接返回 true；
@@ -127,6 +199,7 @@ object CloudflareManager {
                             cachedCookie = cookie
                             cachedUserAgent = userAgent
                             cookieManager.flush()
+                            persist(cookie, userAgent)
                             finish(true)
                         } else {
                             mainHandler.postDelayed(this, POLL_INTERVAL_MS)
@@ -152,6 +225,7 @@ object CloudflareManager {
                         cachedCookie = cookie
                         cachedUserAgent = userAgent
                         cookieManager.flush()
+                        persist(cookie, userAgent)
                         finish(true)
                     } else {
                         finish(false)
@@ -173,6 +247,10 @@ object CloudflareManager {
     fun clear() {
         cachedCookie = null
         cachedUserAgent = null
+        cachedSavedAt = 0L
+        try {
+            prefs?.edit()?.clear()?.apply()
+        } catch (_: Exception) {}
     }
 
     /**

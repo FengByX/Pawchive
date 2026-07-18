@@ -87,10 +87,12 @@ class HomeFragment : Fragment() {
                 binding.tvEmpty.visibility = View.VISIBLE
             } else {
                 binding.tvEmpty.visibility = View.GONE
+                // 立即渲染首屏（DiffUtil 局部刷新），不等待创作者名称预取
                 applySort()
+                // 后台预取创作者名称，完成后仅局部刷新已渲染的条目
                 viewLifecycleOwner.lifecycleScope.launch {
                     CreatorNameCache.prefetchCreatorNames(posts)
-                    postAdapter.notifyDataSetChanged()
+                    postAdapter.refreshCreatorNames()
                 }
             }
         }

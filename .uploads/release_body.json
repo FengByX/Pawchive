@@ -1,1 +1,1 @@
-{}
+{"tag_name":"v1.1.2","name":"Pawchive v1.1.2","body":"## Pawchive v1.1.2\n\n### 修复\n- 修复进入 App 首屏获取数据失败(HTTP 403)的问题:目标站点启用了 Cloudflare 托管挑战(Managed Challenge),纯网络请求会被拦截。现通过隐藏 WebView 自动执行 Cloudflare JS 挑战,提取 cf_clearance cookie 并与其绑定的 User-Agent 一起注入到后续请求;凭据失效时自动刷新重试。\n\n### 其他\n- 版本号升级至 1.1.2 (versionCode 12)。\n","draft":false,"prerelease":false}

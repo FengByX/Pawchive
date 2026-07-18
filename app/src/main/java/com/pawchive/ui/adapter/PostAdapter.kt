@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.lifecycle.LifecycleOwner
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
@@ -35,11 +36,46 @@ class PostAdapter(
     companion object {
         private const val TYPE_POST = 0
         private const val TYPE_FOOTER = 1
+        // 缩略图 View 为 80dp，解码到 160px 在高密度屏也足够清晰，同时大幅降低内存占用
+        private const val THUMBNAIL_SIZE_PX = 160
     }
 
     fun updatePosts(newPosts: List<Post>) {
+        val diffCallback = object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = posts.size
+            override fun getNewListSize(): Int = newPosts.size
+
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                val o = posts[oldItemPosition]
+                val n = newPosts[newItemPosition]
+                return o.service == n.service && o.user == n.user && o.id == n.id
+            }
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                val o = posts[oldItemPosition]
+                val n = newPosts[newItemPosition]
+                return o.title == n.title &&
+                    o.content == n.content &&
+                    o.edited == n.edited &&
+                    o.published == n.published &&
+                    o.file?.path == n.file?.path
+            }
+        }
+        val diff = DiffUtil.calculateDiff(diffCallback)
         posts = newPosts
-        notifyDataSetChanged()
+        // 使用局部差量更新，仅刷新变化的条目，避免整表重绘
+        diff.dispatchUpdatesTo(this)
+    }
+
+    /**
+     * 创作者名称预取完成后调用：名称来自外部缓存（不在 Post 字段内），
+     * DiffUtil 无法感知其变化，因此用 notifyItemRangeChanged 仅刷新数据区条目，
+     * 避免整表重绘。
+     */
+    fun refreshCreatorNames() {
+        if (posts.isNotEmpty()) {
+            notifyItemRangeChanged(0, posts.size)
+        }
     }
 
     fun setFooterVisible(visible: Boolean) {
@@ -114,9 +150,11 @@ class PostAdapter(
                 binding.ivThumbnail.visibility = View.VISIBLE
                 val fullUrl = "https://img.pawchive.pw/thumbnail/data$imagePath"
                 binding.ivThumbnail.load(fullUrl) {
-                    crossfade(true)
-                    placeholder(android.R.drawable.ic_menu_gallery)
-                    error(android.R.drawable.ic_menu_report_image)
+                    // 缩略图 View 固定 80dp，限制解码尺寸避免加载原图导致的内存与耗时浪费
+                    size(THUMBNAIL_SIZE_PX)
+                    crossfade(150)
+                    placeholder(R.color.thumbnail_placeholder)
+                    error(R.color.thumbnail_placeholder)
                 }
             } else {
                 binding.ivThumbnail.visibility = View.GONE
