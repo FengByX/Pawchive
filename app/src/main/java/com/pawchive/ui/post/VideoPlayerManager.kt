@@ -39,6 +39,11 @@ class VideoPlayerManager(private val context: Context) {
 
     private var listener: VideoPlayerListener? = null
 
+    // 保存的播放状态，用于生命周期(onStop/onStart)间恢复播放
+    private var currentUrl: String? = null
+    private var savedPosition: Long = 0
+    private var savedPlayWhenReady: Boolean = true
+
     fun setListener(listener: VideoPlayerListener?) {
         this.listener = listener
     }
@@ -61,6 +66,7 @@ class VideoPlayerManager(private val context: Context) {
         if (player == null) {
             initializePlayer()
         }
+        currentUrl = url
         val mediaItem = MediaItem.fromUri(url)
         player?.setMediaItem(mediaItem)
         player?.prepare()
@@ -85,6 +91,31 @@ class VideoPlayerManager(private val context: Context) {
         isPlaying = false
         currentPosition = 0
         duration = 0
+    }
+
+    /** 保存当前播放位置与播放状态，用于释放前记录，便于之后恢复 */
+    fun savePlaybackState() {
+        player?.let {
+            savedPosition = it.currentPosition
+            savedPlayWhenReady = it.playWhenReady
+        }
+    }
+
+    /** 若存在已保存的播放地址，则重新初始化播放器并从上次位置恢复 */
+    @OptIn(UnstableApi::class)
+    fun restore(): Boolean {
+        val url = currentUrl ?: return false
+        if (player == null) {
+            initializePlayer()
+        }
+        val mediaItem = MediaItem.fromUri(url)
+        player?.setMediaItem(mediaItem)
+        player?.prepare()
+        if (savedPosition > 0) {
+            player?.seekTo(savedPosition)
+        }
+        player?.playWhenReady = savedPlayWhenReady
+        return true
     }
 
     fun seekTo(positionMs: Long) {

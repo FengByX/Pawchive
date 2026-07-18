@@ -11,10 +11,11 @@ import androidx.security.crypto.MasterKey
  */
 class SessionManager(context: Context) {
     private val prefs: SharedPreferences = createEncryptedPrefs(context)
-        ?: context.getSharedPreferences("pawchive_session", Context.MODE_PRIVATE)
+        ?: context.getSharedPreferences(FALLBACK_PREFS_FILE_NAME, Context.MODE_PRIVATE)
 
     companion object {
         private const val PREFS_FILE_NAME = "pawchive_session"
+        private const val FALLBACK_PREFS_FILE_NAME = "pawchive_session_fallback"
         private const val KEY_SESSION_COOKIE = "session_cookie"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USERNAME = "username"
@@ -33,6 +34,11 @@ class SessionManager(context: Context) {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                 )
             } catch (e: Exception) {
+                // 加密初始化失败（如主密钥损坏），清理可能损坏的加密文件后回退到独立的普通文件，
+                // 避免与加密文件同名导致读取加密数据格式冲突而再次崩溃
+                try {
+                    context.deleteSharedPreferences(PREFS_FILE_NAME)
+                } catch (_: Exception) {}
                 null
             }
         }

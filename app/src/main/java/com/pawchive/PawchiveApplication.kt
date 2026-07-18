@@ -36,9 +36,12 @@ class PawchiveApplication : Application(), ImageLoaderFactory {
             .build()
     }
 
+    @OptIn(coil.annotation.ExperimentalCoilApi::class)
     fun clearCache() {
         try {
-            coil.ImageLoader(this).memoryCache?.clear()
+            val loader = coil.Coil.imageLoader(this)
+            loader.memoryCache?.clear()
+            loader.diskCache?.clear()
         } catch (_: Exception) {}
 
         try {

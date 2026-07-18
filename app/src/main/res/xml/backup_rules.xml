@@ -2,4 +2,5 @@
 <full-backup-content>
     <!-- Exclude session SharedPreferences to prevent credential leakage -->
     <exclude domain="sharedpref" path="pawchive_session.xml"/>
+    <exclude domain="sharedpref" path="pawchive_session_fallback.xml"/>
 </full-backup-content>

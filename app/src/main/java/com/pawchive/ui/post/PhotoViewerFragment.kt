@@ -97,6 +97,8 @@ class PhotoViewerFragment : Fragment() {
 
                 val request = Request.Builder()
                     .url(imageUrl)
+                    .header("Accept", "*/*")
+                    .header("User-Agent", "Mozilla/5.0 (Android) Pawchive")
                     .build()
 
                 val response = okHttpClient.newCall(request).execute()

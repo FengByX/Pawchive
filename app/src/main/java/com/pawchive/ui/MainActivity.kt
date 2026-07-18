@@ -32,6 +32,9 @@ class MainActivity : AppCompatActivity() {
     // 记录当前所在的主界面Tab ID
     private var currentMainTabId: Int = R.id.navigation_home
 
+    // 缓存已创建的主界面 Fragment，避免每次切换都重建导致状态丢失与重复加载
+    private val mainFragments = mutableMapOf<Int, Fragment>()
+
     /**
      * 通过 attachBaseContext 应用保存的语言设置
      * 使用 createConfigurationContext 而非 setApplicationLocales，避免 Activity 重建导致的黑屏闪烁
@@ -67,18 +70,18 @@ class MainActivity : AppCompatActivity() {
 
         // Set default fragment
         if (savedInstanceState == null) {
-            switchMainFragment(HomeFragment(), R.id.navigation_home)
+            switchMainTab(R.id.navigation_home)
+        } else {
+            // Activity 重建后 FragmentManager 已恢复旧 Fragment，清理并重建当前 Tab 避免叠加
+            supportFragmentManager.fragments
+                .filterNot { it.isDetached }
+                .forEach { supportFragmentManager.beginTransaction().remove(it).commitNowAllowingStateLoss() }
+            switchMainTab(R.id.navigation_home)
+            binding.bottomNavigation.selectedItemId = R.id.navigation_home
         }
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
-            val fragment: Fragment = when (item.itemId) {
-                R.id.navigation_home -> HomeFragment()
-                R.id.navigation_search -> SearchFragment()
-                R.id.navigation_bookmarks -> AccountFavoritesFragment()
-                R.id.navigation_account -> AccountFragment()
-                else -> HomeFragment()
-            }
-            switchMainFragment(fragment, item.itemId)
+            switchMainTab(item.itemId)
             true
         }
 
@@ -185,16 +188,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 主界面Tab切换（清空返回栈，不加新条目）
+     * 主界面Tab切换（复用已创建的 Fragment，避免每次重建）
      * 用于底部导航栏切换
      */
-    private fun switchMainFragment(fragment: Fragment, tabId: Int) {
+    private fun switchMainTab(tabId: Int) {
         currentMainTabId = tabId
-        // 清空返回栈到根
+        // 清空返回栈到根，确保回到主界面层级
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragment)
-            .commit()
+
+        val transaction = supportFragmentManager.beginTransaction()
+
+        // 隐藏其它已创建的主 Fragment
+        mainFragments.forEach { (id, f) ->
+            if (id != tabId && f.isAdded) {
+                transaction.hide(f)
+            }
+        }
+
+        val existing = mainFragments[tabId]
+        if (existing != null && existing.isAdded) {
+            transaction.show(existing)
+        } else {
+            val fragment: Fragment = when (tabId) {
+                R.id.navigation_home -> HomeFragment()
+                R.id.navigation_search -> SearchFragment()
+                R.id.navigation_bookmarks -> AccountFavoritesFragment()
+                R.id.navigation_account -> AccountFragment()
+                else -> HomeFragment()
+            }
+            mainFragments[tabId] = fragment
+            transaction.add(R.id.nav_host_fragment, fragment)
+        }
+        transaction.commit()
     }
 
     /**
@@ -202,8 +227,15 @@ class MainActivity : AppCompatActivity() {
      * 返回时会回到当前主界面Tab
      */
     fun navigateToDetail(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.nav_host_fragment, fragment)
+        val transaction = supportFragmentManager.beginTransaction()
+        // 隐藏当前主 Fragment 而非移除，返回时可直接恢复其状态
+        mainFragments[currentMainTabId]?.let { current ->
+            if (current.isAdded && current.isVisible) {
+                transaction.hide(current)
+            }
+        }
+        transaction
+            .add(R.id.nav_host_fragment, fragment)
             .addToBackStack(null)
             .commit()
     }

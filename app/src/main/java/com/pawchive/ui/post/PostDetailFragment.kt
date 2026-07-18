@@ -106,6 +106,7 @@ class PostDetailFragment : Fragment() {
         super.onStart()
         if (binding.videoPlayerContainer.visibility == View.VISIBLE) {
             videoPlayerManager.attachPlayerView(binding.playerView)
+            videoPlayerManager.restore()
         }
     }
 
@@ -123,6 +124,7 @@ class PostDetailFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
+        videoPlayerManager.savePlaybackState()
         videoPlayerManager.release()
     }
 
@@ -613,20 +615,23 @@ class PostDetailFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            while (true) {
-                if (videoPlayerManager.player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
-                    if (!isUserSeeking) {
-                        videoPlayerManager.updateCurrentPosition()
-                        val currentPos = videoPlayerManager.currentPosition
-                        val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
+            // 仅在界面处于 STARTED（可见）状态时轮询更新进度，后台自动暂停，避免无谓耗电
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    if (videoPlayerManager.player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
+              if (!isUserSeeking) {
+                            videoPlayerManager.updateCurrentPosition()
+                            val currentPos = videoPlayerManager.currentPosition
+                            val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
 
-                        binding.seekbarVideo.progress = currentPos.toInt()
-                        binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
+                            binding.seekbarVideo.progress = currentPos.toInt()
+                            binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
 
-                        binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
+                            binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
+                        }
                     }
+                    kotlinx.coroutines.delay(200)
                 }
-                kotlinx.coroutines.delay(200)
             }
         }
     }
@@ -940,7 +945,7 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun isVideoFile(path: String?, name: String? = null): Boolean {
-        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts", ".flv", ".wmv", ".ogv", ".m4a")
+        val videoExtensions = listOf(".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".3gp", ".ts", ".flv", ".wmv", ".ogv")
         val lowerPath = path?.lowercase().orEmpty()
         val lowerName = name?.lowercase().orEmpty()
         return videoExtensions.any { ext ->
