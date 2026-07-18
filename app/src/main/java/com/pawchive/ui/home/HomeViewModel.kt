@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawchive.data.api.ApiClient
+import com.pawchive.data.api.CloudflareManager
 import com.pawchive.data.model.Post
 import kotlinx.coroutines.launch
 
@@ -45,7 +46,9 @@ class HomeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val morePosts = api.getRecentPosts(offset = currentOffset)
+                val morePosts = CloudflareManager.withClearance {
+                    api.getRecentPosts(offset = currentOffset)
+                }
                 loadedPosts.addAll(morePosts)
                 _posts.value = loadedPosts.toList()
                 _hasMore.value = morePosts.size >= pageSize
@@ -71,7 +74,9 @@ class HomeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val posts = api.getRecentPosts(offset = currentOffset)
+                val posts = CloudflareManager.withClearance {
+                    api.getRecentPosts(offset = currentOffset)
+                }
                 loadedPosts.clear()
                 loadedPosts.addAll(posts)
                 _posts.value = loadedPosts.toList()

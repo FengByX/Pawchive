@@ -18,6 +18,30 @@ object ApiClient {
     @Volatile
     private var cachedAuthCookie: String? = null
 
+    /**
+     * 注入 Cloudflare 通行凭据的拦截器：
+     * 为每个请求附带过盾时的 User-Agent（必须与 cf_clearance 绑定的 UA 一致）
+     * 以及包含 cf_clearance 的 Cookie。若请求已带 Cookie（如 session），则与 CF cookie 合并。
+     */
+    private val cloudflareInterceptor = okhttp3.Interceptor { chain ->
+        val original = chain.request()
+        val builder = original.newBuilder()
+
+        CloudflareManager.currentUserAgent()?.let { ua ->
+            builder.header("User-Agent", ua)
+        }
+        builder.header("Referer", LOGIN_BASE_URL)
+
+        val cfCookie = CloudflareManager.currentCookie()
+        if (!cfCookie.isNullOrEmpty()) {
+            val existing = original.header("Cookie")
+            val merged = if (existing.isNullOrEmpty()) cfCookie else "$existing; $cfCookie"
+            builder.header("Cookie", merged)
+        }
+
+        chain.proceed(builder.build())
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         val logger = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
@@ -35,6 +59,7 @@ object ApiClient {
             .retryOnConnectionFailure(true)
             .followRedirects(true)
             .followSslRedirects(true)
+            .addInterceptor(cloudflareInterceptor)
             .addInterceptor(logger)
             .build()
     }
@@ -55,8 +80,16 @@ object ApiClient {
         }
 
         val cookieInterceptor = okhttp3.Interceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Cookie", "session=$sessionCookie")
+            val original = chain.request()
+            // 与已有 Cookie（如 Cloudflare 注入的 cf_clearance）合并，避免出现重复的 Cookie 头
+            val existing = original.header("Cookie")
+            val merged = if (existing.isNullOrEmpty()) {
+                "session=$sessionCookie"
+            } else {
+                "$existing; session=$sessionCookie"
+            }
+            val request = original.newBuilder()
+                .header("Cookie", merged)
                 .build()
             chain.proceed(request)
         }

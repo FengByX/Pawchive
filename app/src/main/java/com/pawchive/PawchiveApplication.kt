@@ -6,6 +6,7 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.pawchive.data.SettingsManager
+import com.pawchive.data.api.CloudflareManager
 import java.io.File
 
 class PawchiveApplication : Application(), ImageLoaderFactory {
@@ -17,6 +18,8 @@ class PawchiveApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        // 初始化 Cloudflare 过盾管理器（用于 WebView 通过 pawchive.pw 的 CF 挑战）
+        CloudflareManager.init(this)
     }
 
     override fun newImageLoader(): ImageLoader {
