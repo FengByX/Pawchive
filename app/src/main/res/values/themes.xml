@@ -183,4 +183,10 @@
         <item name="colorTextMuted">@color/text_muted_light</item>
         <item name="colorBadgeBackground">@color/primary</item>
     </style>
+
+    <!-- Rounded thumbnail shape for post list items -->
+    <style name="ShapeAppearance.Pawchive.Thumbnail" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
 </resources>

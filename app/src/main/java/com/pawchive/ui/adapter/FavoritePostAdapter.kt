@@ -73,7 +73,10 @@ class FavoritePostAdapter(
             binding.tvTitle.text = post.title ?: ""
             binding.tvCreatorName.text = post.user
             binding.tvService.text = post.service.uppercase()
-            binding.tvDate.text = "Published: ${post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: "Unknown"}"
+            val dateStr = post.published?.split("T")?.firstOrNull()
+                ?: post.added?.split("T")?.firstOrNull()
+                ?: binding.root.context.getString(R.string.date_unknown)
+            binding.tvDate.text = binding.root.context.getString(R.string.date_published, dateStr)
 
             // Set service badge color based on platform
             setServiceBadgeColor(post.service, binding.root.context)

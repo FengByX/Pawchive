@@ -27,6 +27,8 @@
     <string name="account_favorites_title">账号收藏</string>
     <string name="please_login_to_view_favorites">请先登录以查看账号收藏</string>
     <string name="no_favorites">暂无收藏</string>
+    <string name="no_favorites_hint">去首页发现喜欢的内容并收藏吧</string>
+    <string name="no_favorites_login_hint">登录后即可同步和查看你的收藏</string>
 
     <!-- Errors -->
     <string name="error_not_logged_in">未登录</string>
@@ -57,6 +59,8 @@
     <!-- Post -->
     <string name="post_details">帖子详情</string>
     <string name="published">发布于</string>
+    <string name="date_published">发布于 %1$s</string>
+    <string name="date_unknown">未知日期</string>
     <string name="attachments">附件</string>
     <string name="revisions">修订历史</string>
     <string name="comments">评论</string>

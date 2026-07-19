@@ -6,8 +6,11 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
     app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
+    app:cardElevation="2dp"
     app:cardBackgroundColor="?attr/colorSurface"
     app:strokeWidth="1dp"
     app:strokeColor="?attr/colorOutline">
@@ -18,13 +21,14 @@
         android:padding="12dp">
 
         <!-- Thumbnail (Left side - primary visual) -->
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_thumbnail"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:scaleType="centerCrop"
             android:background="?attr/colorSurfaceVariant"
             android:contentDescription="@string/thumbnail_description"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -49,7 +53,7 @@
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
                 android:textColor="?attr/colorOnPrimaryContainer"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:text="FANBOX" />
         </com.google.android.material.card.MaterialCardView>
@@ -120,15 +124,18 @@
 
         <ImageView
             android:id="@+id/btn_bookmark"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginEnd="4dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="14dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_bookmark_outline"
             android:contentDescription="@string/bookmark_description"
             app:tint="?attr/colorTextMuted"
-            app:layout_constraintBottom_toBottomOf="@+id/tv_date"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/tv_date" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

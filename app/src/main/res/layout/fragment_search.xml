@@ -16,14 +16,15 @@
         app:cardCornerRadius="28dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
-        app:strokeWidth="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutline"
         app:layout_constraintTop_toTopOf="parent">
 
         <androidx.appcompat.widget.SearchView
             android:id="@+id/search_view"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:paddingStart="4dp"
+            android:paddingStart="12dp"
             app:iconifiedByDefault="false"
             app:queryBackground="@android:color/transparent"
             app:queryHint="@string/search_hint"
@@ -48,6 +49,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:minHeight="48dp"
             android:background="@android:color/transparent"
             app:tabSelectedTextColor="?attr/colorPrimary"
             app:tabTextColor="?attr/colorTextSecondary"
@@ -89,6 +91,8 @@
         android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
         android:background="?attr/colorOutline"
         app:layout_constraintTop_toBottomOf="@+id/tab_sort_row" />
 
@@ -135,17 +139,18 @@
         app:layout_constraintTop_toTopOf="@+id/swipe_refresh">
 
         <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:src="@drawable/ic_search_large"
-            android:alpha="0.3"
+            android:alpha="0.4"
+            app:tint="?attr/colorTextMuted"
             android:contentDescription="@string/search_initial_hint" />
 
         <TextView
             android:id="@+id/tv_empty_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:text="@string/search_initial_hint"
             android:textColor="?attr/colorTextMuted"
             android:textSize="15sp" />

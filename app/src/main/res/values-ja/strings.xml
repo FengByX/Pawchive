@@ -27,6 +27,8 @@
     <string name="account_favorites_title">アカウントブックマーク</string>
     <string name="please_login_to_view_favorites">ログインしてブックマークを表示</string>
     <string name="no_favorites">ブックマークがありません</string>
+    <string name="no_favorites_hint">ホームでお気に入りを見つけてブックマークしましょう</string>
+    <string name="no_favorites_login_hint">ログインするとブックマークを同期・表示できます</string>
 
     <!-- Errors -->
     <string name="error_not_logged_in">未ログイン</string>
@@ -57,6 +59,8 @@
     <!-- Post -->
     <string name="post_details">投稿詳細</string>
     <string name="published">公開日</string>
+    <string name="date_published">公開日 %1$s</string>
+    <string name="date_unknown">不明</string>
     <string name="attachments">添付ファイル</string>
     <string name="revisions"> revision履歴</string>
     <string name="comments">コメント</string>
