@@ -112,6 +112,7 @@
 
     <!-- Video -->
     <string name="video_attachments">動画添付ファイル</string>
+    <string name="preview_images">プレビュー画像</string>
     <string name="video_play_failed">動画の再生に失敗しました</string>
     <string name="play_video">動画を再生</string>
     <string name="play">再生</string>

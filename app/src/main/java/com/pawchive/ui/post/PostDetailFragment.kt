@@ -314,30 +314,34 @@ class PostDetailFragment : Fragment() {
                 isImageFile(att.path, att.name) || isVideoFile(att.path, att.name)
             }
 
-            for (attachment in imageAttachments) {
-                val imageView = ImageView(requireContext()).apply {
-                    layoutParams = ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        topMargin = 12
-                        bottomMargin = 12
-                    }
-                    adjustViewBounds = true
-                    scaleType = ImageView.ScaleType.FIT_CENTER
-                    val fullUrl = "https://file.pawchive.pw/data${attachment.path}"
-                    load(fullUrl) {
-                        crossfade(true)
-                        placeholder(android.R.drawable.ic_menu_gallery)
-                        error(android.R.drawable.ic_menu_report_image)
-                    }
-                    setOnClickListener {
-                        openImageViewer(fullUrl, attachment.name ?: "image.jpg")
-                    }
+            // 先渲染可下载的文件(其他文件),置于顶部,避免大量预览图把下载入口挤到底部
+            if (otherAttachments.isNotEmpty()) {
+                val otherHeader = TextView(requireContext()).apply {
+                    text = getString(R.string.other_files)
+                    setTextColor(resources.getColor(R.color.text_secondary, null))
+                    textSize = 13f
+                    setPadding(0, 16, 0, 4)
+                    setTypeface(null, android.graphics.Typeface.BOLD)
                 }
-                binding.layoutAttachments.addView(imageView)
+                binding.layoutAttachments.addView(otherHeader)
+
+                for (attachment in otherAttachments) {
+                    val textView = TextView(requireContext()).apply {
+                        text = attachment.name ?: "file"
+                        setTextColor(resources.getColor(R.color.accent_light, null))
+                        textSize = 14f
+                     setPadding(0, 8, 0, 8)
+                        setOnClickListener {
+                            val url = "https://file.pawchive.pw/data${attachment.path ?: ""}"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            startActivity(intent)
+                        }
+                    }
+                    binding.layoutAttachments.addView(textView)
+                }
             }
 
+            // 其次渲染视频附件
             if (videoAttachments.isNotEmpty()) {
                 val videoHeader = TextView(requireContext()).apply {
                     text = getString(R.string.video_attachments)
@@ -361,29 +365,39 @@ class PostDetailFragment : Fragment() {
                 }
             }
 
-            if (otherAttachments.isNotEmpty()) {
-                val otherHeader = TextView(requireContext()).apply {
-                    text = getString(R.string.other_files)
+            // 最后渲染大量预览图,放在附件区底部
+            if (imageAttachments.isNotEmpty()) {
+                val imageHeader = TextView(requireContext()).apply {
+                    text = getString(R.string.preview_images)
                     setTextColor(resources.getColor(R.color.text_secondary, null))
                     textSize = 13f
                     setPadding(0, 16, 0, 4)
                     setTypeface(null, android.graphics.Typeface.BOLD)
                 }
-                binding.layoutAttachments.addView(otherHeader)
+                binding.layoutAttachments.addView(imageHeader)
 
-                for (attachment in otherAttachments) {
-                    val textView = TextView(requireContext()).apply {
-                        text = attachment.name ?: "file"
-                        setTextColor(resources.getColor(R.color.accent_light, null))
-                        textSize = 14f
-                        setPadding(0, 8, 0, 8)
+                for (attachment in imageAttachments) {
+                    val imageView = ImageView(requireContext()).apply {
+                        layoutParams = ViewGroup.MarginLayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            topMargin = 12
+                            bottomMargin = 12
+                        }
+                        adjustViewBounds = true
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        val fullUrl = "https://file.pawchive.pw/data${attachment.path}"
+                        load(fullUrl) {
+                            crossfade(true)
+                            placeholder(android.R.drawable.ic_menu_gallery)
+                            error(android.R.drawable.ic_menu_report_image)
+                        }
                         setOnClickListener {
-                            val url = "https://file.pawchive.pw/data${attachment.path ?: ""}"
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            startActivity(intent)
+                            openImageViewer(fullUrl, attachment.name ?: "image.jpg")
                         }
                     }
-                    binding.layoutAttachments.addView(textView)
+                    binding.layoutAttachments.addView(imageView)
                 }
             }
         } else {

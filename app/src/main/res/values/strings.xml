@@ -112,6 +112,7 @@
 
     <!-- Video -->
     <string name="video_attachments">视频附件</string>
+    <string name="preview_images">预览图</string>
     <string name="video_play_failed">视频播放失败</string>
     <string name="play_video">播放视频</string>
     <string name="play">播放</string>

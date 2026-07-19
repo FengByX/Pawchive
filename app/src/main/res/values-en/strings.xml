@@ -112,6 +112,7 @@
 
     <!-- Video -->
     <string name="video_attachments">Video Attachments</string>
+    <string name="preview_images">Preview Images</string>
     <string name="video_play_failed">Video playback failed</string>
     <string name="play_video">Play video</string>
     <string name="play">Play</string>
