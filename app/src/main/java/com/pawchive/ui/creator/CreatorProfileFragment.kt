@@ -21,6 +21,7 @@ import com.pawchive.databinding.FragmentCreatorProfileBinding
 import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.post.PostDetailFragment
+import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.launch
 
 class CreatorProfileFragment : Fragment() {
@@ -262,6 +263,8 @@ class CreatorProfileFragment : Fragment() {
                             textSize = 14f
                             setPadding(0, 8, 0, 8)
                             setOnClickListener {
+                                // API 路径参数 {creator_id} 对应 CreatorProfile.id（不是 publicId），
+                                // 跳转关联创作者时也用 id 作为下一个 fragment 的 creatorId。
                                 val creatorFragment = newInstance(link.service, link.id)
                                 (activity as? MainActivity)?.loadFragment(creatorFragment)
                             }
@@ -287,7 +290,7 @@ class CreatorProfileFragment : Fragment() {
                 postAdapter.notifyDataSetChanged()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "${getString(R.string.fetch_error)}: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, ErrorMessageHelper.getFriendlyMessage(context, e), Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
             }

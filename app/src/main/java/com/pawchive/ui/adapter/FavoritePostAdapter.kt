@@ -2,6 +2,7 @@ package com.pawchive.ui.adapter
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +26,8 @@ class FavoritePostAdapter(
     companion object {
         private const val TYPE_POST = 0
         private const val TYPE_FOOTER = 1
+        private const val TAG = "FavPostAdapter"
+        private const val THUMBNAIL_SIZE_PX = 160
     }
 
     fun updatePosts(newPosts: List<FavoritePost>) {
@@ -86,18 +89,30 @@ class FavoritePostAdapter(
             binding.tvPreview.text = if (plainText.length > 120) plainText.take(120) + "..." else plainText
 
             // Load thumbnail if main file or attachments are images
-            val imagePath = post.file?.path ?: post.attachments?.firstOrNull { 
-                it.path?.endsWith(".jpg", true) == true || it.path?.endsWith(".png", true) == true || it.path?.endsWith(".gif", true) == true || it.path?.endsWith(".webp", true) == true
-            }?.path
+            val imageExtensions = listOf(
+                ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".bmp",
+                ".tif", ".tiff", ".heic", ".heif"
+            )
+
+            fun isImage(path: String?, name: String? = null): Boolean {
+                val lowerPath = path?.lowercase().orEmpty()
+                val lowerName = name?.lowercase().orEmpty()
+                return imageExtensions.any { ext ->
+                    lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+                }
+            }
+
+            val imagePath: String? = if (isImage(post.file?.path, post.file?.name)) {
+                post.file?.path
+            } else {
+                post.attachments?.firstOrNull { isImage(it.path, it.name) }?.path
+            }
 
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE
-                val fullUrl = "https://img.pawchive.pw/thumbnail/data$imagePath"
-                binding.ivThumbnail.load(fullUrl) {
-                    crossfade(true)
-                    placeholder(android.R.drawable.ic_menu_gallery)
-                    error(android.R.drawable.ic_menu_report_image)
-                }
+
+                val candidateUrls = buildCandidateUrls(imagePath)
+                loadThumbnailWithFallback(binding, candidateUrls, 0)
             } else {
                 binding.ivThumbnail.visibility = View.GONE
             }
@@ -141,6 +156,46 @@ class FavoritePostAdapter(
             
             binding.cardServiceBadge.setCardBackgroundColor(context.getColor(bgColorRes))
             binding.tvService.setTextColor(context.getColor(textColorRes))
+        }
+
+        private fun buildCandidateUrls(imagePath: String): List<String> {
+            val trimmed = imagePath.trim()
+            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+                return listOf(trimmed)
+            }
+            val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+            return listOf(
+                "https://img.pawchive.pw/thumbnail/data$normalized",
+                "https://img.pawchive.pw/data$normalized",
+                "https://file.pawchive.pw/data$normalized"
+            )
+        }
+
+        private fun loadThumbnailWithFallback(
+            binding: ItemPostBinding,
+            urls: List<String>,
+            index: Int
+        ) {
+            if (index >= urls.size) return
+            val url = urls[index]
+            val isLast = index == urls.size - 1
+            binding.ivThumbnail.load(url) {
+                size(THUMBNAIL_SIZE_PX)
+                crossfade(150)
+                placeholder(R.color.thumbnail_placeholder)
+                error(R.color.thumbnail_placeholder)
+                listener(
+                    onError = { _, throwable ->
+                        Log.w(
+                            TAG,
+                            "Thumbnail load failed for $url (attempt ${index + 1}/${urls.size}): $throwable"
+                        )
+                        if (!isLast) {
+                            loadThumbnailWithFallback(binding, urls, index + 1)
+                        }
+                    }
+                )
+            }
         }
     }
 }

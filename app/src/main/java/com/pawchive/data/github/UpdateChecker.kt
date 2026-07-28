@@ -79,22 +79,54 @@ class UpdateChecker(context: Context) {
     }
 
     /**
-     * 语义化版本号比较
-     * 支持格式："1.0.10" > "1.0.9"
+     * 语义化版本号比较。
+     * 支持格式："1.0.10" > "1.0.9"。
+     * 也支持带预发布后缀的版本号，如 "1.2.0-beta"、"1.2.0-rc.1"：
+     *  - 数字部分按数值比较；
+     *  - 后缀（如 -beta / -rc.1）视为预发布版本，比同号无后缀版本旧（语义化版本约定）。
      */
     private fun isNewerVersion(latest: String, current: String): Boolean {
-        val latestParts = latest.split(".")
-        val currentParts = current.split(".")
-        val maxLength = maxOf(latestParts.size, currentParts.size)
+        val latestVer = parseSemver(latest)
+        val currentVer = parseSemver(current)
 
+        // 逐段比较数字部分
+        val maxLength = maxOf(latestVer.numeric.size, currentVer.numeric.size)
         for (i in 0 until maxLength) {
-            val latestPart = latestParts.getOrNull(i)?.toIntOrNull() ?: 0
-            val currentPart = currentParts.getOrNull(i)?.toIntOrNull() ?: 0
-
-            if (latestPart > currentPart) return true
-            if (latestPart < currentPart) return false
+            val l = latestVer.numeric.getOrNull(i) ?: 0
+            val c = currentVer.numeric.getOrNull(i) ?: 0
+            if (l > c) return true
+            if (l < c) return false
         }
-        return false
+
+        // 数字部分完全相等时，按预发布后缀判定：
+        //  - 都无后缀：相等，不算新版本
+        //  - latest 无后缀、current 有后缀：latest 是正式版，current 是预发布，latest 更新
+        //  - latest 有后缀、current 无后缀：latest 是预发布，不算更新
+        //  - 都有后缀：按字符串比较（保守起见）
+        return when {
+            latestVer.preRelease.isNullOrEmpty() && !currentVer.preRelease.isNullOrEmpty() -> true
+            !latestVer.preRelease.isNullOrEmpty() && currentVer.preRelease.isNullOrEmpty() -> false
+            !latestVer.preRelease.isNullOrEmpty() && !currentVer.preRelease.isNullOrEmpty() ->
+                latestVer.preRelease > currentVer.preRelease
+            else -> false
+        }
+    }
+
+    private data class Semver(val numeric: List<Int>, val preRelease: String?)
+
+    private fun parseSemver(version: String): Semver {
+        // 仅去除首尾空白，不去除 'v' 前缀由调用方处理
+        val trimmed = version.trim()
+        // 拆分预发布后缀
+        val (core, pre) = if (trimmed.contains('-')) {
+            val idx = trimmed.indexOf('-')
+            trimmed.substring(0, idx) to trimmed.substring(idx + 1)
+        } else {
+            trimmed to null
+        }
+        val numeric = core.split(".")
+            .mapNotNull { it.toIntOrNull() }
+        return Semver(numeric, pre?.takeIf { it.isNotEmpty() })
     }
 
     /**

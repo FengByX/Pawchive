@@ -1,6 +1,8 @@
 package com.pawchive.data.api
 
 import com.pawchive.BuildConfig
+import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -20,29 +22,111 @@ object ApiClient {
 
     /**
      * 注入 Cloudflare 通行凭据的拦截器：
-     * 为每个请求附带过盾时的 User-Agent（必须与 cf_clearance 绑定的 UA 一致）
-     * 以及包含 cf_clearance 的 Cookie。若请求已带 Cookie（如 session），则与 CF cookie 合并。
+     * 仅对 pawchive.pw 主域的请求附加 cf_clearance Cookie 和 User-Agent。
+     * 对 img.pawchive.pw 等 CDN 子域不注入 Referer/Cookie，避免触发防盗链。
      */
-    private val cloudflareInterceptor = okhttp3.Interceptor { chain ->
+    private val cloudflareInterceptor = Interceptor { chain ->
         val original = chain.request()
-        val builder = original.newBuilder()
+        val host = original.url.host
 
-        CloudflareManager.currentUserAgent()?.let { ua ->
-            builder.header("User-Agent", ua)
+        // 仅对 pawchive.pw 主域注入 CF 凭据；子域（如 img.pawchive.pw）不注入
+        val isMainDomain = host == "pawchive.pw" || host.endsWith(".pawchive.pw")
+
+        if (isMainDomain) {
+            val builder = original.newBuilder()
+            CloudflareManager.currentUserAgent()?.let { ua ->
+                builder.header("User-Agent", ua)
+            }
+            builder.header("Referer", LOGIN_BASE_URL)
+
+            val cfCookie = CloudflareManager.currentCookie()
+            if (!cfCookie.isNullOrEmpty()) {
+                val existing = original.header("Cookie")
+                val merged = if (existing.isNullOrEmpty()) cfCookie else "$existing; $cfCookie"
+                builder.header("Cookie", merged)
+            }
+            chain.proceed(builder.build())
+        } else {
+            // 非主域请求（如 img.pawchive.pw 的图片），只注入 UA（有助于过盾），
+            // 不注入 Referer 和 Cookie（避免触发防盗链或服务器拒绝）
+            val builder = original.newBuilder()
+            CloudflareManager.currentUserAgent()?.let { ua ->
+                builder.header("User-Agent", ua)
+            }
+            chain.proceed(builder.build())
         }
-        builder.header("Referer", LOGIN_BASE_URL)
-
-        val cfCookie = CloudflareManager.currentCookie()
-        if (!cfCookie.isNullOrEmpty()) {
-            val existing = original.header("Cookie")
-            val merged = if (existing.isNullOrEmpty()) cfCookie else "$existing; $cfCookie"
-            builder.header("Cookie", merged)
-        }
-
-        chain.proceed(builder.build())
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
+    /**
+     * Cloudflare 透明重试拦截器：
+     * 若响应为 403，强制刷新 cf_clearance 并重试一次。
+     * 关键修复：
+     *   1. 添加重试限制，防止 ensureClearance 失败时陷入无限循环。
+     *   2. 过盾失败时返回原始 403 响应（而非抛异常），让上层（如 Coil）
+     *      能正常将其作为加载失败处理，而不是崩溃。
+     */
+    private val cloudflareRetryInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        val response = chain.proceed(request)
+
+        if (response.code == 403) {
+            // 先关闭原始响应，再尝试刷新并重试一次
+            response.close()
+            val success = runBlocking {
+                CloudflareManager.ensureClearance(forceRefresh = true)
+            }
+            if (success) {
+                // 重建请求（cloudflareInterceptor 会自动注入新 Cookie）
+                val rebuiltRequest = request.newBuilder().build()
+                val retryResponse = chain.proceed(rebuiltRequest)
+                // 重试后仍为 403，直接返回，不再继续重试
+                retryResponse
+            } else {
+                // 过盾失败，返回新的 403 响应替代抛出异常
+                // 这样 Coil/Retrofit 能正确处理为加载失败
+                response.newBuilder()
+                    .code(403)
+                    .message("Cloudflare clearance failed")
+                    .request(request)
+                    .build()
+            }
+        } else {
+            response
+        }
+    }
+
+    /**
+     * 暴露给外部（Coil 图片加载、下载逻辑等）使用的 OkHttpClient，
+     * 已注入 Cloudflare 凭据与重试逻辑。
+     *
+     * 注意：img.pawchive.pw 并非完全公开的 CDN，部分缩略图请求也会
+     * 被 Cloudflare 拦截返回 403。因此图片加载也必须使用此客户端，
+     * 让 cloudflareRetryInterceptor 自动刷新 cf_clearance 并重试。
+     */
+    val sharedOkHttpClient: OkHttpClient by lazy { buildOkHttpClient() }
+
+    /**
+     * 轻量级 OkHttpClient（无 Cloudflare 拦截器），
+     * 仅用于确定不需要过盾的场景（如本地文件下载等）。
+     */
+    val imageOkHttpClient: OkHttpClient by lazy {
+        val logger = HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+        }
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .followRedirects(true)
+            .addInterceptor(logger)
+            .build()
+    }
+
+    private fun buildOkHttpClient(): OkHttpClient {
         val logger = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
@@ -51,7 +135,7 @@ object ApiClient {
             }
         }
 
-        OkHttpClient.Builder()
+        return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -60,9 +144,12 @@ object ApiClient {
             .followRedirects(true)
             .followSslRedirects(true)
             .addInterceptor(cloudflareInterceptor)
+            .addInterceptor(cloudflareRetryInterceptor)
             .addInterceptor(logger)
             .build()
     }
+
+    private val okHttpClient: OkHttpClient by lazy { buildOkHttpClient() }
 
     val publicApi: PawchiveApi by lazy {
         Retrofit.Builder()
@@ -79,7 +166,7 @@ object ApiClient {
             if (cachedAuthCookie == sessionCookie) return cached
         }
 
-        val cookieInterceptor = okhttp3.Interceptor { chain ->
+        val cookieInterceptor = Interceptor { chain ->
             val original = chain.request()
             // 与已有 Cookie（如 Cloudflare 注入的 cf_clearance）合并，避免出现重复的 Cookie 头
             val existing = original.header("Cookie")

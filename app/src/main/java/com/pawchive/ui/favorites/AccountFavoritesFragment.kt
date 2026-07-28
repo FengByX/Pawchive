@@ -19,6 +19,7 @@ import com.pawchive.ui.adapter.FavoriteCreatorAdapter
 import com.pawchive.ui.adapter.FavoritePostAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
+import com.pawchive.utils.ErrorMessageHelper
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 
@@ -292,7 +293,7 @@ class AccountFavoritesFragment : Fragment() {
                     loadedPosts.clear()
                     loadedPosts.addAll(posts)
                     applyPostSort()
-                    
+
                     if (posts.isEmpty()) {
                         binding.tvEmpty.visibility = View.VISIBLE
                         binding.rvFavorites.visibility = View.GONE
@@ -300,13 +301,13 @@ class AccountFavoritesFragment : Fragment() {
                         binding.tvEmpty.visibility = View.GONE
                         binding.rvFavorites.visibility = View.VISIBLE
                     }
-                    updateLoadMoreButton()
+                    updateLoadMoreButton(posts.size)
                 } else {
                     val exception = result.exceptionOrNull()
                     if (exception !is kotlinx.coroutines.CancellationException) {
                         Toast.makeText(
                             requireContext(),
-                            "${getString(R.string.fetch_error)}: ${exception?.message}",
+                            ErrorMessageHelper.getFriendlyMessage(requireContext(), exception),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -321,25 +322,29 @@ class AccountFavoritesFragment : Fragment() {
     private fun loadMorePosts() {
         binding.progressBar.visibility = View.VISIBLE
         currentOffset += pageSize
-        
+
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 if (_binding == null) return@launch
                 val result = authRepository.syncFavoritePosts(currentOffset)
                 binding.progressBar.visibility = View.GONE
-                
+
                 if (result.isSuccess) {
                     val newPosts = result.getOrNull() ?: emptyList()
                     loadedPosts.addAll(newPosts)
                     applyPostSort()
-                    updateLoadMoreButton()
+                    // 修复：用本次返回条数判断是否还有下一页，
+                    // 旧实现用累计总数 loadedPosts.size 与 currentOffset+pageSize 比较，
+                    // 当最后一页恰好返回 pageSize 条时（无下一页）也会判定为 true，
+                    // 导致用户点击"加载更多"后什么也没有。
+                    updateLoadMoreButton(newPosts.size)
                 } else {
                     currentOffset -= pageSize
                     val exception = result.exceptionOrNull()
                     if (exception !is kotlinx.coroutines.CancellationException) {
                         Toast.makeText(
                             requireContext(),
-                            "${getString(R.string.fetch_error)}: ${exception?.message}",
+                            ErrorMessageHelper.getFriendlyMessage(requireContext(), exception),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -380,7 +385,7 @@ class AccountFavoritesFragment : Fragment() {
                     if (exception !is kotlinx.coroutines.CancellationException) {
                         Toast.makeText(
                             requireContext(),
-                            "${getString(R.string.fetch_error)}: ${exception?.message}",
+                            ErrorMessageHelper.getFriendlyMessage(requireContext(), exception),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -410,9 +415,11 @@ class AccountFavoritesFragment : Fragment() {
                 } else {
                     val exception = result.exceptionOrNull()
                     if (exception !is kotlinx.coroutines.CancellationException) {
+                        // 修复前 Toast 文案是 R.string.bookmark_removed（"已取消收藏"），
+                        // 让用户误以为操作成功。改为"操作失败"。
                         Toast.makeText(
                             requireContext(),
-                            "${getString(R.string.bookmark_removed)}: ${exception?.message}",
+                            ErrorMessageHelper.getFriendlyMessage(requireContext(), exception),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -423,8 +430,14 @@ class AccountFavoritesFragment : Fragment() {
         }
     }
 
-    private fun updateLoadMoreButton() {
-        postAdapter.setFooterVisible(loadedPosts.size >= currentOffset + pageSize)
+    /**
+     * @param lastBatchSize 本次（或上次）网络返回的条数。
+     *        修复前用累计 loadedPosts.size 判断分页：当最后一页恰好返回 pageSize 条
+     *        （实际无下一页）时也会判定为 true，导致"加载更多"点击后空响应。
+     *        改为：本次返回 >= pageSize 才显示"加载更多"。
+     */
+    private fun updateLoadMoreButton(lastBatchSize: Int = pageSize) {
+        postAdapter.setFooterVisible(lastBatchSize >= pageSize)
     }
 
     override fun onDestroyView() {

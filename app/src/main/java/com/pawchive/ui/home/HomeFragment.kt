@@ -20,6 +20,7 @@ import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
+import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -123,7 +124,7 @@ class HomeFragment : Fragment() {
             if (!message.isNullOrBlank()) {
                 Toast.makeText(
                     context,
-                    "${getString(R.string.fetch_error)}: $message",
+                    ErrorMessageHelper.getFriendlyMessage(context, message),
                     Toast.LENGTH_LONG
                 ).show()
                 if (loadedPosts.isEmpty()) {

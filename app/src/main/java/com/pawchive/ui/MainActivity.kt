@@ -100,12 +100,10 @@ class MainActivity : AppCompatActivity() {
         updateBottomNavVisibility()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isFinishing) {
-            (application as? com.pawchive.PawchiveApplication)?.clearCache()
-        }
-    }
+    // 注意：移除 onDestroy 中 clearCache() 调用。
+    // 此前每次退出 App 都会清空 Coil 磁盘缓存与 WebView 缓存，
+    // 导致下次冷启动图片需全部重新下载、cf_clearance 需重新过盾，
+    // 与"流畅体验"定位相悖。Coil 自身有 LRU 淘汰策略，无需手动清空。
 
     private fun setupHighRefreshRate() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

@@ -19,7 +19,7 @@
             android:id="@+id/btn_back"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@android:drawable/ic_menu_revert"
+            android:src="@drawable/ic_arrow_back"
             android:contentDescription="@string/back"
             app:tint="?attr/colorOnSurface"
             app:layout_constraintStart_toStartOf="parent"
@@ -53,7 +53,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Fixed video player area (B站置顶风格) -->
+    <!-- Fixed video player area (Bilibili-style overlay controls) -->
     <LinearLayout
         android:id="@+id/video_player_container"
         android:layout_width="match_parent"
@@ -63,7 +63,7 @@
         android:background="?attr/colorSurface"
         app:layout_constraintTop_toBottomOf="@+id/header_layout">
 
-        <!-- Video display area -->
+        <!-- Video display area with overlay controls -->
         <FrameLayout
             android:id="@+id/video_display_frame"
             android:layout_width="match_parent"
@@ -96,109 +96,122 @@
                 android:visibility="gone"
                 android:contentDescription="@string/play_video" />
 
+            <!-- Bilibili-style bottom control overlay -->
+            <LinearLayout
+                android:id="@+id/video_controller_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:orientation="vertical"
+                android:paddingHorizontal="12dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp"
+                android:background="@drawable/video_control_gradient">
+
+                <!-- Bottom row: play + current time + duration + fullscreen -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="4dp">
+
+                    <ImageButton
+                        android:id="@+id/btn_play_pause"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_play"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        app:tint="@android:color/white"
+                        android:contentDescription="@string/play" />
+
+                    <TextView
+                        android:id="@+id/tv_current_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="00:00"
+                        android:textColor="@android:color/white"
+                        android:textSize="12sp"
+                        android:layout_marginStart="8dp" />
+
+                    <!-- Thin progress bar (Bilibili style) -->
+                    <SeekBar
+                        android:id="@+id/seekbar_video"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:minHeight="2dp"
+                        android:maxHeight="2dp"
+                        android:thumbTint="@android:color/white"
+                        android:progressTint="@android:color/white"
+                        android:progressBackgroundTint="#66FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tv_duration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="00:00"
+                        android:textColor="@android:color/white"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <ImageButton
+                        android:id="@+id/btn_fullscreen"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_fullscreen"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        app:tint="@android:color/white"
+                        android:contentDescription="@string/fullscreen" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Top: close button + more actions (right-aligned) -->
+            <LinearLayout
+                android:id="@+id/video_top_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:orientation="horizontal"
+                android:layout_margin="8dp">
+
+                <ImageButton
+                    android:id="@+id/btn_speed"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_speed"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@android:color/white"
+                    android:contentDescription="@string/speed" />
+
+                <ImageButton
+                    android:id="@+id/btn_download"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_download"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@android:color/white"
+                    android:contentDescription="@string/download" />
+
+                <ImageButton
+                    android:id="@+id/btn_close_video"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_close"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@android:color/white"
+                    android:contentDescription="@string/close" />
+
+            </LinearLayout>
+
         </FrameLayout>
 
-        <!-- Custom Media controller bar -->
-        <LinearLayout
-            android:id="@+id/video_controller_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp"
-            android:gravity="center_vertical"
-            android:background="?attr/colorSurfaceVariant">
-
-            <ImageButton
-                android:id="@+id/btn_play_pause"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@drawable/ic_play"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/play" />
-
-            <TextView
-                android:id="@+id/tv_current_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="00:00"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="13sp"
-                android:layout_marginStart="8dp" />
-
-            <SeekBar
-                android:id="@+id/seekbar_video"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:thumbTint="?attr/colorPrimary"
-                android:progressTint="?attr/colorPrimary"
-                android:progressBackgroundTint="?attr/colorOnSurfaceVariant" />
-
-            <TextView
-                android:id="@+id/tv_duration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="00:00"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="13sp" />
-
-            <!-- Speed button -->
-            <ImageButton
-                android:id="@+id/btn_speed"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@drawable/ic_speed"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/speed" />
-
-            <!-- Cast button -->
-            <ImageButton
-                android:id="@+id/btn_cast"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@drawable/ic_cast"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/cast" />
-
-            <!-- Download button -->
-            <ImageButton
-                android:id="@+id/btn_download"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@drawable/ic_download"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/download" />
-
-            <!-- Fullscreen button -->
-            <ImageButton
-                android:id="@+id/btn_fullscreen"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@drawable/ic_fullscreen"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/fullscreen" />
-
-            <!-- Close button -->
-            <ImageButton
-                android:id="@+id/btn_close_video"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:src="@drawable/ic_close"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="?attr/colorOnSurface"
-                android:contentDescription="@string/close" />
-
-        </LinearLayout>
-
-        <!-- Video info bar -->
+        <!-- Video info bar (filename + count) below video -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

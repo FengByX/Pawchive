@@ -26,12 +26,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import coil.load
 import com.pawchive.R
+import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.databinding.FragmentPostDetailBinding
 import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.CommentAdapter
+import com.pawchive.utils.ErrorMessageHelper
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -146,7 +148,11 @@ class PostDetailFragment : Fragment() {
                 viewModel.uiState.collect { state ->
                     if (state.isLoading) {
                     } else if (state.errorMessage != null) {
-                        Toast.makeText(context, "Error fetching post details: ${state.errorMessage}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         state.post?.let { post ->
                             currentPost = post
@@ -178,12 +184,8 @@ class PostDetailFragment : Fragment() {
         setServiceBadgeColor(post.service)
 
         val content = post.content ?: ""
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            binding.tvPostContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
-        } else {
-            @Suppress("DEPRECATION")
-            binding.tvPostContent.text = Html.fromHtml(content)
-        }
+        // minSdk = 30，SDK_INT < N 分支永远不会执行（死代码），直接使用 N+ API。
+        binding.tvPostContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
         binding.tvPostContent.movementMethod = LinkMovementMethod.getInstance()
 
         binding.tvPostContent.text = binding.tvPostContent.text.let {
@@ -467,15 +469,28 @@ class PostDetailFragment : Fragment() {
         updateBookmarkIcon(isBookmarked)
 
         binding.btnPostBookmark.setOnClickListener {
-            val newStatus = !bookmarkManager.isPostBookmarked(service, creatorId, postId)
+            // 防止同步进行中再次点击导致状态错乱
+            if (binding.btnPostBookmark.isEnabled.not()) return@setOnClickListener
+            val previousStatus = bookmarkManager.isPostBookmarked(service, creatorId, postId)
+            val newStatus = !previousStatus
 
+            // 先做乐观更新：本地立刻生效，UI 立刻反馈
             if (newStatus) {
                 bookmarkManager.bookmarkPost(post)
             } else {
                 bookmarkManager.unbookmarkPost(service, creatorId, postId)
             }
+            viewModel.setBookmarked(newStatus)
+            updateBookmarkIcon(newStatus)
+            Toast.makeText(
+                context,
+                if (newStatus) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed),
+                Toast.LENGTH_SHORT
+            ).show()
 
             if (authRepository.isLoggedIn()) {
+                // 同步期间禁用按钮，避免在飞行中重复点击
+                binding.btnPostBookmark.isEnabled = false
                 viewLifecycleOwner.lifecycleScope.launch {
                     val result = if (newStatus) {
                         authRepository.addPostToFavorites(service, creatorId, postId)
@@ -484,26 +499,25 @@ class PostDetailFragment : Fragment() {
                     }
 
                     if (result.isFailure) {
-                        Toast.makeText(context, "同步失败: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        // 同步失败：完整回滚本地状态、ViewModel 状态与图标
+                        // 修复前只回滚了 icon，viewModel.setBookmarked 未回滚，重建 Fragment 后图标与实际不符
                         if (newStatus) {
                             bookmarkManager.unbookmarkPost(service, creatorId, postId)
-                            updateBookmarkIcon(false)
                         } else {
                             bookmarkManager.bookmarkPost(post)
-                            updateBookmarkIcon(true)
                         }
-                        return@launch
+                        viewModel.setBookmarked(previousStatus)
+                        updateBookmarkIcon(previousStatus)
+                        // 修复前会再弹一次"已收藏/已取消收藏"，与"同步失败"形成双重 Toast，用户困惑
+                        Toast.makeText(
+                            context,
+                            ErrorMessageHelper.getFriendlyMessage(context, result.exceptionOrNull()),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
+                    binding.btnPostBookmark.isEnabled = true
                 }
             }
-
-            viewModel.setBookmarked(newStatus)
-            updateBookmarkIcon(newStatus)
-            Toast.makeText(
-                context,
-                if (newStatus) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed),
-                Toast.LENGTH_SHORT
-            ).show()
         }
     }
 
@@ -555,6 +569,8 @@ class PostDetailFragment : Fragment() {
                             binding.tvDuration.text = videoPlayerManager.formatTime(duration)
                         }
                         updateVideoSize()
+                        // 视频准备好后显示控制栏
+                        showVideoControls()
                     }
                     Player.STATE_ENDED -> {
                         binding.videoLoadingProgress.visibility = View.GONE
@@ -612,24 +628,29 @@ class PostDetailFragment : Fragment() {
             }
         })
 
-        binding.btnSpeed.setOnClickListener {
-            showSpeedDialog()
+        binding.btnFullscreen.setOnClickListener {
+            toggleFullscreen()
         }
 
-        binding.btnCast.setOnClickListener {
-            Toast.makeText(context, getString(R.string.cast), Toast.LENGTH_SHORT).show()
+        binding.btnSpeed.setOnClickListener {
+            showSpeedDialog()
         }
 
         binding.btnDownload.setOnClickListener {
             downloadCurrentVideo()
         }
 
-        binding.btnFullscreen.setOnClickListener {
-            toggleFullscreen()
+        // 点视频画面切换控制栏显示/隐藏（Bilibili 风格交互）
+        binding.videoDisplayFrame.setOnClickListener {
+            if (binding.videoControllerOverlay.visibility == View.VISIBLE) {
+                hideVideoControls()
+            } else {
+                showVideoControls()
+            }
         }
 
+        // 进度条自动隐藏计时
         viewLifecycleOwner.lifecycleScope.launch {
-            // 仅在界面处于 STARTED（可见）状态时轮询更新进度，后台自动暂停，避免无谓耗电
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {
                     if (videoPlayerManager.player != null && binding.videoPlayerContainer.visibility == View.VISIBLE) {
@@ -638,16 +659,34 @@ class PostDetailFragment : Fragment() {
                             val currentPos = videoPlayerManager.currentPosition
                             val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
 
-                            binding.seekbarVideo.progress = currentPos.toInt()
+                            val currentPosInt = if (currentPos > Int.MAX_VALUE) Int.MAX_VALUE else currentPos.toInt()
+                            val bufferedPosInt = if (bufferedPos > Int.MAX_VALUE) Int.MAX_VALUE else bufferedPos.toInt()
+                            binding.seekbarVideo.progress = currentPosInt
                             binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
-
-                            binding.seekbarVideo.secondaryProgress = bufferedPos.toInt()
+                            binding.seekbarVideo.secondaryProgress = bufferedPosInt
                         }
                     }
                     kotlinx.coroutines.delay(200)
                 }
             }
         }
+    }
+
+    private fun showVideoControls() {
+        binding.videoControllerOverlay.visibility = View.VISIBLE
+        binding.videoTopActions.visibility = View.VISIBLE
+        // 3 秒后自动隐藏（仅在播放中）
+        viewLifecycleOwner.lifecycleScope.launch {
+            kotlinx.coroutines.delay(3000)
+            if (videoPlayerManager.isPlaying) {
+                hideVideoControls()
+            }
+        }
+    }
+
+    private fun hideVideoControls() {
+        binding.videoControllerOverlay.visibility = View.GONE
+        binding.videoTopActions.visibility = View.GONE
     }
 
     private fun showSpeedDialog() {
@@ -674,16 +713,17 @@ class PostDetailFragment : Fragment() {
 
         val (url, fileName) = videoList[currentVideoIndex]
 
-        Toast.makeText(context, "${getString(R.string.downloading)} $fileName", Toast.LENGTH_LONG).show()
-
         val contextRef = requireContext()
+        val downloadingToast = Toast.makeText(context, "${getString(R.string.downloading)} $fileName", Toast.LENGTH_LONG)
+        downloadingToast.show()
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             var errorMessage: String? = null
 
             try {
-                val okHttpClient = OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                // 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，
+                // 并在 403 时透明过盾重试。延长读超时以适应大文件下载。
+                val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
                     .readTimeout(120, TimeUnit.SECONDS)
                     .build()
 
@@ -749,10 +789,26 @@ class PostDetailFragment : Fragment() {
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         var totalBytesRead: Long = 0
+                        // 进度反馈：每下载 5% 至少弹一次进度 Toast，避免用户以为卡死
+                        var lastReportedPercent = -1
 
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             out.write(buffer, 0, bytesRead)
                             totalBytesRead += bytesRead
+
+                            if (contentLength > 0) {
+                                val percent = (totalBytesRead * 100 / contentLength).toInt()
+                                if (percent - lastReportedPercent >= 5) {
+                                    lastReportedPercent = percent
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(
+                                            context,
+                                            getString(R.string.download_progress, percent),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
                         }
 
                         if (contentLength > 0 && totalBytesRead != contentLength) {
@@ -779,18 +835,22 @@ class PostDetailFragment : Fragment() {
                 return@launch
 
             } catch (e: java.net.SocketTimeoutException) {
-                errorMessage = getString(R.string.download_timeout)
+                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
             } catch (e: java.net.UnknownHostException) {
-                errorMessage = getString(R.string.network_error)
+                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
             } catch (e: java.io.IOException) {
-                errorMessage = getString(R.string.save_failed) + ": " + e.message
+                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
             } catch (e: Exception) {
-                errorMessage = e.message ?: getString(R.string.save_failed)
+                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
                 e.printStackTrace()
             }
 
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, errorMessage ?: getString(R.string.save_failed), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    errorMessage ?: ErrorMessageHelper.getFriendlyMessage(context, ""),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -832,15 +892,33 @@ class PostDetailFragment : Fragment() {
         val position = videoPlayerManager.currentPosition
         val isPlaying = videoPlayerManager.isPlaying
 
+        // 进入全屏：暂停内嵌播放器（保留资源以便退出后无缝恢复）
         videoPlayerManager.pause()
+        isFullscreen = true
 
         val dialog = FullscreenVideoDialog.newInstance(url, fileName, position, isPlaying)
+        dialog.setListener(object : FullscreenVideoDialog.FullscreenVideoListener {
+            override fun onFullscreenClosed(position: Long, isPlaying: Boolean) {
+                // 退出全屏：从退出位置继续播放
+                isFullscreen = false
+                if (binding.videoPlayerContainer.visibility == View.VISIBLE) {
+                    videoPlayerManager.seekTo(position)
+                    if (isPlaying) {
+                        videoPlayerManager.resume()
+                    }
+                }
+            }
+        })
         dialog.show(parentFragmentManager, "fullscreen_video")
     }
 
-    private fun enterFullscreen() {}
+    private fun enterFullscreen() {
+        isFullscreen = true
+    }
 
-    private fun exitFullscreen() {}
+    private fun exitFullscreen() {
+        isFullscreen = false
+    }
 
     private fun updateVideoSize() {
         val videoSize = videoPlayerManager.player?.videoSize ?: return

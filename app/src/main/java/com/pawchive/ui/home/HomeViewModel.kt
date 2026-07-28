@@ -5,7 +5,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawchive.data.api.ApiClient
-import com.pawchive.data.api.CloudflareManager
 import com.pawchive.data.model.Post
 import kotlinx.coroutines.launch
 
@@ -48,9 +47,7 @@ class HomeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val morePosts = CloudflareManager.withClearance {
-                    api.getRecentPosts(offset = currentOffset)
-                }
+                val morePosts = api.getRecentPosts(offset = currentOffset)
                 loadedPosts.addAll(morePosts)
                 _posts.value = loadedPosts.toList()
                 _hasMore.value = morePosts.size >= pageSize
@@ -68,22 +65,28 @@ class HomeViewModel : ViewModel() {
         _isLoading.value = true
         _errorMessage.value = null
 
+        // 关键修复：refresh 失败时不要先清空旧数据。
+        // 旧实现 reset=true 时立即清空 loadedPosts 与 _posts，
+        // 一旦网络抖动失败，UI 直接显示空列表 + 错误提示，已加载内容消失。
+        // 改为：请求成功后才替换 loadedPosts；失败时保留旧数据，仅显示错误提示。
         if (reset) {
             currentOffset = 0
-            loadedPosts.clear()
-            _posts.value = emptyList()
         }
 
         viewModelScope.launch {
             try {
-                val posts = CloudflareManager.withClearance {
-                    api.getRecentPosts(offset = currentOffset)
+                val posts = api.getRecentPosts(offset = currentOffset)
+                if (reset) {
+                    loadedPosts.clear()
                 }
-                loadedPosts.clear()
                 loadedPosts.addAll(posts)
                 _posts.value = loadedPosts.toList()
                 _hasMore.value = posts.size >= pageSize
             } catch (e: Exception) {
+                if (reset) {
+                    // refresh 失败：保留原 loadedPosts 不动，仅回退 offset
+                    currentOffset = 0
+                }
                 _errorMessage.value = e.message
             } finally {
                 _isLoading.value = false

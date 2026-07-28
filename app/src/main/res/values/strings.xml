@@ -104,6 +104,19 @@
     <string name="bookmark_added">已添加收藏</string>
     <string name="bookmark_removed">已移除收藏</string>
 
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">网络连接异常，请检查您的网络设置</string>
+    <string name="error_server_unreachable">服务器暂时无法访问，请稍后重试</string>
+    <string name="error_timeout">网络请求超时，请检查网络后重试</string>
+    <string name="error_ssl">安全连接失败，请检查系统时间或稍后重试</string>
+    <string name="error_connection_reset">网络连接已中断，请重试</string>
+    <string name="error_forbidden">访问被拒绝，您可能没有权限执行此操作</string>
+    <string name="error_not_found">请求的内容不存在</string>
+    <string name="error_server_error">服务器暂时出现问题，请稍后重试</string>
+    <string name="error_cloudflare">安全验证未通过，请稍后重试</string>
+    <string name="error_auth">登录状态已失效，请重新登录</string>
+    <string name="error_unknown">操作失败，请稍后重试</string>
+
     <!-- Image Viewer -->
     <string name="save_image">保存图片</string>
     <string name="save_image_confirm">是否保存这张图片到相册？</string>
@@ -140,4 +153,49 @@
     <string name="check_for_updates">检查更新</string>
     <string name="update_already_latest">已是最新版本</string>
     <string name="update_check_failed">检查更新失败</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">登录成功！正在同步收藏...</string>
+    <string name="logout_failed">登出失败</string>
+    <string name="bookmark_sync_failed">同步失败</string>
+    <string name="operation_failed">操作失败</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">下载中：%1$d%%</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">下载</string>
+    <string name="download_location">下载位置</string>
+    <string name="download_location_desc">选择文件保存的默认位置</string>
+    <string name="download_location_change">更改</string>
+    <string name="download_location_default">Pawchive 文件夹</string>
+    <string name="download_location_pictures">图片库</string>
+    <string name="download_location_videos">视频库</string>
+    <string name="download_location_documents">文档</string>
+    <string name="download_location_custom">自定义...</string>
+    <string name="download_location_dialog_title">选择下载位置</string>
+    <string name="download_location_updated">下载位置已更新</string>
+    <string name="download_location_label">保存至：</string>
+    <string name="download_location_not_set">未设置，使用默认位置</string>
+    <string name="download_location_set_to">下载位置已设置为：%1$s</string>
+    <string name="file_picker_not_available">无法打开文件管理器</string>
+    <string name="unknown_folder">未知文件夹</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">缓存与存储</string>
+    <string name="auto_clean_cache">自动清理缓存</string>
+    <string name="auto_clean_cache_desc">在应用启动时自动清理临时缓存文件</string>
+    <string name="manual_clean_cache">立即清理缓存</string>
+    <string name="manual_clean_cache_desc">释放缓存占用的存储空间</string>
+    <string name="cache_size">当前缓存大小：%1$s</string>
+    <string name="cache_cleaned">缓存已清理</string>
+    <string name="cache_cleaning">正在清理缓存...</string>
+    <string name="cache_empty">无缓存</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">关于</string>
+    <string name="version">版本</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">开源许可证</string>
+    <string name="app_description">Pawchive - 您的内容归档管理器</string>
 </resources>

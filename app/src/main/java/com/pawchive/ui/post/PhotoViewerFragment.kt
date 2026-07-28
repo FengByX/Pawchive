@@ -14,7 +14,9 @@ import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pawchive.R
+import com.pawchive.data.api.ApiClient
 import com.pawchive.databinding.FragmentPhotoViewerBinding
+import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,15 +92,15 @@ class PhotoViewerFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val okHttpClient = OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
+                // 使用 sharedOkHttpClient：img.pawchive.pw 也可能被 Cloudflare 拦截，
+                // sharedOkHttpClient 内置 CF 重试逻辑。
+                val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
                     .readTimeout(60, TimeUnit.SECONDS)
                     .build()
 
                 val request = Request.Builder()
                     .url(imageUrl)
                     .header("Accept", "*/*")
-                    .header("User-Agent", "Mozilla/5.0 (Android) Pawchive")
                     .build()
 
                 val response = okHttpClient.newCall(request).execute()
@@ -125,7 +127,7 @@ class PhotoViewerFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         requireContext(),
-                        "${getString(R.string.save_failed)}: ${e.message}",
+                        ErrorMessageHelper.getFriendlyMessage(requireContext(), e),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -186,7 +188,7 @@ class PhotoViewerFragment : Fragment() {
             withContext(Dispatchers.Main) {
                 Toast.makeText(
                     requireContext(),
-                    "${getString(R.string.save_failed)}: ${e.message}",
+                    ErrorMessageHelper.getFriendlyMessage(requireContext(), e),
                     Toast.LENGTH_SHORT
                 ).show()
             }

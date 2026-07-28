@@ -1,24 +1,66 @@
 package com.pawchive.ui.settings
 
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatDelegate
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.pawchive.BuildConfig
 import com.pawchive.R
 import com.pawchive.data.SettingsManager
 import com.pawchive.databinding.FragmentSettingsBinding
 import com.pawchive.ui.MainActivity
-import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private lateinit var settingsManager: SettingsManager
+
+    private val pickDownloadLocation = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            val activity = activity ?: return@registerForActivityResult
+
+            try {
+                activity.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+
+            val displayName = getFolderDisplayName(uri)
+            settingsManager.setDownloadTreeUri(uri, displayName)
+            updateDownloadLocationText()
+
+            Toast.makeText(
+                activity,
+                getString(R.string.download_location_set_to, displayName),
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (_: Exception) {
+            activity?.let {
+                Toast.makeText(
+                    it,
+                    R.string.file_picker_not_available,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,6 +79,16 @@ class SettingsFragment : Fragment() {
         setupToggleButtonColors()
         setupLanguage()
         setupAppearance()
+        setupDownloadLocation()
+        setupAutoCleanCache()
+        setupManualCleanCache()
+        setupVersionInfo()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCacheSize()
+        updateDownloadLocationText()
     }
 
     private fun setupBackButton() {
@@ -92,10 +144,8 @@ class SettingsFragment : Fragment() {
                 R.id.btn_lang_ja -> SettingsManager.Language.JAPANESE
                 else -> return@addOnButtonCheckedListener
             }
-            // 如果语言没变，不重启
             if (language == currentLang) return@addOnButtonCheckedListener
             settingsManager.setLanguage(language)
-            // 通过重启 Activity 应用语言变更，避免 setApplicationLocales 导致的黑屏闪烁
             (activity as? MainActivity)?.restartForLanguageChange()
         }
     }
@@ -118,6 +168,127 @@ class SettingsFragment : Fragment() {
             }
             settingsManager.setAppearance(appearance)
         }
+    }
+
+    private fun setupDownloadLocation() {
+        updateDownloadLocationText()
+
+        binding.btnChangeLocation.setOnClickListener {
+            openSystemFilePicker()
+        }
+    }
+
+    private fun openSystemFilePicker() {
+        try {
+            pickDownloadLocation.launch(null)
+        } catch (_: Exception) {
+            Toast.makeText(
+                requireContext(),
+                R.string.file_picker_not_available,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun getFolderDisplayName(uri: Uri): String {
+        try {
+            val projection = arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val cursor = requireContext().contentResolver.query(uri, projection, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val name = it.getString(0)
+                    if (!name.isNullOrEmpty()) return name
+                }
+            }
+        } catch (_: Exception) {}
+        val lastSegment = uri.lastPathSegment ?: ""
+        val name = lastSegment.substringAfterLast('/')
+        return name.ifEmpty { getString(R.string.unknown_folder) }
+    }
+
+    private fun updateDownloadLocationText() {
+        val name = settingsManager.getDownloadLocationName()
+        val uri = settingsManager.getDownloadTreeUri()
+        if (uri != null && name.isNotEmpty()) {
+            binding.tvDownloadLocation.text = getString(R.string.download_location_label) + name
+        } else {
+            binding.tvDownloadLocation.text = getString(R.string.download_location_not_set)
+        }
+    }
+
+    private fun setupAutoCleanCache() {
+        binding.switchAutoClean.isChecked = settingsManager.isAutoCleanCacheEnabled()
+        binding.switchAutoClean.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.setAutoCleanCacheEnabled(isChecked)
+        }
+    }
+
+    private fun setupManualCleanCache() {
+        updateCacheSize()
+
+        binding.btnCleanCache.setOnClickListener {
+            cleanCache()
+        }
+    }
+
+    private fun updateCacheSize() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val size = withContext(Dispatchers.IO) {
+                SettingsManager.getCacheSize(requireContext())
+            }
+            if (size > 0) {
+                binding.tvCacheSize.text = getString(
+                    R.string.cache_size,
+                    SettingsManager.formatSize(size)
+                )
+            } else {
+                binding.tvCacheSize.text = getString(R.string.cache_empty)
+            }
+        }
+    }
+
+    private fun cleanCache() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val loadingToast = Toast.makeText(
+                requireContext(),
+                R.string.cache_cleaning,
+                Toast.LENGTH_SHORT
+            )
+            loadingToast.show()
+
+            withContext(Dispatchers.IO) {
+                try {
+                    val app = requireActivity().application as? com.pawchive.PawchiveApplication
+                    app?.clearCache()
+
+                    val cacheDir = requireContext().cacheDir
+                    if (cacheDir.exists()) {
+                        cacheDir.deleteRecursively()
+                        cacheDir.mkdirs()
+                    }
+                } catch (_: Exception) {}
+            }
+
+            loadingToast.cancel()
+
+            Toast.makeText(
+                requireContext(),
+                R.string.cache_cleaned,
+                Toast.LENGTH_SHORT
+            ).show()
+
+            updateCacheSize()
+        }
+    }
+
+    private fun setupVersionInfo() {
+        val versionName = BuildConfig.VERSION_NAME
+        val versionCode = BuildConfig.VERSION_CODE
+        binding.tvVersion.text = getString(
+            R.string.version_format,
+            versionName,
+            versionCode
+        )
     }
 
     override fun onDestroyView() {

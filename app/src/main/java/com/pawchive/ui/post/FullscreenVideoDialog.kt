@@ -21,6 +21,20 @@ import com.pawchive.R
 
 class FullscreenVideoDialog : DialogFragment() {
 
+    /**
+     * 全屏退出回调：把退出时的播放位置与是否在播放状态传回宿主，
+     * 宿主可据此恢复原视频播放（避免双 ExoPlayer 同时存在 + 退出后不恢复）。
+     */
+    interface FullscreenVideoListener {
+        fun onFullscreenClosed(position: Long, isPlaying: Boolean)
+    }
+
+    private var listener: FullscreenVideoListener? = null
+
+    fun setListener(l: FullscreenVideoListener) {
+        listener = l
+    }
+
     private lateinit var playerView: PlayerView
     private lateinit var btnPlayPause: ImageButton
     private lateinit var btnFullscreen: ImageButton
@@ -33,6 +47,10 @@ class FullscreenVideoDialog : DialogFragment() {
     private var videoTitle: String = ""
     private var currentPosition: Long = 0
     private var isPlaying: Boolean = false
+    // 标记是否已在首次 STATE_READY 时 seek 到进入全屏的位置，避免缓冲恢复时反复 seek
+    private var hasSeekedToInitial: Boolean = false
+    // 进入全屏前 Activity 的方向，退出时恢复（Bug 17）
+    private var previousOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
     private var videoPlayerManager: VideoPlayerManager? = null
 
@@ -105,8 +123,13 @@ class FullscreenVideoDialog : DialogFragment() {
                             seekbarVideo.max = duration.toInt()
                             tvDuration.text = videoPlayerManager?.formatTime(duration)
                         }
-                        if (currentPosition > 0) {
+                        // 关键修复：STATE_READY 在缓冲恢复后会多次触发，
+                        // 旧实现每次都 seekTo(currentPosition)，导致用户拖动进度条后
+                        // 缓冲结束就被强行拉回进入全屏时的位置，无法正常跳转。
+                        // 改为仅在首次 READY 时 seek 一次。
+                        if (!hasSeekedToInitial && currentPosition > 0) {
                             videoPlayerManager?.seekTo(currentPosition)
+                            hasSeekedToInitial = true
                         }
                         if (isPlaying) {
                             videoPlayerManager?.resume()
@@ -172,6 +195,9 @@ class FullscreenVideoDialog : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
+        // 进入全屏：记录原方向 → 切横屏；退出时恢复为原方向，
+        // 旧实现无条件改为竖屏，导致平板/横屏默认设备退出全屏后整个 App 被强制改为竖屏。
+        previousOrientation = requireActivity().requestedOrientation
         requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -190,7 +216,8 @@ class FullscreenVideoDialog : DialogFragment() {
 
     override fun onStop() {
         super.onStop()
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        // 恢复进入全屏前的方向，避免强制竖屏
+        requireActivity().requestedOrientation = previousOrientation
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             requireActivity().window.insetsController?.show(
@@ -203,6 +230,12 @@ class FullscreenVideoDialog : DialogFragment() {
     }
 
     override fun onDestroyView() {
+        // 退出全屏前把当前位置与播放状态回调给宿主，宿主据此恢复原视频播放
+        val position = videoPlayerManager?.currentPosition ?: 0L
+        val playing = videoPlayerManager?.isPlaying ?: false
+        listener?.onFullscreenClosed(position, playing)
+        listener = null
+
         videoPlayerManager?.release()
         videoPlayerManager = null
         super.onDestroyView()

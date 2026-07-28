@@ -172,8 +172,9 @@ object CloudflareManager {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.databaseEnabled = true
-                settings.userAgentString = settings.userAgentString
 
+                // 直接读取 WebView 默认 User-Agent；cf_clearance 与该 UA 强绑定，
+                // 后续 OkHttp 请求必须使用同一个 UA（由 currentUserAgent() 注入）。
                 val userAgent = settings.userAgentString
 
                 var finished = false

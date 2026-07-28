@@ -104,6 +104,19 @@
     <string name="bookmark_added">Bookmark Added</string>
     <string name="bookmark_removed">Bookmark Removed</string>
 
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">Network error, please check your connection</string>
+    <string name="error_server_unreachable">Server is temporarily unavailable, please try again later</string>
+    <string name="error_timeout">Request timed out, please check your network and retry</string>
+    <string name="error_ssl">Secure connection failed, please check your system time or try again later</string>
+    <string name="error_connection_reset">Connection was interrupted, please retry</string>
+    <string name="error_forbidden">Access denied, you may not have permission to perform this action</string>
+    <string name="error_not_found">The requested content was not found</string>
+    <string name="error_server_error">Server encountered an issue, please try again later</string>
+    <string name="error_cloudflare">Security verification failed, please try again later</string>
+    <string name="error_auth">Your login session has expired, please log in again</string>
+    <string name="error_unknown">Operation failed, please try again later</string>
+
     <!-- Image Viewer -->
     <string name="save_image">Save Image</string>
     <string name="save_image_confirm">Save this image to gallery?</string>
@@ -140,4 +153,49 @@
     <string name="check_for_updates">Check for Updates</string>
     <string name="update_already_latest">Already up to date</string>
     <string name="update_check_failed">Update check failed</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">Login successful! Syncing bookmarks...</string>
+    <string name="logout_failed">Logout failed</string>
+    <string name="bookmark_sync_failed">Sync failed</string>
+    <string name="operation_failed">Operation failed</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">Downloading: %1$d%%</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">Download</string>
+    <string name="download_location">Download Location</string>
+    <string name="download_location_desc">Choose where files are saved by default</string>
+    <string name="download_location_change">Change</string>
+    <string name="download_location_default">Pawchive Folder</string>
+    <string name="download_location_pictures">Pictures</string>
+    <string name="download_location_videos">Videos</string>
+    <string name="download_location_documents">Documents</string>
+    <string name="download_location_custom">Custom...</string>
+    <string name="download_location_dialog_title">Select Download Location</string>
+    <string name="download_location_updated">Download location updated</string>
+    <string name="download_location_label">Save to:</string>
+    <string name="download_location_not_set">Not set, using default location</string>
+    <string name="download_location_set_to">Download location set to: %1$s</string>
+    <string name="file_picker_not_available">Cannot open file manager</string>
+    <string name="unknown_folder">Unknown folder</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">Cache &amp; Storage</string>
+    <string name="auto_clean_cache">Auto Clean Cache</string>
+    <string name="auto_clean_cache_desc">Automatically clear temporary cache files on app launch</string>
+    <string name="manual_clean_cache">Clear Cache Now</string>
+    <string name="manual_clean_cache_desc">Free up storage used by cached data</string>
+    <string name="cache_size">Current cache size: %1$s</string>
+    <string name="cache_cleaned">Cache cleared</string>
+    <string name="cache_cleaning">Clearing cache...</string>
+    <string name="cache_empty">No cache</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">About</string>
+    <string name="version">Version</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
+    <string name="app_description">Pawchive - Your Content Archive Manager</string>
 </resources>

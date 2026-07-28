@@ -6,6 +6,7 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.pawchive.data.SettingsManager
+import com.pawchive.data.api.ApiClient
 import com.pawchive.data.api.CloudflareManager
 import java.io.File
 
@@ -24,6 +25,11 @@ class PawchiveApplication : Application(), ImageLoaderFactory {
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
+            // 使用 sharedOkHttpClient：img.pawchive.pw 并非完全公开 CDN，
+            // 部分缩略图请求也会被 Cloudflare 拦截返回 403。
+            // sharedOkHttpClient 内置 cloudflareRetryInterceptor，
+            // 会在 403 时自动刷新 cf_clearance 并重试一次。
+            .okHttpClient(ApiClient.sharedOkHttpClient)
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)

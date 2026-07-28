@@ -19,7 +19,7 @@
             android:id="@+id/btn_back"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@android:drawable/ic_menu_revert"
+            android:src="@drawable/ic_arrow_back"
             android:contentDescription="@string/back"
             app:tint="?attr/colorOnSurface"
             app:layout_constraintStart_toStartOf="parent"

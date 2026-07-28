@@ -104,6 +104,19 @@
     <string name="bookmark_added">ブックマーク追加</string>
     <string name="bookmark_removed">ブックマーク削除</string>
 
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">ネットワーク接続エラーです。接続を確認してください</string>
+    <string name="error_server_unreachable">サーバーにアクセスできません。しばらくしてから再度お試しください</string>
+    <string name="error_timeout">リクエストがタイムアウトしました。ネットワークを確認して再試行してください</string>
+    <string name="error_ssl">安全な接続に失敗しました。システム時刻を確認するか、しばらくしてからお試しください</string>
+    <string name="error_connection_reset">接続が中断されました。もう一度お試しください</string>
+    <string name="error_forbidden">アクセスが拒否されました。この操作を行う権限がない可能性があります</string>
+    <string name="error_not_found">要求されたコンテンツが見つかりません</string>
+    <string name="error_server_error">サーバーで問題が発生しました。しばらくしてからお試しください</string>
+    <string name="error_cloudflare">セキュリティ認証に失敗しました。しばらくしてからお試しください</string>
+    <string name="error_auth">ログインの有効期限が切れました。もう一度ログインしてください</string>
+    <string name="error_unknown">操作に失敗しました。しばらくしてからお試しください</string>
+
     <!-- Image Viewer -->
     <string name="save_image">画像を保存</string>
     <string name="save_image_confirm">この画像をギャラリーに保存しますか？</string>
@@ -140,4 +153,49 @@
     <string name="check_for_updates">アップデート確認</string>
     <string name="update_already_latest">最新バージョンです</string>
     <string name="update_check_failed">アップデート確認に失敗しました</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">ログイン成功！ブックマークを同期中...</string>
+    <string name="logout_failed">ログアウト失敗</string>
+    <string name="bookmark_sync_failed">同期に失敗しました</string>
+    <string name="operation_failed">操作に失敗しました</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">ダウンロード中：%1$d%%</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">ダウンロード</string>
+    <string name="download_location">ダウンロード場所</string>
+    <string name="download_location_desc">ファイルのデフォルト保存場所を選択</string>
+    <string name="download_location_change">変更</string>
+    <string name="download_location_default">Pawchive フォルダ</string>
+    <string name="download_location_pictures">写真</string>
+    <string name="download_location_videos">動画</string>
+    <string name="download_location_documents">ドキュメント</string>
+    <string name="download_location_custom">カスタム...</string>
+    <string name="download_location_dialog_title">ダウンロード場所を選択</string>
+    <string name="download_location_updated">ダウンロード場所を更新しました</string>
+    <string name="download_location_label">保存先：</string>
+    <string name="download_location_not_set">未設定、デフォルトの場所を使用</string>
+    <string name="download_location_set_to">ダウンロード場所を設定しました：%1$s</string>
+    <string name="file_picker_not_available">ファイルマネージャーを開けません</string>
+    <string name="unknown_folder">不明なフォルダ</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">キャッシュとストレージ</string>
+    <string name="auto_clean_cache">自動キャッシュクリーン</string>
+    <string name="auto_clean_cache_desc">アプリ起動時に一時キャッシュファイルを自動的にクリーンアップ</string>
+    <string name="manual_clean_cache">キャッシュをクリーンアップ</string>
+    <string name="manual_clean_cache_desc">キャッシュデータが使用するストレージ容量を解放</string>
+    <string name="cache_size">現在のキャッシュサイズ：%1$s</string>
+    <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
+    <string name="cache_cleaning">キャッシュをクリーンアップ中...</string>
+    <string name="cache_empty">キャッシュなし</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">情報</string>
+    <string name="version">バージョン</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">オープンソースライセンス</string>
+    <string name="app_description">Pawchive - コンテンツアーカイブマネージャー</string>
 </resources>

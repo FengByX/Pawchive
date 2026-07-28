@@ -2,7 +2,6 @@ package com.pawchive.ui.widget
 
 import android.content.Context
 import android.graphics.Matrix
-import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -25,7 +24,6 @@ class ZoomableImageView @JvmOverloads constructor(
     private var lastX = 0f
     private var lastY = 0f
     private var isDragging = false
-    private var startPoint = PointF()
     private var onLongPressListener: (() -> Unit)? = null
     private var onTapListener: (() -> Unit)? = null
 
@@ -148,6 +146,14 @@ class ZoomableImageView @JvmOverloads constructor(
             val drawableWidth = d.intrinsicWidth.toFloat()
             val drawableHeight = d.intrinsicHeight.toFloat()
 
+            // 防御：drawable 尺寸为 0 时除法会产生 Infinity/NaN，导致矩阵异常。
+            // 退化到 scale=1，等下一次 layout 变化时再正常居中。
+            if (drawableWidth <= 0f || drawableHeight <= 0f) {
+                scaleMatrix.reset()
+                imageMatrix = scaleMatrix
+                return@let
+            }
+
             val scale = min(viewWidth / drawableWidth, viewHeight / drawableHeight)
             minScale = scale
             maxScale = scale * 4
@@ -171,7 +177,6 @@ class ZoomableImageView @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (event.pointerCount == 1) {
-                    startPoint.set(event.x, event.y)
                     lastX = event.x
                     lastY = event.y
                     isDragging = true

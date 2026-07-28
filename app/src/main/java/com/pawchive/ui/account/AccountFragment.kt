@@ -16,6 +16,7 @@ import com.pawchive.data.repository.AuthRepository
 import com.pawchive.databinding.FragmentAccountBinding
 import com.pawchive.ui.login.LoginFragment
 import com.pawchive.ui.settings.SettingsFragment
+import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.launch
 
 class AccountFragment : Fragment() {
@@ -132,7 +133,7 @@ class AccountFragment : Fragment() {
             } else {
                 Toast.makeText(
                     requireContext(),
-                    "${getString(R.string.logout)}: ${result.exceptionOrNull()?.message}",
+                    ErrorMessageHelper.getFriendlyMessage(requireContext(), result.exceptionOrNull()),
                     Toast.LENGTH_SHORT
                 ).show()
             }

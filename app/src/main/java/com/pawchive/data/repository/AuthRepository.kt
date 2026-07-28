@@ -64,13 +64,11 @@ class AuthRepository(private val context: Context) {
      */
     suspend fun logout(): Result<Unit> {
         return withContext(Dispatchers.IO) {
-            try {
-                sessionManager.clearSession()
-                Result.success(Unit)
-            } catch (e: Exception) {
-                sessionManager.clearSession()
-                Result.failure(e)
-            }
+            // 旧实现用了 try/catch 包裹 clearSession，但 clearSession 内部仅
+            // 调用 SharedPreferences.edit().apply()，不会抛异常，catch 块为死代码。
+            // 简化为直接调用。
+            sessionManager.clearSession()
+            Result.success(Unit)
         }
     }
 

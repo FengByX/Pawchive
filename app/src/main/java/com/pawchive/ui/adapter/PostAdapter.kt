@@ -2,6 +2,7 @@ package com.pawchive.ui.adapter
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +37,7 @@ class PostAdapter(
     companion object {
         private const val TYPE_POST = 0
         private const val TYPE_FOOTER = 1
+        private const val TAG = "PostAdapter"
         // 缩略图 View 为 80dp，解码到 160px 在高密度屏也足够清晰，同时大幅降低内存占用
         private const val THUMBNAIL_SIZE_PX = 160
     }
@@ -136,29 +138,34 @@ class PostAdapter(
             binding.tvPreview.text = if (plainText.length > 120) plainText.take(120) + "..." else plainText
 
             // Load thumbnail if main file or attachments are images
-            val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
-            
-            fun isImage(path: String?): Boolean {
+            val imageExtensions = listOf(
+                ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".bmp",
+                ".tif", ".tiff", ".heic", ".heif"
+            )
+
+            fun isImage(path: String?, name: String? = null): Boolean {
                 val lowerPath = path?.lowercase().orEmpty()
-                return imageExtensions.any { ext -> lowerPath.endsWith(ext) }
+                val lowerName = name?.lowercase().orEmpty()
+                return imageExtensions.any { ext ->
+                    lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+                }
             }
-            
-            val imagePath = if (isImage(post.file?.path)) {
+
+            // 优先取主文件，主文件非图片时取第一张图片附件
+            val imagePath: String? = if (isImage(post.file?.path, post.file?.name)) {
                 post.file?.path
             } else {
-                post.attachments?.firstOrNull { isImage(it.path) }?.path
+                post.attachments?.firstOrNull { isImage(it.path, it.name) }?.path
             }
 
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE
-                val fullUrl = "https://img.pawchive.pw/thumbnail/data$imagePath"
-                binding.ivThumbnail.load(fullUrl) {
-                    // 缩略图 View 固定 80dp，限制解码尺寸避免加载原图导致的内存与耗时浪费
-                    size(THUMBNAIL_SIZE_PX)
-                    crossfade(150)
-                    placeholder(R.color.thumbnail_placeholder)
-                    error(R.color.thumbnail_placeholder)
-                }
+
+                // 若后端已经返回完整 URL（如 https://.../xxx.jpg），直接使用；
+                // 否则将路径规范化，拼接到 Pawchive 的 CDN 域名上。
+                val candidateUrls = buildCandidateUrls(imagePath)
+
+                loadThumbnailWithFallback(binding, candidateUrls, 0)
             } else {
                 binding.ivThumbnail.visibility = View.GONE
             }
@@ -244,6 +251,60 @@ class PostAdapter(
             binding.btnBookmark.setImageResource(
                 if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline
             )
+        }
+
+        /**
+         * 构建候选 URL 列表，按优先级依次尝试：
+         *  1. img.pawchive.pw/thumbnail/data...  （缩略图 CDN）
+         *  2. img.pawchive.pw/data...            （原图标清 CDN）
+         *  3. file.pawchive.pw/data...           （file 下载域名原图）
+         *
+         * 若 [imagePath] 已是完整的 https URL，则直接返回单元素列表。
+         */
+        private fun buildCandidateUrls(imagePath: String): List<String> {
+            val trimmed = imagePath.trim()
+            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+                return listOf(trimmed)
+            }
+            val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+            return listOf(
+                "https://img.pawchive.pw/thumbnail/data$normalized",
+                "https://img.pawchive.pw/data$normalized",
+                "https://file.pawchive.pw/data$normalized"
+            )
+        }
+
+        /**
+         * 顺序重试加载：按 [urls] 顺序依次尝试，直到某一个 URL 加载成功；
+         * 所有候选都失败时，显示 error 占位。
+         */
+        private fun loadThumbnailWithFallback(
+            binding: ItemPostBinding,
+            urls: List<String>,
+            index: Int
+        ) {
+            if (index >= urls.size) {
+                return
+            }
+            val url = urls[index]
+            val isLast = index == urls.size - 1
+            binding.ivThumbnail.load(url) {
+                size(THUMBNAIL_SIZE_PX)
+                crossfade(150)
+                placeholder(R.color.thumbnail_placeholder)
+                error(if (isLast) R.color.thumbnail_placeholder else R.color.thumbnail_placeholder)
+                listener(
+                    onError = { _, throwable ->
+                        Log.w(
+                            TAG,
+                            "Thumbnail load failed for $url (attempt ${index + 1}/${urls.size}): $throwable"
+                        )
+                        if (!isLast) {
+                            loadThumbnailWithFallback(binding, urls, index + 1)
+                        }
+                    }
+                )
+            }
         }
     }
 }

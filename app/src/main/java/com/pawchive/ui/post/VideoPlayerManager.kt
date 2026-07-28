@@ -10,9 +10,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import java.util.concurrent.TimeUnit
+import com.pawchive.data.api.ApiClient
 
 class VideoPlayerManager(private val context: Context) {
 
@@ -143,15 +141,9 @@ class VideoPlayerManager(private val context: Context) {
     private fun initializePlayer() {
         if (player != null) return
 
-        val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BASIC
-            })
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
-
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        // 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，
+        // 在 403 时透明过盾重试。Media3 视频流也走 Cloudflare 防护站点。
+        val dataSourceFactory = OkHttpDataSource.Factory(ApiClient.sharedOkHttpClient)
 
         player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))

@@ -24,7 +24,9 @@ import com.pawchive.ui.adapter.CreatorAdapter
 import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
+import com.pawchive.utils.ErrorMessageHelper
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class SearchFragment : Fragment() {
@@ -281,12 +283,18 @@ class SearchFragment : Fragment() {
         }
     }
 
+    // 跟踪当前搜索任务，新搜索发起时取消上一次未完成的请求，
+    // 避免用户连续输入时旧请求后返回覆盖新结果（race condition）
+    private var searchJob: Job? = null
+
     private fun searchPosts(query: String, isRefresh: Boolean = false) {
         if (!isRefresh) {
             binding.progressBar.visibility = View.VISIBLE
         }
         binding.tvNoResults.visibility = View.GONE
-        viewLifecycleOwner.lifecycleScope.launch {
+        // 取消上一次还在飞的搜索请求
+        searchJob?.cancel()
+        searchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val results = api.getRecentPosts(query = query)
                 searchResults = results
@@ -299,9 +307,12 @@ class SearchFragment : Fragment() {
                     CreatorNameCache.prefetchCreatorNames(results)
                     postAdapter.notifyDataSetChanged()
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // 被新搜索取消，安静退出
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "${getString(R.string.fetch_error)}: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, ErrorMessageHelper.getFriendlyMessage(context, e), Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
                 binding.swipeRefresh.isRefreshing = false

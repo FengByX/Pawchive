@@ -11,6 +11,7 @@ import com.pawchive.R
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.databinding.FragmentLoginBinding
 import com.pawchive.ui.favorites.AccountFavoritesFragment
+import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.launch
 
 class LoginFragment : Fragment() {
@@ -89,18 +90,20 @@ class LoginFragment : Fragment() {
                 val user = result.getOrNull()
                 Toast.makeText(
                     requireContext(),
-                    "登录成功！正在同步收藏...",
+                    getString(R.string.login_success_syncing),
                     Toast.LENGTH_LONG
                 ).show()
-                
+
                 // 立即更新底部导航栏，显示 Bookmarks 按钮
                 val mainActivity = activity as? com.pawchive.ui.MainActivity
                 mainActivity?.updateBottomNavVisibility()
-                
+
                 // 跳转到账号收藏页面，自动同步加载
                 mainActivity?.loadFragment(AccountFavoritesFragment())
             } else {
-                val error = result.exceptionOrNull()?.message ?: getString(R.string.login_failed)
+                val error = ErrorMessageHelper.getFriendlyMessage(
+                    requireContext(), result.exceptionOrNull()
+                )
                 binding.tvError.text = error
                 binding.tvError.visibility = View.VISIBLE
             }
@@ -128,7 +131,7 @@ class LoginFragment : Fragment() {
             } else {
                 Toast.makeText(
                     requireContext(),
-                    "登出失败: ${result.exceptionOrNull()?.message}",
+                    ErrorMessageHelper.getFriendlyMessage(requireContext(), result.exceptionOrNull()),
                     Toast.LENGTH_SHORT
                 ).show()
             }
