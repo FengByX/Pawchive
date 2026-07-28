@@ -3,7 +3,13 @@ package com.pawchive.data.github
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.text.Html
+import android.text.method.LinkMovementMethod
+import android.util.TypedValue
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.view.setPadding
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -149,12 +155,6 @@ class UpdateChecker(context: Context) {
      * 显示更新提示弹窗
      */
     private fun showUpdateDialog(context: Context, result: UpdateResult.UpdateAvailable) {
-        val notes = if (result.releaseNotes.isNotBlank()) {
-            result.releaseNotes
-        } else {
-            context.getString(R.string.update_available_title)
-        }
-
         val currentVersionText = context.getString(
             R.string.update_current_version,
             result.currentVersion
@@ -164,14 +164,89 @@ class UpdateChecker(context: Context) {
             result.latestVersion
         )
 
+        val headerText = "$currentVersionText\n$latestVersionText"
+        val notesHtml = if (result.releaseNotes.isNotBlank()) {
+            markdownToHtml(result.releaseNotes)
+        } else {
+            ""
+        }
+
+        val scrollView = ScrollView(context).apply {
+            setPadding(dpToPx(context, 24))
+        }
+        val contentTextView = TextView(context).apply {
+            textSize = 15f
+            val textColor = TypedValue().let {
+                context.theme.resolveAttribute(android.R.attr.textColorSecondary, it, true)
+                it.data
+            }
+            setTextColor(textColor)
+            val fullHtml = buildString {
+                append("<p style=\"color: grey;\">")
+                append(headerText.replace("\n", "<br>"))
+                append("</p>")
+                if (notesHtml.isNotEmpty()) {
+                    append("<br>")
+                    append(notesHtml)
+                }
+            }
+            text = Html.fromHtml(fullHtml, Html.FROM_HTML_MODE_COMPACT)
+            movementMethod = LinkMovementMethod.getInstance()
+        }
+        scrollView.addView(contentTextView)
+
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.update_available_title)
-            .setMessage("$currentVersionText\n$latestVersionText\n\n$notes")
+            .setView(scrollView)
             .setPositiveButton(R.string.update_go_download) { _, _ ->
                 openDownloadPage(context, result.downloadUrl)
             }
             .setNegativeButton(R.string.update_later, null)
             .show()
+    }
+
+    /**
+     * 简单的 Markdown 到 HTML 转换，支持粗体、列表和换行
+     */
+    private fun markdownToHtml(markdown: String): String {
+        return buildString {
+            val lines = markdown.lines()
+            var inList = false
+
+            for (line in lines) {
+                val trimmed = line.trim()
+
+                if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+                    if (!inList) {
+                        append("<ul style=\"margin: 8px 0; padding-left: 20px;\">")
+                        inList = true
+                    }
+                    val itemContent = trimmed.substring(2)
+                        .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
+                        .replace(Regex("__(.+?)__"), "<b>$1</b>")
+                    append("<li style=\"margin: 4px 0;\">$itemContent</li>")
+                } else {
+                    if (inList) {
+                        append("</ul>")
+                        inList = false
+                    }
+                    if (trimmed.isNotEmpty()) {
+                        val bolded = trimmed
+                            .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
+                            .replace(Regex("__(.+?)__"), "<b>$1</b>")
+                        append("<p>$bolded</p>")
+                    } else {
+                        append("<br>")
+                    }
+                }
+            }
+
+            if (inList) append("</ul>")
+        }
+    }
+
+    private fun dpToPx(context: Context, dp: Int): Int {
+        return (dp * context.resources.displayMetrics.density).toInt()
     }
 
     /**
