@@ -1,5 +1,6 @@
 package com.pawchive.ui.settings
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
@@ -83,6 +84,7 @@ class SettingsFragment : Fragment() {
         setupAutoCleanCache()
         setupManualCleanCache()
         setupVersionInfo()
+        setupTelegramButton()
     }
 
     override fun onResume() {
@@ -294,6 +296,22 @@ class SettingsFragment : Fragment() {
             versionName,
             versionCode
         )
+    }
+
+    private fun setupTelegramButton() {
+        binding.btnJoinTelegram.setOnClickListener {
+            val url = getString(R.string.telegram_channel_url)
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.browser_not_available,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     override fun onDestroyView() {

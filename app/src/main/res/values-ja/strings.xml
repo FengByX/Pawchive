@@ -201,4 +201,7 @@
     <string name="version_format">%1$s (%2$d)</string>
     <string name="open_source_licenses">オープンソースライセンス</string>
     <string name="app_description">Pawchive - コンテンツアーカイブマネージャー</string>
+    <string name="join_telegram">公式チャンネルに参加</string>
+    <string name="telegram_channel_url">https://t.me/PawchiveX</string>
+    <string name="browser_not_available">ブラウザを開けません</string>
 </resources>
