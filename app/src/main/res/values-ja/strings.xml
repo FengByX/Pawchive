@@ -14,6 +14,7 @@
     <string name="bookmark_creator_description">このクリエイターをブックマーク</string>
     <string name="sort_label">並び順:</string>
     <string name="no_posts_found">投稿がありません</string>
+    <string name="no_creators_found">クリエイターが見つかりません</string>
     <string name="load_more">もっと読み込む</string>
     <string name="back">戻る</string>
     <string name="home_subtitle">最新の投稿を探検</string>

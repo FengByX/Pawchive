@@ -14,6 +14,7 @@
     <string name="bookmark_creator_description">收藏此创作者</string>
     <string name="sort_label">排序:</string>
     <string name="no_posts_found">暂无帖子</string>
+    <string name="no_creators_found">暂无相关创作者</string>
     <string name="load_more">加载更多</string>
     <string name="back">返回</string>
     <string name="home_subtitle">探索最新帖子</string>

@@ -14,6 +14,7 @@
     <string name="bookmark_creator_description">Bookmark this creator</string>
     <string name="sort_label">Sort:</string>
     <string name="no_posts_found">No posts found</string>
+    <string name="no_creators_found">No creators found</string>
     <string name="load_more">Load More</string>
     <string name="back">Back</string>
     <string name="home_subtitle">Explore the latest posts</string>

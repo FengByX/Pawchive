@@ -49,6 +49,8 @@ class SearchFragment : Fragment() {
     private var isSearchingPosts = true
     private var searchResults = emptyList<com.pawchive.data.model.Post>()
     private var filteredCreators = emptyList<Creator>()
+    private var creatorsCacheLoaded = false
+    private var pendingCreatorQuery: String? = null
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         RELEVANCE(R.string.sort_relevance),
@@ -98,8 +100,7 @@ class SearchFragment : Fragment() {
                 binding.tabLayout.setScrollPosition(tab.position, 0f, true)
             }
         }
-        
-        // Fetch all creators in the background for local filtering
+
         fetchCreatorsCache()
     }
 
@@ -134,7 +135,7 @@ class SearchFragment : Fragment() {
         )
 
         binding.rvResults.layoutManager = LinearLayoutManager(requireContext())
-        binding.rvResults.adapter = postAdapter // Default is posts
+        binding.rvResults.adapter = postAdapter
     }
 
     private fun setupSearchView() {
@@ -150,7 +151,6 @@ class SearchFragment : Fragment() {
                 if (newText.isNullOrEmpty()) {
                     showSearchPrompt()
                 } else if (!isSearchingPosts) {
-                    // For creators, perform fast instant local filtering
                     filterCreatorsLocal(newText)
                 }
                 return true
@@ -164,7 +164,7 @@ class SearchFragment : Fragment() {
                 isSearchingPosts = tab?.position == 0
                 binding.rvResults.adapter = if (isSearchingPosts) postAdapter else creatorAdapter
                 updateSortButtonText()
-                
+
                 val query = binding.searchView.query.toString()
                 if (query.isNotEmpty()) {
                     performSearch(query, isRefresh = false)
@@ -267,6 +267,7 @@ class SearchFragment : Fragment() {
 
     private fun showSearchPrompt() {
         binding.tvNoResults.visibility = View.VISIBLE
+        binding.progressBar.visibility = View.GONE
         binding.tvEmptyText.text = getString(R.string.search_initial_hint)
         if (isSearchingPosts) {
             postAdapter.updatePosts(emptyList())
@@ -283,8 +284,6 @@ class SearchFragment : Fragment() {
         }
     }
 
-    // 跟踪当前搜索任务，新搜索发起时取消上一次未完成的请求，
-    // 避免用户连续输入时旧请求后返回覆盖新结果（race condition）
     private var searchJob: Job? = null
 
     private fun searchPosts(query: String, isRefresh: Boolean = false) {
@@ -292,7 +291,6 @@ class SearchFragment : Fragment() {
             binding.progressBar.visibility = View.VISIBLE
         }
         binding.tvNoResults.visibility = View.GONE
-        // 取消上一次还在飞的搜索请求
         searchJob?.cancel()
         searchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -308,10 +306,11 @@ class SearchFragment : Fragment() {
                     postAdapter.notifyDataSetChanged()
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                // 被新搜索取消，安静退出
                 throw e
             } catch (e: Exception) {
                 e.printStackTrace()
+                binding.tvNoResults.visibility = View.VISIBLE
+                binding.tvEmptyText.text = getString(R.string.search_initial_hint)
                 Toast.makeText(context, ErrorMessageHelper.getFriendlyMessage(context, e), Toast.LENGTH_SHORT).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
@@ -324,19 +323,39 @@ class SearchFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 allCreators = api.getCreators()
+                creatorsCacheLoaded = true
+                pendingCreatorQuery?.let { query ->
+                    filterCreatorsLocal(query)
+                    pendingCreatorQuery = null
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                creatorsCacheLoaded = true
+                pendingCreatorQuery?.let { query ->
+                    filterCreatorsLocal(query)
+                    pendingCreatorQuery = null
+                }
             }
         }
     }
 
     private fun filterCreatorsLocal(query: String) {
-        val filtered = allCreators.filter { 
+        binding.tvNoResults.visibility = View.GONE
+
+        if (!creatorsCacheLoaded) {
+            pendingCreatorQuery = query
+            binding.progressBar.visibility = View.VISIBLE
+            return
+        }
+
+        val filtered = allCreators.filter {
             it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true)
         }
         filteredCreators = filtered
+        binding.progressBar.visibility = View.GONE
+
         if (filtered.isEmpty()) {
-            binding.tvEmptyText.text = getString(R.string.no_posts_found)
+            binding.tvEmptyText.text = getString(R.string.no_creators_found)
             binding.tvNoResults.visibility = View.VISIBLE
         } else {
             binding.tvNoResults.visibility = View.GONE
