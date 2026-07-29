@@ -10,7 +10,6 @@ import androidx.lifecycle.lifecycleScope
 import com.pawchive.R
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.databinding.FragmentLoginBinding
-import com.pawchive.ui.favorites.AccountFavoritesFragment
 import com.pawchive.utils.ErrorMessageHelper
 import kotlinx.coroutines.launch
 
@@ -94,12 +93,9 @@ class LoginFragment : Fragment() {
                     Toast.LENGTH_LONG
                 ).show()
 
-                // 立即更新底部导航栏，显示 Bookmarks 按钮
                 val mainActivity = activity as? com.pawchive.ui.MainActivity
                 mainActivity?.updateBottomNavVisibility()
-
-                // 跳转到账号收藏页面，自动同步加载
-                mainActivity?.loadFragment(AccountFavoritesFragment())
+                mainActivity?.navigateToMainTab(R.id.navigation_bookmarks)
             } else {
                 val error = ErrorMessageHelper.getFriendlyMessage(
                     requireContext(), result.exceptionOrNull()

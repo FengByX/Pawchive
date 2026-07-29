@@ -283,6 +283,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * 切换到主界面Tab（清除返回栈，显示底部导航）
+     * 用于登录成功后跳转、外部请求跳转等场景
+     */
+    fun navigateToMainTab(tabId: Int) {
+        switchMainTab(tabId)
+        binding.bottomNavigation.selectedItemId = tabId
+    }
+
+    /**
      * 获取当前主界面Tab ID
      */
     fun getCurrentMainTabId(): Int = currentMainTabId
