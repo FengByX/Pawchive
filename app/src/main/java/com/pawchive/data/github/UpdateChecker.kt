@@ -182,15 +182,15 @@ class UpdateChecker(context: Context) {
             }
             setTextColor(textColor)
             val fullHtml = buildString {
-                append("<p style=\"color: grey;\">")
+                append("<font color=\"#808080\">")
                 append(headerText.replace("\n", "<br>"))
-                append("</p>")
+                append("</font>")
                 if (notesHtml.isNotEmpty()) {
-                    append("<br>")
+                    append("<br><br>")
                     append(notesHtml)
                 }
             }
-            text = Html.fromHtml(fullHtml, Html.FROM_HTML_MODE_COMPACT)
+            text = Html.fromHtml(fullHtml, Html.FROM_HTML_MODE_LEGACY)
             movementMethod = LinkMovementMethod.getInstance()
         }
         scrollView.addView(contentTextView)
@@ -206,43 +206,76 @@ class UpdateChecker(context: Context) {
     }
 
     /**
-     * 简单的 Markdown 到 HTML 转换，支持粗体、列表和换行
+     * 简单的 Markdown 到 HTML 转换
+     * 支持：标题、粗体、斜体、列表、换行
+     * 使用 Html.fromHtml 原生支持的标签（无 CSS style）
      */
     private fun markdownToHtml(markdown: String): String {
-        return buildString {
-            val lines = markdown.lines()
-            var inList = false
+        val lines = markdown.lines()
+        val sb = StringBuilder()
+        var inList = false
 
-            for (line in lines) {
-                val trimmed = line.trim()
+        fun closeList() {
+            if (inList) {
+                sb.append("</ul>")
+                inList = false
+            }
+        }
 
-                if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        for (line in lines) {
+            val trimmed = line.trim()
+
+            when {
+                // 三级标题
+                trimmed.startsWith("### ") -> {
+                    closeList()
+                    sb.append("<h3><b>").append(renderInline(trimmed.substring(4))).append("</b></h3>")
+                }
+                // 二级标题
+                trimmed.startsWith("## ") -> {
+                    closeList()
+                    sb.append("<h2><b>").append(renderInline(trimmed.substring(3))).append("</b></h2>")
+                }
+                // 一级标题
+                trimmed.startsWith("# ") -> {
+                    closeList()
+                    sb.append("<h1><b>").append(renderInline(trimmed.substring(2))).append("</b></h1>")
+                }
+                // 列表项
+                trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
                     if (!inList) {
-                        append("<ul style=\"margin: 8px 0; padding-left: 20px;\">")
+                        sb.append("<ul>")
                         inList = true
                     }
-                    val itemContent = trimmed.substring(2)
-                        .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
-                        .replace(Regex("__(.+?)__"), "<b>$1</b>")
-                    append("<li style=\"margin: 4px 0;\">$itemContent</li>")
-                } else {
-                    if (inList) {
-                        append("</ul>")
-                        inList = false
-                    }
-                    if (trimmed.isNotEmpty()) {
-                        val bolded = trimmed
-                            .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
-                            .replace(Regex("__(.+?)__"), "<b>$1</b>")
-                        append("<p>$bolded</p>")
-                    } else {
-                        append("<br>")
-                    }
+                    sb.append("<li>").append(renderInline(trimmed.substring(2))).append("</li>")
+                }
+                // 空行
+                trimmed.isEmpty() -> {
+                    closeList()
+                    sb.append("<br>")
+                }
+                // 普通文本
+                else -> {
+                    closeList()
+                    sb.append("<p>").append(renderInline(trimmed)).append("</p>")
                 }
             }
-
-            if (inList) append("</ul>")
         }
+
+        if (inList) sb.append("</ul>")
+        return sb.toString()
+    }
+
+    /**
+     * 渲染 Markdown 内联格式：粗体、斜体、行内代码
+     */
+    private fun renderInline(text: String): String {
+        return text
+            .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
+            .replace(Regex("__(.+?)__"), "<b>$1</b>")
+            .replace(Regex("\\*(.+?)\\*"), "<i>$1</i>")
+            .replace(Regex("_(.+?)_"), "<i>$1</i>")
+            .replace(Regex("`(.+?)`"), "<tt>$1</tt>")
     }
 
     private fun dpToPx(context: Context, dp: Int): Int {
