@@ -306,8 +306,8 @@ class PostDetailFragment : Fragment() {
                 binding.imageCard.visibility = View.VISIBLE
                 binding.ivPostImage.load(fullUrl) {
                     crossfade(true)
-                    placeholder(android.R.drawable.ic_menu_gallery)
-                    error(android.R.drawable.ic_menu_report_image)
+                    placeholder(R.drawable.ic_image)
+                    error(R.drawable.ic_image_off)
                 }
                 binding.ivPostImage.setOnClickListener {
                     openImageViewer(fullUrl, post.file?.name ?: "image.jpg")
@@ -410,8 +410,8 @@ class PostDetailFragment : Fragment() {
                         val fullUrl = "https://file.pawchive.pw/data${attachment.path}"
                         load(fullUrl) {
                             crossfade(true)
-                            placeholder(android.R.drawable.ic_menu_gallery)
-                            error(android.R.drawable.ic_menu_report_image)
+                            placeholder(R.drawable.ic_image)
+                            error(R.drawable.ic_image_off)
                         }
                         setOnClickListener {
                             openImageViewer(fullUrl, attachment.name ?: "image.jpg")

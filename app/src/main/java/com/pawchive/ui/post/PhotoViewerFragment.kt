@@ -55,8 +55,8 @@ class PhotoViewerFragment : Fragment() {
 
         binding.ivPhoto.load(imageUrl) {
             crossfade(true)
-            placeholder(android.R.drawable.ic_menu_gallery)
-            error(android.R.drawable.ic_menu_report_image)
+            placeholder(R.drawable.ic_image)
+            error(R.drawable.ic_image_off)
         }
 
         binding.btnBack.setOnClickListener {
