@@ -61,9 +61,10 @@ class AuthRepository(private val context: Context) {
 
     /**
      * 注册新账户
-     * Pawchive 注册接口行为与登录类似，返回 302 重定向
-     * 注册成功 → 重定向到登录页或首页
-     * 注册失败 → 重定向回注册页
+     * Pawchive 注册接口：
+     * - 成功 → 302 重定向到登录页或首页
+     * - 用户名已存在 → 302 重定向回注册页
+     * - 其他验证失败 → 200 重新渲染表单（HTML 中包含错误信息）
      */
     suspend fun register(username: String, password: String, confirmPassword: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -76,20 +77,53 @@ class AuthRepository(private val context: Context) {
                 val response = loginApi.register(username, password, confirmPassword)
 
                 val statusCode = response.code()
-                if (statusCode !in 300..399) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.register_failed, statusCode)))
-                }
-
                 val locationHeader = response.headers()["Location"]?.lowercase().orEmpty()
-                if (locationHeader.contains("/account/register")) {
-                    return@withContext Result.failure(Exception(context.getString(R.string.register_failed_duplicate)))
-                }
 
-                Result.success(username)
+                val bodyString = response.body()?.string().orEmpty()
+
+                when {
+                    statusCode in 300..399 && !locationHeader.contains("/account/register") -> {
+                        Result.success(username)
+                    }
+
+                    statusCode in 300..399 && locationHeader.contains("/account/register") -> {
+                        Result.failure(Exception(extractRegisterError(bodyString, context)))
+                    }
+
+                    statusCode == 200 -> {
+                        Result.failure(Exception(extractRegisterError(bodyString, context)))
+                    }
+
+                    else -> {
+                        Result.failure(Exception(context.getString(R.string.register_failed, statusCode)))
+                    }
+                }
             } catch (e: Exception) {
                 Result.failure(e)
             }
         }
+    }
+
+    private fun extractRegisterError(htmlBody: String, context: Context): String {
+        val errorPatterns = listOf(
+            "Username.*already.*exists",
+            "already.*taken",
+            "already.*registered",
+            "Username must be",
+            "must be.*3.*15",
+            "only.*letters.*numbers",
+            "Password must be",
+            "must be.*5.*characters",
+            "confirm.*password.*must.*match",
+            "contains.*invalid",
+            "invalid.*character",
+        )
+        for (pattern in errorPatterns) {
+            if (Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(htmlBody)) {
+                return context.getString(R.string.register_failed_validation)
+            }
+        }
+        return context.getString(R.string.register_failed_unknown)
     }
 
     /**

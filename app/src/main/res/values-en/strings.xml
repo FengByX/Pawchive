@@ -213,6 +213,8 @@
     <string name="register_success">Registration successful! Please login</string>
     <string name="register_failed">Registration failed: HTTP %1$d</string>
     <string name="register_failed_duplicate">Username already taken, please choose another</string>
+    <string name="register_failed_validation">Invalid registration details, please check username and password</string>
+    <string name="register_failed_unknown">Registration failed, please try again later</string>
     <string name="error_passwords_not_match">Passwords do not match</string>
     <string name="register_have_account">Already have an account? Login</string>
 </resources>

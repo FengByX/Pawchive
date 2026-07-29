@@ -213,6 +213,8 @@
     <string name="register_success">登録成功！ログインしてください</string>
     <string name="register_failed">登録失敗：HTTP %1$d</string>
     <string name="register_failed_duplicate">このユーザー名は既に登録されています</string>
+    <string name="register_failed_validation">登録情報が無効です。ユーザー名とパスワードを確認してください</string>
+    <string name="register_failed_unknown">登録失敗。後でもう一度お試しください</string>
     <string name="error_passwords_not_match">パスワードが一致しません</string>
     <string name="register_have_account">アカウントをお持ちですか？ログイン</string>
 </resources>

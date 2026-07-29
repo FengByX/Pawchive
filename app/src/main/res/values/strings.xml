@@ -213,6 +213,8 @@
     <string name="register_success">注册成功！请登录</string>
     <string name="register_failed">注册失败：HTTP %1$d</string>
     <string name="register_failed_duplicate">用户名已被注册，请更换</string>
+    <string name="register_failed_validation">注册信息无效，请检查用户名和密码</string>
+    <string name="register_failed_unknown">注册失败，请稍后重试</string>
     <string name="error_passwords_not_match">两次输入的密码不一致</string>
     <string name="register_have_account">已有账户？登录</string>
 </resources>

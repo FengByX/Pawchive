@@ -11,6 +11,7 @@ import com.pawchive.data.model.FileSearchResult
 import com.pawchive.data.model.Post
 import com.pawchive.data.model.PostRevision
 import com.pawchive.data.model.User
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.Field
@@ -191,5 +192,5 @@ interface PawchiveLoginApi {
         @Field("password") password: String,
         @Field("confirm_password") confirmPassword: String,
         @Field("location") location: String = ""
-    ): Response<Void>
+    ): Response<ResponseBody>
 }

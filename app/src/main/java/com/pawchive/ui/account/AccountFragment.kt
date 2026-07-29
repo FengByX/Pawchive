@@ -112,10 +112,9 @@ class AccountFragment : Fragment() {
                     ).show()
                     (activity as? com.pawchive.ui.MainActivity)?.loadFragment(LoginFragment())
                 } else {
-                    val error = ErrorMessageHelper.getFriendlyMessage(
-                        requireContext(),
-                        result.exceptionOrNull()
-                    )
+                    val throwable = result.exceptionOrNull()
+                    val error = throwable?.message?.takeIf { it.isNotBlank() }
+                        ?: ErrorMessageHelper.getFriendlyMessage(requireContext(), throwable)
                     dialogBinding.tvRegisterError.text = error
                     dialogBinding.tvRegisterError.visibility = View.VISIBLE
                 }
