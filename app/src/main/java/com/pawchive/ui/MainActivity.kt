@@ -254,6 +254,9 @@ class MainActivity : AppCompatActivity() {
         val existing = mainFragments[tabId]
         if (existing != null && existing.isAdded) {
             transaction.show(existing)
+            if (tabId == R.id.navigation_account) {
+                (existing as? AccountFragment)?.updateUIForLoginState()
+            }
         } else {
             val fragment: Fragment = when (tabId) {
                 R.id.navigation_home -> HomeFragment()
@@ -300,6 +303,15 @@ class MainActivity : AppCompatActivity() {
     fun navigateToMainTab(tabId: Int) {
         switchMainTab(tabId)
         binding.bottomNavigation.selectedItemId = tabId
+        refreshAccountLoginState()
+    }
+
+    /**
+     * 刷新账户页的登录状态UI（登录/登出后调用）
+     * 因为 hide/show 不触发 onResume，需要手动刷新
+     */
+    fun refreshAccountLoginState() {
+        (mainFragments[R.id.navigation_account] as? AccountFragment)?.updateUIForLoginState()
     }
 
     /**

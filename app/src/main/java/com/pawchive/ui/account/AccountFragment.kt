@@ -133,7 +133,7 @@ class AccountFragment : Fragment() {
             .show()
     }
 
-    private fun updateUIForLoginState() {
+    fun updateUIForLoginState() {
         if (authRepository.isLoggedIn()) {
             binding.layoutLoggedOut.visibility = View.GONE
             binding.layoutLoggedIn.visibility = View.VISIBLE
