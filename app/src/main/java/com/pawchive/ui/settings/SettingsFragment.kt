@@ -209,8 +209,13 @@ class SettingsFragment : Fragment() {
     private fun updateDownloadLocationText() {
         val name = settingsManager.getDownloadLocationName()
         val uri = settingsManager.getDownloadTreeUri()
-        if (uri != null && name.isNotEmpty()) {
-            binding.tvDownloadLocation.text = getString(R.string.download_location_label) + name
+        val displayName = when {
+            uri == null || name.isEmpty() -> null
+            name.startsWith("primary:") -> getString(R.string.download_location_internal_storage) + name.removePrefix("primary:")
+            else -> name
+        }
+        if (displayName != null) {
+            binding.tvDownloadLocation.text = getString(R.string.download_location_label) + displayName
         } else {
             binding.tvDownloadLocation.text = getString(R.string.download_location_not_set)
         }

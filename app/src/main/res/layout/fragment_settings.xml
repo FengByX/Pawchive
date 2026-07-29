@@ -66,7 +66,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_language"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -74,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/language"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -83,7 +83,9 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutlineVariant"
                 android:layout_marginBottom="24dp">
 
                 <com.google.android.material.button.MaterialButtonToggleGroup
@@ -146,7 +148,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_appearance"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -154,7 +156,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/appearance"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -163,7 +165,9 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutlineVariant"
                 android:layout_marginBottom="24dp">
 
                 <com.google.android.material.button.MaterialButtonToggleGroup
@@ -181,11 +185,11 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:text="@string/appearance_light"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         app:icon="@drawable/ic_sun"
                         app:iconGravity="textStart"
                         app:iconSize="16dp"
-                        app:iconPadding="4dp"
+                        app:iconPadding="2dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
                         app:cornerRadius="16dp" />
@@ -197,11 +201,11 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:text="@string/appearance_dark"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         app:icon="@drawable/ic_moon"
                         app:iconGravity="textStart"
                         app:iconSize="16dp"
-                        app:iconPadding="4dp"
+                        app:iconPadding="2dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
                         app:cornerRadius="16dp" />
@@ -213,11 +217,11 @@
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:text="@string/appearance_system"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         app:icon="@drawable/ic_settings"
                         app:iconGravity="textStart"
                         app:iconSize="16dp"
-                        app:iconPadding="4dp"
+                        app:iconPadding="2dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
                         app:cornerRadius="16dp" />
@@ -237,7 +241,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_download_section"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -245,7 +249,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/section_download"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -307,7 +311,9 @@
                             android:textSize="13sp"
                             android:minWidth="0dp"
                             android:insetTop="0dp"
-                            android:insetBottom="0dp" />
+                            android:insetBottom="0dp"
+                            app:backgroundTint="?attr/colorPrimaryContainer"
+                            android:textColor="?attr/colorOnPrimaryContainer" />
                     </LinearLayout>
 
                     <View
@@ -322,7 +328,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingVertical="4dp">
+                        android:paddingVertical="12dp">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -351,7 +357,8 @@
                             android:id="@+id/switch_auto_clean"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp" />
+                            android:layout_marginStart="12dp"
+                            android:layout_gravity="center_vertical" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -369,7 +376,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_cache_section"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -377,7 +384,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/section_cache"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -435,11 +442,13 @@
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
                             android:layout_height="40dp"
-                            android:text="@string/manual_clean_cache"
+                            android:text="@string/clean"
                             android:textSize="13sp"
                             android:minWidth="0dp"
                             android:insetTop="0dp"
-                            android:insetBottom="0dp" />
+                            android:insetBottom="0dp"
+                            app:backgroundTint="?attr/colorPrimaryContainer"
+                            android:textColor="?attr/colorOnPrimaryContainer" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -457,7 +466,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:src="@drawable/ic_info"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="?attr/colorOnSurfaceVariant"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -465,7 +474,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/section_about"
                     android:textSize="14sp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -525,7 +534,7 @@
                         android:textSize="13sp"
                         android:textColor="?attr/colorTextSecondary"
                         android:paddingVertical="16dp"
-                        android:gravity="center" />
+                        android:gravity="start" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

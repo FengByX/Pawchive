@@ -177,6 +177,7 @@
     <string name="download_location_dialog_title">选择下载位置</string>
     <string name="download_location_updated">下载位置已更新</string>
     <string name="download_location_label">保存至：</string>
+    <string name="download_location_internal_storage">内部存储 / </string>
     <string name="download_location_not_set">未设置，使用默认位置</string>
     <string name="download_location_set_to">下载位置已设置为：%1$s</string>
     <string name="file_picker_not_available">无法打开文件管理器</string>
@@ -192,6 +193,7 @@
     <string name="cache_cleaned">缓存已清理</string>
     <string name="cache_cleaning">正在清理缓存...</string>
     <string name="cache_empty">无缓存</string>
+    <string name="clean">清理</string>
 
     <!-- Settings: About -->
     <string name="section_about">关于</string>

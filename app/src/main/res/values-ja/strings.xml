@@ -177,6 +177,7 @@
     <string name="download_location_dialog_title">ダウンロード場所を選択</string>
     <string name="download_location_updated">ダウンロード場所を更新しました</string>
     <string name="download_location_label">保存先：</string>
+    <string name="download_location_internal_storage">内部ストレージ / </string>
     <string name="download_location_not_set">未設定、デフォルトの場所を使用</string>
     <string name="download_location_set_to">ダウンロード場所を設定しました：%1$s</string>
     <string name="file_picker_not_available">ファイルマネージャーを開けません</string>
@@ -192,6 +193,7 @@
     <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
     <string name="cache_cleaning">キャッシュをクリーンアップ中...</string>
     <string name="cache_empty">キャッシュなし</string>
+    <string name="clean">クリア</string>
 
     <!-- Settings: About -->
     <string name="section_about">情報</string>

@@ -177,6 +177,7 @@
     <string name="download_location_dialog_title">Select Download Location</string>
     <string name="download_location_updated">Download location updated</string>
     <string name="download_location_label">Save to:</string>
+    <string name="download_location_internal_storage">Internal Storage / </string>
     <string name="download_location_not_set">Not set, using default location</string>
     <string name="download_location_set_to">Download location set to: %1$s</string>
     <string name="file_picker_not_available">Cannot open file manager</string>
@@ -192,6 +193,7 @@
     <string name="cache_cleaned">Cache cleared</string>
     <string name="cache_cleaning">Clearing cache...</string>
     <string name="cache_empty">No cache</string>
+    <string name="clean">Clear</string>
 
     <!-- Settings: About -->
     <string name="section_about">About</string>
