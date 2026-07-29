@@ -54,8 +54,6 @@ class SearchFragment : Fragment() {
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         RELEVANCE(R.string.sort_relevance),
-        NEWEST_ADDED(R.string.sort_newest_added),
-        OLDEST_ADDED(R.string.sort_oldest_added),
         NEWEST_PUBLISHED(R.string.sort_newest_published),
         OLDEST_PUBLISHED(R.string.sort_oldest_published),
         NEWEST_EDITED(R.string.sort_newest_edited),
@@ -63,13 +61,12 @@ class SearchFragment : Fragment() {
     }
 
     private enum class CreatorSortOption(@param:StringRes val displayNameRes: Int) {
-        RELEVANCE(R.string.sort_relevance),
         NAME_ASC(R.string.sort_name_asc),
         NAME_DESC(R.string.sort_name_desc)
     }
 
     private var currentPostSort = PostSortOption.RELEVANCE
-    private var currentCreatorSort = CreatorSortOption.RELEVANCE
+    private var currentCreatorSort = CreatorSortOption.NAME_ASC
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -245,8 +242,6 @@ class SearchFragment : Fragment() {
         if (searchResults.isEmpty()) return
         val sorted = when (currentPostSort) {
             PostSortOption.RELEVANCE -> searchResults
-            PostSortOption.NEWEST_ADDED -> searchResults.sortedByDescending { it.added }
-            PostSortOption.OLDEST_ADDED -> searchResults.sortedBy { it.added }
             PostSortOption.NEWEST_PUBLISHED -> searchResults.sortedByDescending { it.published }
             PostSortOption.OLDEST_PUBLISHED -> searchResults.sortedBy { it.published }
             PostSortOption.NEWEST_EDITED -> searchResults.sortedByDescending { it.edited ?: it.published }
@@ -258,7 +253,6 @@ class SearchFragment : Fragment() {
     private fun applyCreatorSort() {
         if (filteredCreators.isEmpty()) return
         val sorted = when (currentCreatorSort) {
-            CreatorSortOption.RELEVANCE -> filteredCreators
             CreatorSortOption.NAME_ASC -> filteredCreators.sortedBy { it.name.lowercase() }
             CreatorSortOption.NAME_DESC -> filteredCreators.sortedByDescending { it.name.lowercase() }
         }

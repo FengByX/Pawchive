@@ -38,15 +38,13 @@ class HomeFragment : Fragment() {
     private val loadedPosts = mutableListOf<Post>()
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
-        NEWEST_ADDED(R.string.sort_newest_added),
-        OLDEST_ADDED(R.string.sort_oldest_added),
         NEWEST_PUBLISHED(R.string.sort_newest_published),
         OLDEST_PUBLISHED(R.string.sort_oldest_published),
         NEWEST_EDITED(R.string.sort_newest_edited),
         OLDEST_EDITED(R.string.sort_oldest_edited)
     }
 
-    private var currentSort = PostSortOption.NEWEST_EDITED
+    private var currentSort = PostSortOption.NEWEST_PUBLISHED
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -214,8 +212,6 @@ class HomeFragment : Fragment() {
         }
 
         val sorted = when (currentSort) {
-            PostSortOption.NEWEST_ADDED -> postsToSort.sortedByDescending { it.added }
-            PostSortOption.OLDEST_ADDED -> postsToSort.sortedBy { it.added }
             PostSortOption.NEWEST_PUBLISHED -> postsToSort.sortedByDescending { it.published }
             PostSortOption.OLDEST_PUBLISHED -> postsToSort.sortedBy { it.published }
             PostSortOption.NEWEST_EDITED -> postsToSort.sortedByDescending { it.edited ?: it.published }

@@ -44,8 +44,6 @@ class CreatorProfileFragment : Fragment() {
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         NEWEST_PUBLISHED(R.string.sort_newest_published),
         OLDEST_PUBLISHED(R.string.sort_oldest_published),
-        NEWEST_ADDED(R.string.sort_newest_added),
-        OLDEST_ADDED(R.string.sort_oldest_added),
         NEWEST_EDITED(R.string.sort_newest_edited),
         OLDEST_EDITED(R.string.sort_oldest_edited)
     }
@@ -137,8 +135,6 @@ class CreatorProfileFragment : Fragment() {
         val sorted = when (currentSort) {
             PostSortOption.NEWEST_PUBLISHED -> loadedPosts.sortedByDescending { it.published }
             PostSortOption.OLDEST_PUBLISHED -> loadedPosts.sortedBy { it.published }
-            PostSortOption.NEWEST_ADDED -> loadedPosts.sortedByDescending { it.added }
-            PostSortOption.OLDEST_ADDED -> loadedPosts.sortedBy { it.added }
             PostSortOption.NEWEST_EDITED -> loadedPosts.sortedByDescending { it.edited ?: it.published }
             PostSortOption.OLDEST_EDITED -> loadedPosts.sortedBy { it.edited ?: it.published }
         }
