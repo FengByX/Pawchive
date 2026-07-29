@@ -273,7 +273,7 @@ class SearchFragment : Fragment() {
         if (history.isNotEmpty()) {
             showHistoryView()
         } else {
-            hideHistoryView()
+            showResultsView()
             binding.tvNoResults.visibility = View.VISIBLE
             binding.progressBar.visibility = View.GONE
             binding.tvEmptyText.text = getString(R.string.search_initial_hint)
@@ -286,7 +286,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun performSearch(query: String, isRefresh: Boolean = false) {
-        hideHistoryView()
+        showResultsView()
         searchHistoryManager.addHistory(query)
         if (isSearchingPosts) {
             searchPosts(query, isRefresh)
@@ -403,13 +403,19 @@ class SearchFragment : Fragment() {
     }
 
     private fun showHistoryView() {
+        binding.layoutResults.visibility = View.GONE
         binding.layoutHistory.visibility = View.VISIBLE
-        binding.tvNoResults.visibility = View.GONE
+        binding.progressBar.visibility = View.GONE
         refreshHistoryList()
     }
 
-    private fun hideHistoryView() {
+    private fun showResultsView() {
         binding.layoutHistory.visibility = View.GONE
+        binding.layoutResults.visibility = View.VISIBLE
+    }
+
+    private fun hideHistoryView() {
+        showResultsView()
     }
 
     private fun refreshHistoryList() {

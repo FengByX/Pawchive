@@ -96,135 +96,149 @@
         android:background="?attr/colorOutline"
         app:layout_constraintTop_toBottomOf="@+id/tab_sort_row" />
 
-    <!-- Search History Section (shown when search field is empty) -->
-    <LinearLayout
-        android:id="@+id/layout_history"
+    <!-- Content Container: FrameLayout ensures only one child is visible at a time -->
+    <FrameLayout
+        android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:orientation="vertical"
-        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/divider">
 
-        <!-- History Header Row -->
+        <!-- Results (default visible) -->
         <LinearLayout
-            android:id="@+id/history_header"
+            android:id="@+id/layout_results"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_history_title"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/search_history_title"
-                android:textSize="18sp"
-                android:textColor="?attr/colorOnSurface"
-                android:textStyle="bold" />
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipe_refresh"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
 
-            <TextView
-                android:id="@+id/btn_clear_all"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/search_history_clear_all"
-                android:textSize="15sp"
-                android:textColor="?attr/colorPrimary"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
-                android:background="?attr/selectableItemBackground" />
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-            <View
-                android:layout_width="1dp"
-                android:layout_height="16dp"
-                android:layout_marginHorizontal="4dp"
-                android:background="?attr/colorOutlineVariant" />
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_results"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="12dp" />
 
-            <TextView
-                android:id="@+id/btn_done"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/done"
-                android:textSize="15sp"
-                android:textColor="?attr/colorPrimary"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
-                android:background="?attr/selectableItemBackground" />
+                    <LinearLayout
+                        android:id="@+id/tv_no_results"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:visibility="visible">
+
+                        <ImageView
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:src="@drawable/ic_search_large"
+                            android:alpha="0.4"
+                            app:tint="?attr/colorTextMuted"
+                            android:contentDescription="@string/search_initial_hint" />
+
+                        <TextView
+                            android:id="@+id/tv_empty_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="@string/search_initial_hint"
+                            android:textColor="?attr/colorTextMuted"
+                            android:textSize="15sp" />
+
+                    </LinearLayout>
+
+                </FrameLayout>
+
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_search_history"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="12dp" />
-
-    </LinearLayout>
-
-    <!-- Results List -->
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/divider">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_results"
+        <!-- Search History (default gone) -->
+        <LinearLayout
+            android:id="@+id/layout_history"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingTop="4dp"
-            android:paddingBottom="12dp" />
+            android:orientation="vertical"
+            android:visibility="gone">
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            <!-- History Header Row -->
+            <LinearLayout
+                android:id="@+id/history_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp">
 
-    <!-- Progress Indicator -->
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/swipe_refresh" />
+                <TextView
+                    android:id="@+id/tv_history_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/search_history_title"
+                    android:textSize="18sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textStyle="bold" />
 
-    <!-- Empty State -->
-    <LinearLayout
-        android:id="@+id/tv_no_results"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/swipe_refresh">
+                <TextView
+                    android:id="@+id/btn_clear_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/search_history_clear_all"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:background="?attr/selectableItemBackground" />
 
-        <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:src="@drawable/ic_search_large"
-            android:alpha="0.4"
-            app:tint="?attr/colorTextMuted"
-            android:contentDescription="@string/search_initial_hint" />
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="16dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:background="?attr/colorOutlineVariant" />
 
-        <TextView
-            android:id="@+id/tv_empty_text"
+                <TextView
+                    android:id="@+id/btn_done"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/done"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:background="?attr/selectableItemBackground" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_search_history"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="12dp" />
+
+        </LinearLayout>
+
+        <!-- Progress Indicator (shared) -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/search_initial_hint"
-            android:textColor="?attr/colorTextMuted"
-            android:textSize="15sp" />
+            android:layout_gravity="center"
+            android:visibility="gone" />
 
-    </LinearLayout>
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
