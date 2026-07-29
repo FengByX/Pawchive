@@ -228,10 +228,21 @@ class MainActivity : AppCompatActivity() {
      */
     private fun switchMainTab(tabId: Int) {
         currentMainTabId = tabId
-        // 清空返回栈到根，确保回到主界面层级
-        supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        // 同步清空返回栈到根，避免异步 popBackStack 与新事务冲突导致 Fragment 叠加
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            supportFragmentManager.popBackStackImmediate(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        }
 
         val transaction = supportFragmentManager.beginTransaction()
+
+        // 先手动移除不属于主 Tab 的残留 Fragment（如 LoginFragment 等详情页）
+        // 防止 popBackStackImmediate 后仍有残留导致叠加
+        supportFragmentManager.fragments.forEach { frag ->
+            val isMainFragment = mainFragments.values.any { it === frag }
+            if (!isMainFragment && frag.isAdded) {
+                transaction.remove(frag)
+            }
+        }
 
         // 隐藏其它已创建的主 Fragment
         mainFragments.forEach { (id, f) ->
