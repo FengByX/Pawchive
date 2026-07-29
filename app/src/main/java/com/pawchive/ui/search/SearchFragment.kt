@@ -18,10 +18,12 @@ import com.pawchive.data.model.Creator
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.data.repository.CreatorNameCache
+import com.pawchive.data.repository.SearchHistoryManager
 import com.pawchive.databinding.FragmentSearchBinding
 import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.CreatorAdapter
 import com.pawchive.ui.adapter.PostAdapter
+import com.pawchive.ui.adapter.SearchHistoryAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
 import com.pawchive.utils.ErrorMessageHelper
@@ -44,6 +46,8 @@ class SearchFragment : Fragment() {
 
     private lateinit var postAdapter: PostAdapter
     private lateinit var creatorAdapter: CreatorAdapter
+    private lateinit var searchHistoryAdapter: SearchHistoryAdapter
+    private lateinit var searchHistoryManager: SearchHistoryManager
 
     private var allCreators = emptyList<Creator>()
     private var isSearchingPosts = true
@@ -90,6 +94,7 @@ class SearchFragment : Fragment() {
         setupTabLayout()
         setupSortButton()
         setupSwipeRefresh()
+        setupSearchHistory()
 
         if (savedInstanceState != null) {
             val tabIndex = if (isSearchingPosts) 0 else 1
@@ -99,6 +104,7 @@ class SearchFragment : Fragment() {
         }
 
         fetchCreatorsCache()
+        showSearchPrompt()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -147,8 +153,11 @@ class SearchFragment : Fragment() {
             override fun onQueryTextChange(newText: String?): Boolean {
                 if (newText.isNullOrEmpty()) {
                     showSearchPrompt()
-                } else if (!isSearchingPosts) {
-                    filterCreatorsLocal(newText)
+                } else {
+                    hideHistoryView()
+                    if (!isSearchingPosts) {
+                        filterCreatorsLocal(newText)
+                    }
                 }
                 return true
             }
@@ -260,17 +269,25 @@ class SearchFragment : Fragment() {
     }
 
     private fun showSearchPrompt() {
-        binding.tvNoResults.visibility = View.VISIBLE
-        binding.progressBar.visibility = View.GONE
-        binding.tvEmptyText.text = getString(R.string.search_initial_hint)
-        if (isSearchingPosts) {
-            postAdapter.updatePosts(emptyList())
+        val history = searchHistoryManager.getHistory()
+        if (history.isNotEmpty()) {
+            showHistoryView()
         } else {
-            creatorAdapter.updateCreators(emptyList())
+            hideHistoryView()
+            binding.tvNoResults.visibility = View.VISIBLE
+            binding.progressBar.visibility = View.GONE
+            binding.tvEmptyText.text = getString(R.string.search_initial_hint)
+            if (isSearchingPosts) {
+                postAdapter.updatePosts(emptyList())
+            } else {
+                creatorAdapter.updateCreators(emptyList())
+            }
         }
     }
 
     private fun performSearch(query: String, isRefresh: Boolean = false) {
+        hideHistoryView()
+        searchHistoryManager.addHistory(query)
         if (isSearchingPosts) {
             searchPosts(query, isRefresh)
         } else {
@@ -334,6 +351,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun filterCreatorsLocal(query: String) {
+        hideHistoryView()
         binding.tvNoResults.visibility = View.GONE
 
         if (!creatorsCacheLoaded) {
@@ -355,6 +373,51 @@ class SearchFragment : Fragment() {
             binding.tvNoResults.visibility = View.GONE
         }
         applyCreatorSort()
+    }
+
+    private fun setupSearchHistory() {
+        searchHistoryManager = SearchHistoryManager(requireContext())
+        searchHistoryAdapter = SearchHistoryAdapter(
+            items = searchHistoryManager.getHistory(),
+            onItemClicked = { query ->
+                binding.searchView.setQuery(query, true)
+            },
+            onDeleteClicked = { query ->
+                searchHistoryManager.removeHistory(query)
+                refreshHistoryList()
+            }
+        )
+        binding.rvSearchHistory.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvSearchHistory.adapter = searchHistoryAdapter
+
+        binding.btnClearAll.setOnClickListener {
+            searchHistoryManager.clearAll()
+            refreshHistoryList()
+            hideHistoryView()
+        }
+
+        binding.btnDone.setOnClickListener {
+            hideHistoryView()
+            binding.searchView.clearFocus()
+        }
+    }
+
+    private fun showHistoryView() {
+        binding.layoutHistory.visibility = View.VISIBLE
+        binding.tvNoResults.visibility = View.GONE
+        refreshHistoryList()
+    }
+
+    private fun hideHistoryView() {
+        binding.layoutHistory.visibility = View.GONE
+    }
+
+    private fun refreshHistoryList() {
+        val history = searchHistoryManager.getHistory()
+        searchHistoryAdapter.updateItems(history)
+        if (history.isEmpty()) {
+            hideHistoryView()
+        }
     }
 
     override fun onDestroyView() {

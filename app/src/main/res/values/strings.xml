@@ -217,4 +217,10 @@
     <string name="register_failed_unknown">注册失败，请稍后重试</string>
     <string name="error_passwords_not_match">两次输入的密码不一致</string>
     <string name="register_have_account">已有账户？登录</string>
+
+    <!-- Search History -->
+    <string name="search_history_title">历史记录</string>
+    <string name="search_history_clear_all">全部删除</string>
+    <string name="done">完成</string>
+    <string name="delete">删除</string>
 </resources>

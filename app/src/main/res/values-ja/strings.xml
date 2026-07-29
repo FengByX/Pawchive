@@ -217,4 +217,10 @@
     <string name="register_failed_unknown">登録失敗。後でもう一度お試しください</string>
     <string name="error_passwords_not_match">パスワードが一致しません</string>
     <string name="register_have_account">アカウントをお持ちですか？ログイン</string>
+
+    <!-- Search History -->
+    <string name="search_history_title">検索履歴</string>
+    <string name="search_history_clear_all">すべて削除</string>
+    <string name="done">完了</string>
+    <string name="delete">削除</string>
 </resources>
