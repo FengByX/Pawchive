@@ -16,6 +16,12 @@
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
+<p align="center">
+  <a href="https://t.me/PawchiveX">
+    <img src="https://img.shields.io/badge/Telegram-PawchiveX-229ED9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Channel" />
+  </a>
+</p>
+
 ---
 
 ## ✨ 功能亮点
