@@ -30,6 +30,7 @@ import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
+import com.pawchive.data.repository.CreatorNameCache
 import com.pawchive.databinding.FragmentPostDetailBinding
 import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.CommentAdapter
@@ -96,6 +97,11 @@ class PostDetailFragment : Fragment() {
 
         binding.btnBack.setOnClickListener {
             parentFragmentManager.popBackStack()
+        }
+
+        binding.tvPostCreator.setOnClickListener {
+            val creatorFragment = com.pawchive.ui.creator.CreatorProfileFragment.newInstance(service, creatorId)
+            (activity as? MainActivity)?.loadFragment(creatorFragment)
         }
 
         setupCommentsRecyclerView()
@@ -177,9 +183,21 @@ class PostDetailFragment : Fragment() {
 
     private fun displayPost(post: Post) {
         binding.tvPostTitle.text = post.title ?: ""
-        binding.tvPostCreator.text = post.user
+        binding.tvPostCreator.text = CreatorNameCache.getCachedName(post.service, post.user) ?: post.user
         binding.tvPostService.text = post.service.uppercase()
         binding.tvPostDate.text = post.published?.split("T")?.firstOrNull() ?: post.added?.split("T")?.firstOrNull() ?: ""
+
+        if (CreatorNameCache.getCachedName(post.service, post.user) == null) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val profile = ApiClient.publicApi.getCreatorProfile(post.service, post.user)
+                    CreatorNameCache.cacheCreatorName(post.service, post.user, profile.name)
+                    if (_binding != null) {
+                        binding.tvPostCreator.text = profile.name
+                    }
+                } catch (_: Exception) { }
+            }
+        }
 
         setServiceBadgeColor(post.service)
 
