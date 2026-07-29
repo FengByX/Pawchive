@@ -5,8 +5,8 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
     android:layout_marginVertical="6dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="0dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
     app:cardBackgroundColor="?attr/colorSurface"
     app:strokeWidth="1dp"
     app:strokeColor="?attr/colorOutline">
@@ -14,58 +14,72 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="14dp">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_avatar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_creator_name"
+        <LinearLayout
+            android:id="@+id/info_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@+id/card_service_badge"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="12dp"
+            android:orientation="vertical"
             app:layout_constraintStart_toEndOf="@+id/iv_avatar"
+            app:layout_constraintEnd_toStartOf="@+id/card_service_badge"
             app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:text="RAIGYO" />
+            app:layout_constraintBottom_toBottomOf="parent">
 
-        <TextView
-            android:id="@+id/tv_creator_id"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
-            app:layout_constraintEnd_toStartOf="@+id/card_service_badge"
-            app:layout_constraintStart_toEndOf="@+id/iv_avatar"
-            app:layout_constraintTop_toBottomOf="@+id/tv_creator_name"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:text="ID: 21101760" />
+            <TextView
+                android:id="@+id/tv_creator_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="RAIGYO" />
 
-        <TextView
-            android:id="@+id/tv_fav_count"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="?attr/colorTextMuted"
-            android:textSize="11sp"
-            app:layout_constraintEnd_toStartOf="@+id/card_service_badge"
-            app:layout_constraintStart_toEndOf="@+id/iv_avatar"
-            app:layout_constraintTop_toBottomOf="@+id/tv_creator_id"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:text="0 人收藏" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_creator_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:text="ID: 21101760" />
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginHorizontal="6dp"
+                    android:background="?attr/colorOutline" />
+
+                <TextView
+                    android:id="@+id/tv_fav_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorTextMuted"
+                    android:textSize="12sp"
+                    android:text="收藏序号: 0" />
+            </LinearLayout>
+
+        </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_service_badge"

@@ -40,6 +40,9 @@ class FavoriteCreatorAdapter(
             // Set service badge color based on platform
             setServiceBadgeColor(creator.service, binding.root.context)
 
+            // 修复：设置真实创作者 ID
+            binding.tvCreatorId.text = "ID: ${creator.id}"
+
             val favSeq = creator.favedSeq ?: 0
             binding.tvFavCount.text = "收藏序号: $favSeq"
 
