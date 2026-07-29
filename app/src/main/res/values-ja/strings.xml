@@ -204,4 +204,15 @@
     <string name="join_telegram">公式チャンネルに参加</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">ブラウザを開けません</string>
+
+    <!-- Register -->
+    <string name="register">登録</string>
+    <string name="register_prompt">アカウント作成</string>
+    <string name="register_subtitle">登録してお気に入りを同期</string>
+    <string name="confirm_password">パスワード確認</string>
+    <string name="register_success">登録成功！ログインしてください</string>
+    <string name="register_failed">登録失敗：HTTP %1$d</string>
+    <string name="register_failed_duplicate">このユーザー名は既に登録されています</string>
+    <string name="error_passwords_not_match">パスワードが一致しません</string>
+    <string name="register_have_account">アカウントをお持ちですか？ログイン</string>
 </resources>

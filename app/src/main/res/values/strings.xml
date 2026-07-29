@@ -204,4 +204,15 @@
     <string name="join_telegram">加入官方频道</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">无法打开浏览器</string>
+
+    <!-- Register -->
+    <string name="register">注册</string>
+    <string name="register_prompt">创建新账户</string>
+    <string name="register_subtitle">注册后可同步收藏</string>
+    <string name="confirm_password">确认密码</string>
+    <string name="register_success">注册成功！请登录</string>
+    <string name="register_failed">注册失败：HTTP %1$d</string>
+    <string name="register_failed_duplicate">用户名已被注册，请更换</string>
+    <string name="error_passwords_not_match">两次输入的密码不一致</string>
+    <string name="register_have_account">已有账户？登录</string>
 </resources>

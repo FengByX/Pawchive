@@ -60,6 +60,39 @@ class AuthRepository(private val context: Context) {
     }
 
     /**
+     * 注册新账户
+     * Pawchive 注册接口行为与登录类似，返回 302 重定向
+     * 注册成功 → 重定向到登录页或首页
+     * 注册失败 → 重定向回注册页
+     */
+    suspend fun register(username: String, password: String, confirmPassword: String): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (password != confirmPassword) {
+                    return@withContext Result.failure(Exception(context.getString(R.string.error_passwords_not_match)))
+                }
+
+                val loginApi = ApiClient.loginApi
+                val response = loginApi.register(username, password, confirmPassword)
+
+                val statusCode = response.code()
+                if (statusCode !in 300..399) {
+                    return@withContext Result.failure(Exception(context.getString(R.string.register_failed, statusCode)))
+                }
+
+                val locationHeader = response.headers()["Location"]?.lowercase().orEmpty()
+                if (locationHeader.contains("/account/register")) {
+                    return@withContext Result.failure(Exception(context.getString(R.string.register_failed_duplicate)))
+                }
+
+                Result.success(username)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
      * 登出
      */
     suspend fun logout(): Result<Unit> {

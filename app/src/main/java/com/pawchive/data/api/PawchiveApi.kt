@@ -183,4 +183,13 @@ interface PawchiveLoginApi {
         @Field("password") password: String,
         @Field("location") location: String = ""
     ): Response<Void>
+
+    @FormUrlEncoded
+    @POST("account/register")
+    suspend fun register(
+        @Field("username") username: String,
+        @Field("password") password: String,
+        @Field("confirm_password") confirmPassword: String,
+        @Field("location") location: String = ""
+    ): Response<Void>
 }

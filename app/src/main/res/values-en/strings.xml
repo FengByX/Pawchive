@@ -204,4 +204,15 @@
     <string name="join_telegram">Join Official Channel</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">Cannot open browser</string>
+
+    <!-- Register -->
+    <string name="register">Register</string>
+    <string name="register_prompt">Create Account</string>
+    <string name="register_subtitle">Register to sync your favorites</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="register_success">Registration successful! Please login</string>
+    <string name="register_failed">Registration failed: HTTP %1$d</string>
+    <string name="register_failed_duplicate">Username already taken, please choose another</string>
+    <string name="error_passwords_not_match">Passwords do not match</string>
+    <string name="register_have_account">Already have an account? Login</string>
 </resources>

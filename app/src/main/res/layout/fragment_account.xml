@@ -69,6 +69,18 @@
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_person_outline"
             app:iconGravity="textStart"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_register"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="@string/register"
+            android:textSize="16sp"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_person_add"
+            app:iconGravity="textStart"
             android:layout_marginBottom="12dp"/>
 
         <com.google.android.material.card.MaterialCardView

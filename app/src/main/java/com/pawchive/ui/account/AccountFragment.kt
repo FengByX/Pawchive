@@ -13,6 +13,7 @@ import com.pawchive.R
 import com.pawchive.data.github.UpdateChecker
 import com.pawchive.data.github.UpdateResult
 import com.pawchive.data.repository.AuthRepository
+import com.pawchive.databinding.DialogRegisterBinding
 import com.pawchive.databinding.FragmentAccountBinding
 import com.pawchive.ui.login.LoginFragment
 import com.pawchive.ui.settings.SettingsFragment
@@ -43,6 +44,10 @@ class AccountFragment : Fragment() {
             (activity as? com.pawchive.ui.MainActivity)?.loadFragment(LoginFragment())
         }
 
+        binding.btnRegister.setOnClickListener {
+            showRegisterDialog()
+        }
+
         binding.btnLogout.setOnClickListener {
             performLogout()
         }
@@ -56,6 +61,68 @@ class AccountFragment : Fragment() {
         val checkUpdate = { checkForUpdates() }
         binding.btnCheckUpdate.setOnClickListener { checkUpdate() }
         binding.btnCheckUpdateLoggedOut.setOnClickListener { checkUpdate() }
+    }
+
+    private fun showRegisterDialog() {
+        val dialogBinding = DialogRegisterBinding.inflate(layoutInflater)
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogBinding.root)
+            .setCancelable(true)
+            .create()
+
+        dialogBinding.tvHaveAccount.setOnClickListener {
+            dialog.dismiss()
+            (activity as? com.pawchive.ui.MainActivity)?.loadFragment(LoginFragment())
+        }
+
+        dialogBinding.btnSubmitRegister.setOnClickListener {
+            val username = dialogBinding.etRegisterUsername.text.toString().trim()
+            val password = dialogBinding.etRegisterPassword.text.toString()
+            val confirmPassword = dialogBinding.etConfirmPassword.text.toString()
+
+            if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                dialogBinding.tvRegisterError.text = getString(R.string.error_username_password_empty)
+                dialogBinding.tvRegisterError.visibility = View.VISIBLE
+                return@setOnClickListener
+            }
+
+            if (password != confirmPassword) {
+                dialogBinding.tvRegisterError.text = getString(R.string.error_passwords_not_match)
+                dialogBinding.tvRegisterError.visibility = View.VISIBLE
+                return@setOnClickListener
+            }
+
+            dialogBinding.progressRegister.visibility = View.VISIBLE
+            dialogBinding.tvRegisterError.visibility = View.GONE
+            dialogBinding.btnSubmitRegister.isEnabled = false
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val result = authRepository.register(username, password, confirmPassword)
+
+                dialogBinding.progressRegister.visibility = View.GONE
+                dialogBinding.btnSubmitRegister.isEnabled = true
+
+                if (result.isSuccess) {
+                    dialog.dismiss()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.register_success),
+                        Toast.LENGTH_LONG
+                    ).show()
+                    (activity as? com.pawchive.ui.MainActivity)?.loadFragment(LoginFragment())
+                } else {
+                    val error = ErrorMessageHelper.getFriendlyMessage(
+                        requireContext(),
+                        result.exceptionOrNull()
+                    )
+                    dialogBinding.tvRegisterError.text = error
+                    dialogBinding.tvRegisterError.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     private fun checkForUpdates() {
