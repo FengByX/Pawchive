@@ -7,7 +7,10 @@ import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Display
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -83,6 +86,12 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             switchMainTab(item.itemId)
             true
+        }
+
+        // 监听返回栈变化：二级页面自动隐藏底部导航，回到主页面时恢复
+        supportFragmentManager.addOnBackStackChangedListener {
+            val hasBackStack = supportFragmentManager.backStackEntryCount > 0
+            setBottomNavigationVisibility(!hasBackStack)
         }
 
         updateBottomNavVisibility()
@@ -173,6 +182,34 @@ class MainActivity : AppCompatActivity() {
         val typedValue = TypedValue()
         theme.resolveAttribute(attr, typedValue, true)
         return typedValue.data
+    }
+
+    /**
+     * 控制底部导航栏整体显隐，并同步调整 Fragment 容器约束
+     * 二级页面隐藏，主页面显示
+     */
+    fun setBottomNavigationVisibility(visible: Boolean) {
+        val bottomNav = binding.bottomNavigation
+        if (bottomNav.visibility == (if (visible) View.VISIBLE else View.GONE)) return
+
+        bottomNav.visibility = if (visible) View.VISIBLE else View.GONE
+
+        val constraintLayout = binding.root as ConstraintLayout
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraintLayout)
+
+        if (visible) {
+            constraintSet.connect(
+                R.id.nav_host_fragment, ConstraintSet.BOTTOM,
+                R.id.bottom_navigation, ConstraintSet.TOP
+            )
+        } else {
+            constraintSet.connect(
+                R.id.nav_host_fragment, ConstraintSet.BOTTOM,
+                ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM
+            )
+        }
+        constraintSet.applyTo(constraintLayout)
     }
 
     /**

@@ -26,12 +26,13 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_creator_avatar"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:scaleType="centerCrop"
             android:layout_marginStart="12dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
             app:layout_constraintStart_toEndOf="@+id/btn_back"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
@@ -127,7 +128,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="8dp" />
 
-            <!-- Posts Section -->
+            <!-- Posts Section Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -136,23 +137,50 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="16dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="?attr/colorSecondary"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:text="@string/posts" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_sort"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                <!-- Active Tab with indicator -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:text="@string/posts" />
+
+                    <View
+                        android:layout_width="24dp"
+                        android:layout_height="3dp"
+                        android:layout_marginTop="4dp"
+                        android:background="?attr/colorPrimary" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Sort dropdown button -->
+                <TextView
+                    android:id="@+id/btn_sort"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
                     android:text="@string/sort_newest_added"
-                    android:textSize="12sp"
-                    app:cornerRadius="8dp" />
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="13sp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:drawableEndCompat="@drawable/ic_chevron_down"
+                    app:drawableTint="?attr/colorOnSurfaceVariant"
+                    android:drawablePadding="4dp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

@@ -29,7 +29,8 @@ class PostAdapter(
     private val onPostClicked: (Post) -> Unit,
     private val onCreatorClicked: (String, String) -> Unit,
     private val onBookmarkChanged: (Post, Boolean) -> Unit,
-    private val onLoadMore: () -> Unit = {}
+    private val onLoadMore: () -> Unit = {},
+    private val showCreatorInfo: Boolean = true
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var showFooter = false
@@ -129,6 +130,9 @@ class PostAdapter(
                 ?: post.added?.split("T")?.firstOrNull()
                 ?: binding.root.context.getString(R.string.date_unknown)
             binding.tvDate.text = binding.root.context.getString(R.string.date_published, dateStr)
+
+            // 在创作者详情页等场景下隐藏卡片内的创作者信息，避免冗余
+            binding.topRow.visibility = if (showCreatorInfo) View.VISIBLE else View.GONE
 
             // Set service badge color based on platform
             setServiceBadgeColor(binding, post.service, binding.root.context)

@@ -96,7 +96,9 @@ class CreatorProfileFragment : Fragment() {
                 (activity as? MainActivity)?.loadFragment(detailFragment)
             },
             onCreatorClicked = { _, _ -> },
-            onBookmarkChanged = { _, _ -> }
+            onBookmarkChanged = { _, _ -> },
+            onLoadMore = {},
+            showCreatorInfo = false
         )
         binding.rvCreatorPosts.layoutManager = LinearLayoutManager(requireContext())
         binding.rvCreatorPosts.adapter = postAdapter
@@ -200,15 +202,28 @@ class CreatorProfileFragment : Fragment() {
                 val profile = api.getCreatorProfile(service, creatorId)
                 binding.tvCreatorTitle.text = profile.name
                 binding.tvCreatorService.text = profile.service.uppercase()
+                setServiceLabelColor(profile.service)
                 CreatorNameCache.cacheCreatorName(service, creatorId, profile.name)
                 loadAvatar()
             } catch (e: Exception) {
                 e.printStackTrace()
                 binding.tvCreatorTitle.text = creatorId
                 binding.tvCreatorService.text = service.uppercase()
+                setServiceLabelColor(service)
                 loadAvatar()
             }
         }
+    }
+
+    private fun setServiceLabelColor(serviceName: String) {
+        val context = requireContext()
+        val isDarkMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val colorRes = when (serviceName.lowercase()) {
+            "patreon" -> if (isDarkMode) R.color.patreon_text_dark else R.color.patreon_text_light
+            "fanbox" -> if (isDarkMode) R.color.fanbox_text_dark else R.color.fanbox_text_light
+            else -> if (isDarkMode) R.color.service_text_default_dark else R.color.service_text_default_light
+        }
+        binding.tvCreatorService.setTextColor(context.getColor(colorRes))
     }
 
     private fun loadAvatar() {
