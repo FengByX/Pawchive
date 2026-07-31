@@ -254,6 +254,7 @@ class MainActivity : AppCompatActivity() {
      * 用于底部导航栏切换
      */
     private fun switchMainTab(tabId: Int) {
+        val previousTabId = currentMainTabId
         currentMainTabId = tabId
         // 同步清空返回栈到根，避免异步 popBackStack 与新事务冲突导致 Fragment 叠加
         if (supportFragmentManager.backStackEntryCount > 0) {
@@ -261,6 +262,30 @@ class MainActivity : AppCompatActivity() {
         }
 
         val transaction = supportFragmentManager.beginTransaction()
+
+        // 根据 Tab 索引方向设置过渡动画
+        val visibleTabs = getVisibleTabIds()
+        val prevIndex = visibleTabs.indexOf(previousTabId)
+        val currIndex = visibleTabs.indexOf(tabId)
+        if (prevIndex != -1 && currIndex != -1 && prevIndex != currIndex) {
+            if (currIndex > prevIndex) {
+                // 向右切换（索引增大）
+                transaction.setCustomAnimations(
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left,
+                    R.anim.slide_in_left,
+                    R.anim.slide_out_right
+                )
+            } else {
+                // 向左切换（索引减小）
+                transaction.setCustomAnimations(
+                    R.anim.slide_in_left,
+                    R.anim.slide_out_right,
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
+                )
+            }
+        }
 
         // 先手动移除不属于主 Tab 的残留 Fragment（如 LoginFragment 等详情页）
         // 防止 popBackStackImmediate 后仍有残留导致叠加

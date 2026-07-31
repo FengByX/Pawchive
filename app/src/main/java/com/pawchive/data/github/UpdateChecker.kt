@@ -190,15 +190,17 @@ class UpdateChecker(context: Context) {
             setPadding(dpToPx(context, 24))
         }
         val contentTextView = TextView(context).apply {
-            textSize = 15f
+            textSize = 14f
             val textColor = TypedValue().let {
-                context.theme.resolveAttribute(android.R.attr.textColorSecondary, it, true)
+                context.theme.resolveAttribute(android.R.attr.textColorPrimary, it, true)
                 it.data
             }
             setTextColor(textColor)
             val fullHtml = buildString {
                 append("<font color=\"#808080\">")
+                append("<small>")
                 append(headerText.replace("\n", "<br>"))
+                append("</small>")
                 append("</font>")
                 if (notesHtml.isNotEmpty()) {
                     append("<br><br>")
@@ -207,6 +209,7 @@ class UpdateChecker(context: Context) {
             }
             text = Html.fromHtml(fullHtml, Html.FROM_HTML_MODE_LEGACY)
             movementMethod = LinkMovementMethod.getInstance()
+            setLineSpacing(dpToPx(context, 4).toFloat(), 1.0f)
         }
         scrollView.addView(contentTextView)
 
@@ -221,9 +224,8 @@ class UpdateChecker(context: Context) {
     }
 
     /**
-     * 简单的 Markdown 到 HTML 转换
-     * 支持：标题、粗体、斜体、列表、换行
-     * 使用 Html.fromHtml 原生支持的标签（无 CSS style）
+     * Markdown 到 HTML 转换（兼容 Html.fromHtml 的有限标签集）
+     * 支持：标题、粗体、斜体、列表、换行、代码
      */
     private fun markdownToHtml(markdown: String): String {
         val lines = markdown.lines()
@@ -232,7 +234,7 @@ class UpdateChecker(context: Context) {
 
         fun closeList() {
             if (inList) {
-                sb.append("</ul>")
+                sb.append("<br>")
                 inList = false
             }
         }
@@ -241,28 +243,35 @@ class UpdateChecker(context: Context) {
             val trimmed = line.trim()
 
             when {
-                // 三级标题
+                // 四级及以上标题 → 粗体
+                trimmed.startsWith("#### ") || trimmed.startsWith("##### ") || trimmed.startsWith("###### ") -> {
+                    closeList()
+                    sb.append("<br><b>").append(renderInline(trimmed.substring(trimmed.indexOf(' ') + 1))).append("</b><br>")
+                }
+                // 三级标题 → 粗体 + 加大
                 trimmed.startsWith("### ") -> {
                     closeList()
-                    sb.append("<h3><b>").append(renderInline(trimmed.substring(4))).append("</b></h3>")
+                    sb.append("<br><b><big>").append(renderInline(trimmed.substring(4))).append("</big></b><br>")
                 }
-                // 二级标题
+                // 二级标题 → 粗体 + 加大 + 间距
                 trimmed.startsWith("## ") -> {
                     closeList()
-                    sb.append("<h2><b>").append(renderInline(trimmed.substring(3))).append("</b></h2>")
+                    sb.append("<br><b><big>").append(renderInline(trimmed.substring(3))).append("</big></b><br>")
                 }
-                // 一级标题
+                // 一级标题 → 粗体 + 加大 + 间距
                 trimmed.startsWith("# ") -> {
                     closeList()
-                    sb.append("<h1><b>").append(renderInline(trimmed.substring(2))).append("</b></h1>")
+                    sb.append("<br><b><big>").append(renderInline(trimmed.substring(2))).append("</big></b><br>")
                 }
                 // 列表项
                 trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
-                    if (!inList) {
-                        sb.append("<ul>")
-                        inList = true
-                    }
-                    sb.append("<li>").append(renderInline(trimmed.substring(2))).append("</li>")
+                    sb.append("• ").append(renderInline(trimmed.substring(2))).append("<br>")
+                    inList = true
+                }
+                // 引用
+                trimmed.startsWith("> ") -> {
+                    closeList()
+                    sb.append("<blockquote>").append(renderInline(trimmed.substring(2))).append("</blockquote>")
                 }
                 // 空行
                 trimmed.isEmpty() -> {
@@ -272,25 +281,31 @@ class UpdateChecker(context: Context) {
                 // 普通文本
                 else -> {
                     closeList()
-                    sb.append("<p>").append(renderInline(trimmed)).append("</p>")
+                    sb.append(renderInline(trimmed)).append("<br>")
                 }
             }
         }
 
-        if (inList) sb.append("</ul>")
+        if (inList) sb.append("<br>")
         return sb.toString()
     }
 
     /**
-     * 渲染 Markdown 内联格式：粗体、斜体、行内代码
+     * 渲染 Markdown 内联格式：粗体、斜体、行内代码、链接
      */
     private fun renderInline(text: String): String {
-        return text
-            .replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
-            .replace(Regex("__(.+?)__"), "<b>$1</b>")
-            .replace(Regex("\\*(.+?)\\*"), "<i>$1</i>")
-            .replace(Regex("_(.+?)_"), "<i>$1</i>")
-            .replace(Regex("`(.+?)`"), "<tt>$1</tt>")
+        var result = text
+        // 行内代码
+        result = result.replace(Regex("`([^`]+)`"), "<tt>$1</tt>")
+        // 粗体
+        result = result.replace(Regex("\\*\\*(.+?)\\*\\*"), "<b>$1</b>")
+        result = result.replace(Regex("__(.+?)__"), "<b>$1</b>")
+        // 斜体
+        result = result.replace(Regex("\\*(.+?)\\*"), "<i>$1</i>")
+        result = result.replace(Regex("_(.+?)_"), "<i>$1</i>")
+        // 链接 [text](url)
+        result = result.replace(Regex("\\[([^\\]]+)\\]\\(([^)]+)\\)"), "<a href=\"$2\">$1</a>")
+        return result
     }
 
     private fun dpToPx(context: Context, dp: Int): Int {
