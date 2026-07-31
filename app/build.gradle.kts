@@ -14,8 +14,8 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 31
-        versionName = "1.3.1"
+        versionCode = 32
+        versionName = "1.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -69,6 +69,9 @@ dependencies {
 
     // Security - EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Jetpack DataStore - 高性能键值存储（替代 SharedPreferences）
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.8.0")

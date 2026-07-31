@@ -1,7 +1,6 @@
 package com.pawchive.data.github
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.net.Uri
 import android.text.Html
 import android.text.method.LinkMovementMethod
@@ -10,11 +9,21 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.view.setPadding
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pawchive.R
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+
+// 顶层 DataStore 单例（更新检查时间戳）
+private val Context.updateCheckerDataStore: DataStore<Preferences> by preferencesDataStore(name = "update_checker_prefs")
 
 sealed class UpdateResult {
     data class UpdateAvailable(
@@ -30,11 +39,14 @@ sealed class UpdateResult {
 
 class UpdateChecker(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        PREFS_NAME,
-        Context.MODE_PRIVATE
-    )
+    private val dataStore = context.updateCheckerDataStore
     private val githubApi: GithubApi = GithubApi.create()
+
+    // 内存缓存快照（shouldSkipCheck 同步调用，避免每次 runBlocking）
+    @Volatile
+    private var lastCheckTime: Long = runBlocking {
+        dataStore.data.first()[KEY_LAST_CHECK_TIME] ?: 0L
+    }
 
     /**
      * 检查是否有新版本更新
@@ -139,16 +151,19 @@ class UpdateChecker(context: Context) {
      * 检查是否应该跳过（24 小时间隔）
      */
     private fun shouldSkipCheck(): Boolean {
-        val lastCheck = prefs.getLong(KEY_LAST_CHECK_TIME, 0L)
-        if (lastCheck == 0L) return false
-        return (System.currentTimeMillis() - lastCheck) < CHECK_INTERVAL_MS
+        if (lastCheckTime == 0L) return false
+        return (System.currentTimeMillis() - lastCheckTime) < CHECK_INTERVAL_MS
     }
 
     /**
      * 记录本次检查时间
      */
     private fun recordCheckTime() {
-        prefs.edit().putLong(KEY_LAST_CHECK_TIME, System.currentTimeMillis()).apply()
+        val now = System.currentTimeMillis()
+        lastCheckTime = now
+        kotlinx.coroutines.GlobalScope.launch {
+            dataStore.edit { it[KEY_LAST_CHECK_TIME] = now }
+        }
     }
 
     /**
@@ -293,8 +308,7 @@ class UpdateChecker(context: Context) {
     }
 
     companion object {
-        private const val PREFS_NAME = "update_checker_prefs"
-        private const val KEY_LAST_CHECK_TIME = "last_check_time"
+        private val KEY_LAST_CHECK_TIME = longPreferencesKey("last_check_time")
         private const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 小时
     }
 }
