@@ -224,4 +224,18 @@
     <string name="search_history_clear_all">すべて削除</string>
     <string name="done">完了</string>
     <string name="delete">削除</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">ブロック</string>
+    <string name="unblock_creator">ブロック解除</string>
+    <string name="block_creator_confirm_title">このクリエイターをブロック</string>
+    <string name="block_creator_confirm_message">ブロックすると、このクリエイターの全投稿がホームと検索結果に表示されなくなります。設定でブロックリストを管理できます。</string>
+    <string name="creator_blocked">クリエイターをブロックしました</string>
+    <string name="creator_unblocked">ブロックを解除しました</string>
+    <string name="section_blocked">ブロック</string>
+    <string name="blocked_creators">ブロック済みクリエイター</string>
+    <string name="blocked_count_zero">ブロックなし</string>
+    <string name="blocked_count">%1$d件のクリエイターをブロック中</string>
+    <string name="no_blocked_creators">ブロック済みクリエイターなし</string>
+    <string name="manage">管理</string>
 </resources>

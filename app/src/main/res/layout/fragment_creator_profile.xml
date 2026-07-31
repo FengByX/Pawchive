@@ -68,6 +68,26 @@
             android:src="@android:drawable/btn_star_big_off"
             android:contentDescription="@string/bookmark_creator_description"
             app:tint="?attr/colorOnSurface"
+            app:layout_constraintEnd_toStartOf="@+id/btn_block_creator"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_block_creator"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="@string/block_creator"
+            android:textSize="12sp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_shield"
+            app:iconGravity="textStart"
+            app:iconSize="16dp"
+            app:iconPadding="2dp"
+            app:backgroundTint="?attr/colorErrorContainer"
+            android:textColor="?attr/colorOnErrorContainer"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />

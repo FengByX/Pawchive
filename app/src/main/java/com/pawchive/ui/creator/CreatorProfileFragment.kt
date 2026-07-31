@@ -15,6 +15,7 @@ import coil.load
 import com.pawchive.R
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.repository.AuthRepository
+import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.data.repository.CreatorNameCache
 import com.pawchive.databinding.FragmentCreatorProfileBinding
@@ -31,6 +32,7 @@ class CreatorProfileFragment : Fragment() {
 
     private lateinit var postAdapter: PostAdapter
     private lateinit var bookmarkManager: BookmarkManager
+    private lateinit var blockedCreatorManager: BlockedCreatorManager
     private lateinit var authRepository: AuthRepository
     private val api = ApiClient.publicApi
 
@@ -69,6 +71,7 @@ class CreatorProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bookmarkManager = BookmarkManager(requireContext())
+        blockedCreatorManager = BlockedCreatorManager(requireContext())
         authRepository = AuthRepository(requireContext())
 
         binding.btnBack.setOnClickListener {
@@ -77,6 +80,7 @@ class CreatorProfileFragment : Fragment() {
 
         setupRecyclerView()
         setupBookmarkButton()
+        setupBlockButton()
         setupLoadMoreButton()
         setupSortButton()
         loadCreatorDetails()
@@ -193,6 +197,40 @@ class CreatorProfileFragment : Fragment() {
     private fun updateBookmarkIcon(isBookmarked: Boolean) {
         binding.btnCreatorBookmark.setImageResource(
             if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline
+        )
+    }
+
+    private fun setupBlockButton() {
+        val isBlocked = blockedCreatorManager.isCreatorBlocked(service, creatorId)
+        updateBlockButtonState(isBlocked)
+
+        binding.btnBlockCreator.setOnClickListener {
+            val newBlocked = !blockedCreatorManager.isCreatorBlocked(service, creatorId)
+            if (newBlocked) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.block_creator_confirm_title)
+                    .setMessage(getString(R.string.block_creator_confirm_message))
+                    .setPositiveButton(R.string.block_creator) { _, _ ->
+                        blockedCreatorManager.blockCreator(service, creatorId)
+                        updateBlockButtonState(true)
+                        Toast.makeText(context, R.string.creator_blocked, Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            } else {
+                blockedCreatorManager.unblockCreator(service, creatorId)
+                updateBlockButtonState(false)
+                Toast.makeText(context, R.string.creator_unblocked, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun updateBlockButtonState(isBlocked: Boolean) {
+        binding.btnBlockCreator.text = getString(
+            if (isBlocked) R.string.unblock_creator else R.string.block_creator
+        )
+        binding.btnBlockCreator.setIconResource(
+            if (isBlocked) R.drawable.ic_shield_off else R.drawable.ic_shield
         )
     }
 

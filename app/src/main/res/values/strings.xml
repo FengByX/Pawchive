@@ -224,4 +224,18 @@
     <string name="search_history_clear_all">全部删除</string>
     <string name="done">完成</string>
     <string name="delete">删除</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">屏蔽</string>
+    <string name="unblock_creator">取消屏蔽</string>
+    <string name="block_creator_confirm_title">屏蔽此创作者</string>
+    <string name="block_creator_confirm_message">屏蔽后，该创作者的全部帖子将不会在首页和搜索结果中显示。你可以在设置中管理屏蔽列表。</string>
+    <string name="creator_blocked">已屏蔽此创作者</string>
+    <string name="creator_unblocked">已取消屏蔽</string>
+    <string name="section_blocked">屏蔽</string>
+    <string name="blocked_creators">屏蔽创作者</string>
+    <string name="blocked_count_zero">暂无屏蔽</string>
+    <string name="blocked_count">已屏蔽 %1$d 位创作者</string>
+    <string name="no_blocked_creators">暂无屏蔽的创作者</string>
+    <string name="manage">管理</string>
 </resources>

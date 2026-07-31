@@ -224,4 +224,18 @@
     <string name="search_history_clear_all">Clear All</string>
     <string name="done">Done</string>
     <string name="delete">Delete</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">Block</string>
+    <string name="unblock_creator">Unblock</string>
+    <string name="block_creator_confirm_title">Block this creator</string>
+    <string name="block_creator_confirm_message">After blocking, all posts from this creator will be hidden from home and search results. You can manage the block list in Settings.</string>
+    <string name="creator_blocked">Creator blocked</string>
+    <string name="creator_unblocked">Creator unblocked</string>
+    <string name="section_blocked">Block</string>
+    <string name="blocked_creators">Blocked Creators</string>
+    <string name="blocked_count_zero">No blocked creators</string>
+    <string name="blocked_count">%1$d creator(s) blocked</string>
+    <string name="no_blocked_creators">No blocked creators</string>
+    <string name="manage">Manage</string>
 </resources>

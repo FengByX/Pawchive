@@ -16,6 +16,7 @@ import com.pawchive.R
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Creator
 import com.pawchive.data.repository.AuthRepository
+import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.data.repository.CreatorNameCache
 import com.pawchive.data.repository.SearchHistoryManager
@@ -43,6 +44,7 @@ class SearchFragment : Fragment() {
     private val api = ApiClient.publicApi
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
+    private lateinit var blockedCreatorManager: BlockedCreatorManager
 
     private lateinit var postAdapter: PostAdapter
     private lateinit var creatorAdapter: CreatorAdapter
@@ -84,6 +86,7 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         bookmarkManager = BookmarkManager(requireContext())
         authRepository = AuthRepository(requireContext())
+        blockedCreatorManager = BlockedCreatorManager(requireContext())
 
         savedInstanceState?.let {
             isSearchingPosts = it.getBoolean(KEY_SEARCHING_POSTS, true)
@@ -256,7 +259,8 @@ class SearchFragment : Fragment() {
             PostSortOption.NEWEST_EDITED -> searchResults.sortedByDescending { it.edited ?: it.published }
             PostSortOption.OLDEST_EDITED -> searchResults.sortedBy { it.edited ?: it.published }
         }
-        postAdapter.updatePosts(sorted)
+        val filtered = sorted.filter { !blockedCreatorManager.isCreatorBlocked(it.service, it.user) }
+        postAdapter.updatePosts(filtered)
     }
 
     private fun applyCreatorSort() {
@@ -361,7 +365,8 @@ class SearchFragment : Fragment() {
         }
 
         val filtered = allCreators.filter {
-            it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true)
+            (it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true))
+                    && !blockedCreatorManager.isCreatorBlocked(it.service, it.id)
         }
         filteredCreators = filtered
         binding.progressBar.visibility = View.GONE

@@ -1,16 +1,19 @@
 package com.pawchive.ui.home
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
+import com.pawchive.data.repository.BlockedCreatorManager
 import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val api = ApiClient.publicApi
+    private val blockedCreatorManager = BlockedCreatorManager(application)
     // 服务端 /posts 接口固定每页返回 50 条（仅支持 offset，无 limit 参数），
     // 因此此处与服务端页大小保持一致，用于判断是否还有下一页。
     private val pageSize = 50
@@ -49,7 +52,7 @@ class HomeViewModel : ViewModel() {
             try {
                 val morePosts = api.getRecentPosts(offset = currentOffset)
                 loadedPosts.addAll(morePosts)
-                _posts.value = loadedPosts.toList()
+                _posts.value = filterBlocked(loadedPosts)
                 _hasMore.value = morePosts.size >= pageSize
             } catch (e: Exception) {
                 currentOffset -= pageSize
@@ -60,15 +63,20 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 屏蔽状态变化后重新过滤已加载的数据（无需重新请求网络）
+     */
+    fun refreshBlockedFilter() {
+        if (loadedPosts.isNotEmpty()) {
+            _posts.value = filterBlocked(loadedPosts)
+        }
+    }
+
     private fun fetchPosts(reset: Boolean) {
         if (_isLoading.value == true) return
         _isLoading.value = true
         _errorMessage.value = null
 
-        // 关键修复：refresh 失败时不要先清空旧数据。
-        // 旧实现 reset=true 时立即清空 loadedPosts 与 _posts，
-        // 一旦网络抖动失败，UI 直接显示空列表 + 错误提示，已加载内容消失。
-        // 改为：请求成功后才替换 loadedPosts；失败时保留旧数据，仅显示错误提示。
         if (reset) {
             currentOffset = 0
         }
@@ -80,11 +88,10 @@ class HomeViewModel : ViewModel() {
                     loadedPosts.clear()
                 }
                 loadedPosts.addAll(posts)
-                _posts.value = loadedPosts.toList()
+                _posts.value = filterBlocked(loadedPosts)
                 _hasMore.value = posts.size >= pageSize
             } catch (e: Exception) {
                 if (reset) {
-                    // refresh 失败：保留原 loadedPosts 不动，仅回退 offset
                     currentOffset = 0
                 }
                 _errorMessage.value = e.message
@@ -92,5 +99,12 @@ class HomeViewModel : ViewModel() {
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * 过滤掉被屏蔽创作者的帖子
+     */
+    private fun filterBlocked(posts: List<Post>): List<Post> {
+        return posts.filter { !blockedCreatorManager.isCreatorBlocked(it.service, it.user) }
     }
 }

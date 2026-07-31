@@ -16,6 +16,7 @@ import com.google.android.material.button.MaterialButton
 import com.pawchive.BuildConfig
 import com.pawchive.R
 import com.pawchive.data.SettingsManager
+import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.databinding.FragmentSettingsBinding
 import com.pawchive.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private lateinit var settingsManager: SettingsManager
+    private lateinit var blockedCreatorManager: BlockedCreatorManager
 
     private val pickDownloadLocation = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -75,11 +77,13 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         settingsManager = SettingsManager(requireContext())
+        blockedCreatorManager = BlockedCreatorManager(requireContext())
 
         setupBackButton()
         setupToggleButtonColors()
         setupLanguage()
         setupAppearance()
+        setupBlockedCreators()
         setupDownloadLocation()
         setupAutoCleanCache()
         setupManualCleanCache()
@@ -170,6 +174,50 @@ class SettingsFragment : Fragment() {
             }
             settingsManager.setAppearance(appearance)
         }
+    }
+
+    private fun setupBlockedCreators() {
+        updateBlockedCount()
+
+        binding.btnManageBlocked.setOnClickListener {
+            showBlockedCreatorsDialog()
+        }
+    }
+
+    private fun updateBlockedCount() {
+        val count = blockedCreatorManager.getBlockedCount()
+        binding.tvBlockedCount.text = if (count == 0) {
+            getString(R.string.blocked_count_zero)
+        } else {
+            getString(R.string.blocked_count, count)
+        }
+    }
+
+    private fun showBlockedCreatorsDialog() {
+        val blocked = blockedCreatorManager.getBlockedCreators()
+        if (blocked.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.no_blocked_creators, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val items = blocked.map { "${it.first} | ${it.second}" }.toTypedArray()
+        val checkedItems = BooleanArray(items.size) { true }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.blocked_creators)
+            .setMultiChoiceItems(items, checkedItems) { _, _, _ -> }
+            .setPositiveButton(R.string.done) { _, _ ->
+                // 取消勾选的 = 要取消屏蔽的
+                for (i in items.indices) {
+                    if (!checkedItems[i]) {
+                        val (service, creatorId) = blocked[i]
+                        blockedCreatorManager.unblockCreator(service, creatorId)
+                    }
+                }
+                updateBlockedCount()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun setupDownloadLocation() {
