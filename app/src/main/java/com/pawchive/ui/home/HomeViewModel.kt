@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val api = ApiClient.publicApi
-    private val blockedCreatorManager = BlockedCreatorManager(application)
+    private val blockedCreatorManager = BlockedCreatorManager.getInstance(application)
     // 服务端 /posts 接口固定每页返回 50 条（仅支持 offset，无 limit 参数），
     // 因此此处与服务端页大小保持一致，用于判断是否还有下一页。
     private val pageSize = 50

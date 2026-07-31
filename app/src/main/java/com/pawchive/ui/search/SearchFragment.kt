@@ -86,7 +86,7 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         bookmarkManager = BookmarkManager(requireContext())
         authRepository = AuthRepository(requireContext())
-        blockedCreatorManager = BlockedCreatorManager(requireContext())
+        blockedCreatorManager = BlockedCreatorManager.getInstance(requireContext())
 
         savedInstanceState?.let {
             isSearchingPosts = it.getBoolean(KEY_SEARCHING_POSTS, true)
@@ -428,6 +428,19 @@ class SearchFragment : Fragment() {
         searchHistoryAdapter.updateItems(history)
         if (history.isEmpty()) {
             hideHistoryView()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (searchResults.isNotEmpty() && isSearchingPosts) {
+            applyPostSort()
+        }
+        if (filteredCreators.isNotEmpty() && !isSearchingPosts) {
+            val query = binding.searchView.query.toString()
+            if (query.isNotEmpty()) {
+                filterCreatorsLocal(query)
+            }
         }
     }
 

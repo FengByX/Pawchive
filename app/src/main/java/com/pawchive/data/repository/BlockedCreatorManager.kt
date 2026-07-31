@@ -15,11 +15,11 @@ import kotlinx.coroutines.runBlocking
 private val Context.blockedCreatorsDataStore: DataStore<Preferences> by preferencesDataStore(name = "blocked_creators")
 
 /**
- * 屏蔽创作者管理器。
+ * 屏蔽创作者管理器（单例）。
  * 使用 DataStore 存储屏蔽列表，内存缓存快照实现同步高频读取。
- * 屏蔽键格式："service|creatorId"（与 BookmarkManager 一致）。
+ * 屏蔽键格式："blocked_service|creatorId"（与 BookmarkManager 一致）。
  */
-class BlockedCreatorManager(context: Context) {
+class BlockedCreatorManager private constructor(context: Context) {
 
     private val dataStore = context.blockedCreatorsDataStore
 
@@ -83,5 +83,16 @@ class BlockedCreatorManager(context: Context) {
 
     companion object {
         private const val KEY_PREFIX = "blocked_"
+
+        @Volatile
+        private var instance: BlockedCreatorManager? = null
+
+        fun getInstance(context: Context): BlockedCreatorManager {
+            return instance ?: synchronized(this) {
+                instance ?: BlockedCreatorManager(context.applicationContext).also {
+                    instance = it
+                }
+            }
+        }
     }
 }
