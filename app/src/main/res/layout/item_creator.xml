@@ -79,6 +79,16 @@
                     android:text="收藏序号: 0" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_updated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp"
+                android:visibility="gone"
+                android:text="" />
+
         </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView

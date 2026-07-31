@@ -3,12 +3,16 @@ package com.pawchive.ui.adapter
 import android.content.Context
 import android.content.res.Configuration
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
 import com.pawchive.data.model.FavoriteCreator
 import com.pawchive.databinding.ItemCreatorBinding
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class FavoriteCreatorAdapter(
     private var creators: List<FavoriteCreator>,
@@ -46,6 +50,22 @@ class FavoriteCreatorAdapter(
             val favSeq = creator.favedSeq ?: 0
             binding.tvFavCount.text = "收藏序号: $favSeq"
 
+            // 显示最近更新时间（优先 updated，回退 indexed）
+            val updateStr = creator.updated ?: creator.indexed
+            if (!updateStr.isNullOrEmpty()) {
+                val formatted = formatTimestamp(updateStr)
+                if (formatted.isNotEmpty()) {
+                    binding.tvUpdated.visibility = View.VISIBLE
+                    binding.tvUpdated.text = binding.root.context.getString(
+                        R.string.creator_last_updated, formatted
+                    )
+                } else {
+                    binding.tvUpdated.visibility = View.GONE
+                }
+            } else {
+                binding.tvUpdated.visibility = View.GONE
+            }
+
             val avatarUrl = "https://pawchive.pw/icons/${creator.service}/${creator.id}"
             binding.ivAvatar.load(avatarUrl) {
                 crossfade(true)
@@ -55,6 +75,20 @@ class FavoriteCreatorAdapter(
 
             binding.root.setOnClickListener {
                 onCreatorClicked(creator.service, creator.id)
+            }
+        }
+
+        /**
+         * 格式化时间戳字符串（秒级/毫秒级 Unix 时间戳，或 ISO 日期）为 yyyy-MM-dd
+         */
+        private fun formatTimestamp(timestamp: String): String {
+            return try {
+                val ts = timestamp.toLong()
+                val millis = if (ts < 1_000_000_000_000L) ts * 1000 else ts
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
+            } catch (_: NumberFormatException) {
+                // 非 Unix 时间戳，尝试取 ISO 日期部分
+                timestamp.split("T").firstOrNull()?.takeIf { it.isNotEmpty() } ?: ""
             }
         }
 

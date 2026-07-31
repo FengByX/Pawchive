@@ -74,6 +74,7 @@
     <string name="posts">Posts</string>
     <string name="announcements">Announcements</string>
     <string name="linked_accounts">Linked Accounts</string>
+    <string name="creator_last_updated">Updated %1$s</string>
 
     <!-- Favorites -->
     <string name="favorite_posts">Favorite Posts</string>

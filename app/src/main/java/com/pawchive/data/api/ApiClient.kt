@@ -3,10 +3,15 @@ package com.pawchive.data.api
 import com.pawchive.BuildConfig
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
@@ -19,6 +24,66 @@ object ApiClient {
     private var cachedAuthApi: PawchiveApi? = null
     @Volatile
     private var cachedAuthCookie: String? = null
+
+    // ── 内存缓存（应用运行期间有效，退出后自动清除）──
+    private const val CACHE_MAX_AGE_MILLIS = 5 * 60 * 1000L // 5 分钟
+    private data class CacheEntry(val timestamp: Long, val body: ByteArray, val contentType: String?)
+    private val apiMemoryCache = ConcurrentHashMap<String, CacheEntry>()
+
+    /**
+     * 内存缓存拦截器：缓存 GET 请求的 JSON 响应，避免短时间内重复请求。
+     * 缓存有效期 5 分钟，应用退出后随进程销毁自动清除。
+     * 只缓存 JSON 响应，不缓存图片等大文件。
+     * 下拉刷新可通过 Header "Cache-Control: no-cache" 跳过缓存。
+     */
+    private val memoryCacheInterceptor = Interceptor { chain ->
+        val request = chain.request()
+
+        // 只缓存 GET 请求
+        if (request.method != "GET") {
+            return@Interceptor chain.proceed(request)
+        }
+
+        // 下拉刷新等场景通过 no-cache Header 跳过缓存
+        if (request.header("Cache-Control")?.contains("no-cache") == true) {
+            return@Interceptor chain.proceed(request)
+        }
+
+        val key = request.url.toString()
+        val now = System.currentTimeMillis()
+
+        // 检查缓存
+        val cached = apiMemoryCache[key]
+        if (cached != null && now - cached.timestamp < CACHE_MAX_AGE_MILLIS) {
+            return@Interceptor Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("OK (from memory cache)")
+                .body(cached.body.toResponseBody(cached.contentType?.toMediaType()))
+                .build()
+        }
+
+        // 发起请求
+        val response = chain.proceed(request)
+
+        // 缓存成功的 JSON 响应
+        if (response.isSuccessful) {
+            val contentType = response.header("Content-Type") ?: response.body?.contentType()?.toString()
+            if (contentType?.contains("json") == true) {
+                val bodyBytes = response.body?.bytes()
+                if (bodyBytes != null) {
+                    apiMemoryCache[key] = CacheEntry(now, bodyBytes, contentType)
+                    // body 已被消费，需重新构建 Response
+                    return@Interceptor response.newBuilder()
+                        .body(bodyBytes.toResponseBody(contentType.toMediaType()))
+                        .build()
+                }
+            }
+        }
+
+        response
+    }
 
     /**
      * 注入 Cloudflare 通行凭据的拦截器：
@@ -143,6 +208,7 @@ object ApiClient {
             .retryOnConnectionFailure(true)
             .followRedirects(true)
             .followSslRedirects(true)
+            .addInterceptor(memoryCacheInterceptor)
             .addInterceptor(cloudflareInterceptor)
             .addInterceptor(cloudflareRetryInterceptor)
             .addInterceptor(logger)

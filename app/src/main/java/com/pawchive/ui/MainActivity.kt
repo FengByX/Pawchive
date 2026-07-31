@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Display
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -37,6 +39,31 @@ class MainActivity : AppCompatActivity() {
 
     // 缓存已创建的主界面 Fragment，避免每次切换都重建导致状态丢失与重复加载
     private val mainFragments = mutableMapOf<Int, Fragment>()
+
+    // 左右滑动手势检测器：在主Tab之间切换
+    private val gestureDetector by lazy {
+        GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                // 只在主Tab可见时（无二级页面）处理滑动切换
+                if (supportFragmentManager.backStackEntryCount > 0) return false
+                // 只处理水平方向的快速滑动，忽略纵向滑动
+                if (kotlin.math.abs(velocityX) < kotlin.math.abs(velocityY)) return false
+                if (kotlin.math.abs(velocityX) < 500) return false
+
+                if (velocityX > 0) {
+                    switchToAdjacentTab(-1) // 右滑 → 上一个Tab
+                } else {
+                    switchToAdjacentTab(1)  // 左滑 → 下一个Tab
+                }
+                return true
+            }
+        })
+    }
 
     /**
      * 通过 attachBaseContext 应用保存的语言设置
@@ -329,6 +356,45 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
         @Suppress("DEPRECATION")
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+    }
+
+    /**
+     * 分发触摸事件：先交给手势检测器观察，再正常分发。
+     * 不消费事件，不影响 Fragment 内部的滚动与点击。
+     */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
+    }
+
+    /**
+     * 切换到相邻的主Tab（左右滑动触发）
+     * @param direction -1 表示上一个Tab，1 表示下一个Tab
+     */
+    private fun switchToAdjacentTab(direction: Int) {
+        val visibleTabs = getVisibleTabIds()
+        val currentIndex = visibleTabs.indexOf(currentMainTabId)
+        if (currentIndex == -1) return
+
+        val targetIndex = currentIndex + direction
+        if (targetIndex < 0 || targetIndex >= visibleTabs.size) return
+
+        val targetTabId = visibleTabs[targetIndex]
+        switchMainTab(targetTabId)
+        binding.bottomNavigation.selectedItemId = targetTabId
+    }
+
+    /**
+     * 获取当前可见的主Tab ID列表（按顺序），未登录时不含收藏页
+     */
+    private fun getVisibleTabIds(): List<Int> {
+        val menu = binding.bottomNavigation.menu
+        return listOf(
+            R.id.navigation_home,
+            R.id.navigation_search,
+            R.id.navigation_bookmarks,
+            R.id.navigation_account
+        ).filter { menu.findItem(it)?.isVisible == true }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

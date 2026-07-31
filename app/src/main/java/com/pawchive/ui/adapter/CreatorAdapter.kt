@@ -3,12 +3,16 @@ package com.pawchive.ui.adapter
 import android.content.Context
 import android.content.res.Configuration
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
 import com.pawchive.data.model.Creator
 import com.pawchive.databinding.ItemCreatorBinding
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class CreatorAdapter(
     private var creators: List<Creator>,
@@ -38,6 +42,17 @@ class CreatorAdapter(
             binding.tvCreatorId.text = "ID: ${creator.id}"
             binding.tvService.text = creator.service.uppercase()
 
+            // 显示最近更新时间（优先 updated，回退 indexed）
+            val updateTime = creator.updated ?: creator.indexed
+            if (updateTime != null && updateTime > 0) {
+                binding.tvUpdated.visibility = View.VISIBLE
+                binding.tvUpdated.text = binding.root.context.getString(
+                    R.string.creator_last_updated, formatTimestamp(updateTime)
+                )
+            } else {
+                binding.tvUpdated.visibility = View.GONE
+            }
+
             // Set service badge color based on platform
             setServiceBadgeColor(creator.service, binding.root.context)
 
@@ -51,6 +66,14 @@ class CreatorAdapter(
             binding.root.setOnClickListener {
                 onCreatorClicked(creator)
             }
+        }
+
+        /**
+         * 格式化 Unix 时间戳（秒级或毫秒级）为 yyyy-MM-dd
+         */
+        private fun formatTimestamp(timestamp: Long): String {
+            val millis = if (timestamp < 1_000_000_000_000L) timestamp * 1000 else timestamp
+            return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
         }
 
         private fun setServiceBadgeColor(service: String, context: Context) {
