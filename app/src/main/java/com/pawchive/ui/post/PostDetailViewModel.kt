@@ -6,6 +6,7 @@ import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Comment
 import com.pawchive.data.model.Post
 import com.pawchive.data.model.PostRevision
+import com.pawchive.data.repository.AppMemoryCache
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,26 +29,57 @@ class PostDetailViewModel : ViewModel() {
     val uiState: StateFlow<PostDetailUiState> = _uiState.asStateFlow()
 
     private val api = ApiClient.publicApi
+    private val memoryCache = AppMemoryCache.getInstance()
 
-    fun loadPostDetails(service: String, creatorId: String, postId: String) {
+    /**
+     * 加载帖子详情。优先读取内存缓存，无缓存再请求网络。
+     * @param forceRefresh 为 true 时跳过缓存直接请求（如下拉刷新）
+     */
+    fun loadPostDetails(service: String, creatorId: String, postId: String, forceRefresh: Boolean = false) {
+        val cacheKeyPost = "post:$service|$creatorId|$postId"
+        val cacheKeyComments = "comments:$service|$creatorId|$postId"
+        val cacheKeyRevisions = "revisions:$service|$creatorId|$postId"
+
+        if (!forceRefresh) {
+            val cachedPost: Post? = memoryCache.get(cacheKeyPost)
+            val cachedComments: List<Comment>? = memoryCache.get(cacheKeyComments)
+            val cachedRevisions: List<PostRevision>? = memoryCache.get(cacheKeyRevisions)
+
+            if (cachedPost != null) {
+                val videoList = extractVideoUrls(cachedPost)
+                _uiState.value = _uiState.value.copy(
+                    post = cachedPost,
+                    comments = cachedComments ?: emptyList(),
+                    revisions = cachedRevisions ?: emptyList(),
+                    videoList = videoList,
+                    isLoading = false,
+                    errorMessage = null
+                )
+                return
+            }
+        }
+
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
         viewModelScope.launch {
             try {
                 val post = api.getPostDetails(service, creatorId, postId)
                 val videoList = extractVideoUrls(post)
+                memoryCache.put(cacheKeyPost, post)
 
                 val comments = try {
                     api.getPostComments(service, creatorId, postId)
                 } catch (e: Exception) {
                     emptyList()
                 }
+                memoryCache.put(cacheKeyComments, comments)
 
                 val revisions = try {
                     api.getPostRevisions(service, creatorId, postId)
                 } catch (e: Exception) {
                     emptyList()
                 }
+                memoryCache.put(cacheKeyRevisions, revisions)
 
                 _uiState.value = _uiState.value.copy(
                     post = post,

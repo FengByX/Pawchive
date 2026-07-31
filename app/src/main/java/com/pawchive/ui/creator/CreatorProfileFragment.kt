@@ -9,11 +9,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
 import com.pawchive.R
-import com.pawchive.data.api.ApiClient
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
@@ -30,18 +32,15 @@ class CreatorProfileFragment : Fragment() {
     private var _binding: FragmentCreatorProfileBinding? = null
     private val binding get() = _binding!!
 
+    private val viewModel: CreatorProfileViewModel by viewModels()
+
     private lateinit var postAdapter: PostAdapter
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var blockedCreatorManager: BlockedCreatorManager
     private lateinit var authRepository: AuthRepository
-    private val api = ApiClient.publicApi
 
     private var service: String = ""
     private var creatorId: String = ""
-
-    private val loadedPosts = mutableListOf<com.pawchive.data.model.Post>()
-    private var currentOffset = 0
-    private val pageSize = 50
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         NEWEST_PUBLISHED(R.string.sort_newest_published),
@@ -83,10 +82,79 @@ class CreatorProfileFragment : Fragment() {
         setupBlockButton()
         setupLoadMoreButton()
         setupSortButton()
-        loadCreatorDetails()
-        loadCreatorAnnouncements()
-        loadCreatorLinks()
-        loadCreatorPosts()
+        observeCreatorState()
+
+        viewModel.loadCreator(service, creatorId)
+    }
+
+    private fun observeCreatorState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+
+                    if (state.errorMessage != null && state.posts.isEmpty()) {
+                        Toast.makeText(
+                            context,
+                            ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    // 更新创作者信息
+                    binding.tvCreatorTitle.text = state.name.ifEmpty { creatorId }
+                    binding.tvCreatorService.text = service.uppercase()
+                    setServiceLabelColor(service)
+                    if (state.name.isNotEmpty()) {
+                        CreatorNameCache.cacheCreatorName(service, creatorId, state.name)
+                    }
+                    loadAvatar()
+
+                    // 更新公告
+                    binding.layoutAnnouncements.removeAllViews()
+                    if (state.announcements.isNotEmpty()) {
+                        binding.tvAnnouncementsHeader.visibility = View.VISIBLE
+                        for (announcement in state.announcements) {
+                            val textView = TextView(requireContext()).apply {
+                                text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
+                                setTextColor(resources.getColor(R.color.text_secondary, null))
+                                textSize = 13f
+                                background = resources.getDrawable(R.drawable.comment_bg, null)
+                                setPadding(12, 12, 12, 12)
+                            }
+                            binding.layoutAnnouncements.addView(textView)
+                        }
+                    } else {
+                        binding.tvAnnouncementsHeader.visibility = View.GONE
+                    }
+
+                    // 更新关联链接
+                    binding.layoutLinks.removeAllViews()
+                    if (state.links.isNotEmpty()) {
+                        binding.tvLinksHeader.visibility = View.VISIBLE
+                        for (link in state.links) {
+                            val textView = TextView(requireContext()).apply {
+                                text = "${link.name} (${link.service})"
+                                setTextColor(resources.getColor(R.color.primary_light, null))
+                                textSize = 14f
+                                setPadding(0, 8, 0, 8)
+                                setOnClickListener {
+                                    val creatorFragment = newInstance(link.service, link.id)
+                                    (activity as? MainActivity)?.loadFragment(creatorFragment)
+                                }
+                            }
+                            binding.layoutLinks.addView(textView)
+                        }
+                    } else {
+                        binding.tvLinksHeader.visibility = View.GONE
+                    }
+
+                    // 更新帖子列表
+                    applySort(state.posts)
+                    updateLoadMoreButton(state.hasMore)
+                }
+            }
+        }
     }
 
     private fun setupRecyclerView() {
@@ -110,7 +178,7 @@ class CreatorProfileFragment : Fragment() {
 
     private fun setupLoadMoreButton() {
         binding.btnLoadMore.setOnClickListener {
-            loadMorePosts()
+            viewModel.loadMorePosts()
         }
     }
 
@@ -130,19 +198,19 @@ class CreatorProfileFragment : Fragment() {
             .setSingleChoiceItems(options, currentIndex) { dialog, which ->
                 currentSort = PostSortOption.values()[which]
                 binding.btnSort.text = getString(currentSort.displayNameRes)
-                applySort()
+                applySort(viewModel.uiState.value.posts)
                 dialog.dismiss()
             }
             .show()
     }
 
-    private fun applySort() {
-        if (loadedPosts.isEmpty()) return
+    private fun applySort(posts: List<com.pawchive.data.model.Post>) {
+        if (posts.isEmpty()) return
         val sorted = when (currentSort) {
-            PostSortOption.NEWEST_PUBLISHED -> loadedPosts.sortedByDescending { it.published }
-            PostSortOption.OLDEST_PUBLISHED -> loadedPosts.sortedBy { it.published }
-            PostSortOption.NEWEST_EDITED -> loadedPosts.sortedByDescending { it.edited ?: it.published }
-            PostSortOption.OLDEST_EDITED -> loadedPosts.sortedBy { it.edited ?: it.published }
+            PostSortOption.NEWEST_PUBLISHED -> posts.sortedByDescending { it.published }
+            PostSortOption.OLDEST_PUBLISHED -> posts.sortedBy { it.published }
+            PostSortOption.NEWEST_EDITED -> posts.sortedByDescending { it.edited ?: it.published }
+            PostSortOption.OLDEST_EDITED -> posts.sortedBy { it.edited ?: it.published }
         }
         postAdapter.updatePosts(sorted)
     }
@@ -231,25 +299,6 @@ class CreatorProfileFragment : Fragment() {
         )
     }
 
-    private fun loadCreatorDetails() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val profile = api.getCreatorProfile(service, creatorId)
-                binding.tvCreatorTitle.text = profile.name
-                binding.tvCreatorService.text = profile.service.uppercase()
-                setServiceLabelColor(profile.service)
-                CreatorNameCache.cacheCreatorName(service, creatorId, profile.name)
-                loadAvatar()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                binding.tvCreatorTitle.text = creatorId
-                binding.tvCreatorService.text = service.uppercase()
-                setServiceLabelColor(service)
-                loadAvatar()
-            }
-        }
-    }
-
     private fun setServiceLabelColor(serviceName: String) {
         val context = requireContext()
         val isDarkMode = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -270,104 +319,8 @@ class CreatorProfileFragment : Fragment() {
         }
     }
 
-    private fun loadCreatorAnnouncements() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val announcements = api.getCreatorAnnouncements(service, creatorId)
-                if (announcements.isNotEmpty()) {
-                    binding.tvAnnouncementsHeader.visibility = View.VISIBLE
-                    binding.layoutAnnouncements.removeAllViews()
-                    for (announcement in announcements) {
-                        val textView = TextView(requireContext()).apply {
-                            text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
-                            setTextColor(resources.getColor(R.color.text_secondary, null))
-                            textSize = 13f
-                            setPadding(0, 8, 0, 8)
-                            background = resources.getDrawable(R.drawable.comment_bg, null)
-                            setPadding(12, 12, 12, 12)
-                        }
-                        binding.layoutAnnouncements.addView(textView)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun loadCreatorLinks() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val links = api.getCreatorLinks(service, creatorId)
-                if (links.isNotEmpty()) {
-                    binding.tvLinksHeader.visibility = View.VISIBLE
-                    binding.layoutLinks.removeAllViews()
-                    for (link in links) {
-                        val textView = TextView(requireContext()).apply {
-                            text = "${link.name} (${link.service})"
-                            setTextColor(resources.getColor(R.color.primary_light, null))
-                            textSize = 14f
-                            setPadding(0, 8, 0, 8)
-                            setOnClickListener {
-                                val creatorFragment = newInstance(link.service, link.id)
-                                (activity as? MainActivity)?.loadFragment(creatorFragment)
-                            }
-                        }
-                        binding.layoutLinks.addView(textView)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun loadCreatorPosts() {
-        binding.progressBar.visibility = View.VISIBLE
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val posts = api.getCreatorPosts(service, creatorId, offset = currentOffset)
-                loadedPosts.clear()
-                loadedPosts.addAll(posts)
-                applySort()
-                updateLoadMoreButton(posts.size)
-                postAdapter.notifyDataSetChanged()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, ErrorMessageHelper.getFriendlyMessage(context, e), Toast.LENGTH_SHORT).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun loadMorePosts() {
-        binding.btnLoadMore.visibility = View.GONE
-        binding.progressBar.visibility = View.VISIBLE
-        currentOffset += pageSize
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val morePosts = api.getCreatorPosts(service, creatorId, offset = currentOffset)
-                loadedPosts.addAll(morePosts)
-                applySort()
-                updateLoadMoreButton(morePosts.size)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                currentOffset -= pageSize
-                binding.btnLoadMore.visibility = View.VISIBLE
-            } finally {
-                binding.progressBar.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun updateLoadMoreButton(loadedCount: Int) {
-        if (loadedCount >= pageSize) {
-            binding.btnLoadMore.visibility = View.VISIBLE
-        } else {
-            binding.btnLoadMore.visibility = View.GONE
-        }
+    private fun updateLoadMoreButton(hasMore: Boolean) {
+        binding.btnLoadMore.visibility = if (hasMore) View.VISIBLE else View.GONE
     }
 
     override fun onDestroyView() {
