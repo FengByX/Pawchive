@@ -14,8 +14,8 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.3.4"
+        versionCode = 35
+        versionName = "1.3.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -72,6 +72,9 @@ dependencies {
 
     // Jetpack DataStore - 高性能键值存储（替代 SharedPreferences）
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // ViewPager2 - 主页面跟手滑动切换
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 
     // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.8.0")
