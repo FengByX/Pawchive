@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -50,6 +51,7 @@ class CreatorProfileFragment : Fragment() {
     }
 
     private var currentSort = PostSortOption.NEWEST_PUBLISHED
+    private var searchQuery: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +84,7 @@ class CreatorProfileFragment : Fragment() {
         setupBlockButton()
         setupLoadMoreButton()
         setupSortButton()
+        setupSearchView()
         observeCreatorState()
 
         viewModel.loadCreator(service, creatorId)
@@ -190,6 +193,17 @@ class CreatorProfileFragment : Fragment() {
         }
     }
 
+    private fun setupSearchView() {
+        binding.searchViewCreator.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                searchQuery = newText.orEmpty().trim()
+                applySort(viewModel.uiState.value.posts)
+                return true
+            }
+        })
+    }
+
     private fun showSortDialog() {
         val options = PostSortOption.values().map { getString(it.displayNameRes) }.toTypedArray()
         val currentIndex = PostSortOption.values().indexOf(currentSort)
@@ -207,11 +221,19 @@ class CreatorProfileFragment : Fragment() {
 
     private fun applySort(posts: List<com.pawchive.data.model.Post>) {
         if (posts.isEmpty()) return
+        val filtered = if (searchQuery.isNotEmpty()) {
+            posts.filter {
+                it.title?.contains(searchQuery, ignoreCase = true) == true ||
+                it.content?.contains(searchQuery, ignoreCase = true) == true
+            }
+        } else {
+            posts
+        }
         val sorted = when (currentSort) {
-            PostSortOption.NEWEST_PUBLISHED -> posts.sortedByDescending { it.published }
-            PostSortOption.OLDEST_PUBLISHED -> posts.sortedBy { it.published }
-            PostSortOption.NEWEST_EDITED -> posts.sortedByDescending { it.edited ?: it.published }
-            PostSortOption.OLDEST_EDITED -> posts.sortedBy { it.edited ?: it.published }
+            PostSortOption.NEWEST_PUBLISHED -> filtered.sortedByDescending { it.published }
+            PostSortOption.OLDEST_PUBLISHED -> filtered.sortedBy { it.published }
+            PostSortOption.NEWEST_EDITED -> filtered.sortedByDescending { it.edited ?: it.published }
+            PostSortOption.OLDEST_EDITED -> filtered.sortedBy { it.edited ?: it.published }
         }
         postAdapter.updatePosts(sorted)
     }

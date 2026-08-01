@@ -32,6 +32,7 @@
     <string name="no_favorites_login_hint">ログインするとブックマークを同期・表示できます</string>
     <string name="search_in_favorites">ブックマーク内を検索...</string>
     <string name="no_search_results">一致するブックマークが見つかりません</string>
+    <string name="search_creator_posts">このクリエイターの投稿を検索...</string>
 
     <!-- Errors -->
     <string name="error_not_logged_in">未ログイン</string>

@@ -32,6 +32,7 @@
     <string name="no_favorites_login_hint">登录后即可同步和查看你的收藏</string>
     <string name="search_in_favorites">在收藏中搜索...</string>
     <string name="no_search_results">未找到匹配的收藏</string>
+    <string name="search_creator_posts">搜索此作者的帖子...</string>
 
     <!-- Errors -->
     <string name="error_not_logged_in">未登录</string>

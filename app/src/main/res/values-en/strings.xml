@@ -32,6 +32,7 @@
     <string name="no_favorites_login_hint">Log in to sync and view your favorites</string>
     <string name="search_in_favorites">Search in favorites...</string>
     <string name="no_search_results">No matching favorites found</string>
+    <string name="search_creator_posts">Search posts by this creator...</string>
 
     <!-- Errors -->
     <string name="error_not_logged_in">Not logged in</string>
