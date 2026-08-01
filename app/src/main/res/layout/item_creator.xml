@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
@@ -13,30 +14,79 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="14dp">
+        android:layout_height="wrap_content">
 
+        <!-- Background banner image -->
+        <ImageView
+            android:id="@+id/iv_creator_background"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/creator_profile"
+            android:background="?attr/colorSurfaceVariant"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Gradient overlay to enhance avatar contrast -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:background="@drawable/banner_gradient_bottom"
+            app:layout_constraintBottom_toBottomOf="@id/iv_creator_background"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Avatar overlapping the background bottom -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_avatar"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:scaleType="centerCrop"
+            android:layout_marginStart="14dp"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="@id/iv_creator_background"
+            android:translationY="20dp" />
 
+        <!-- Service badge (top-right of background) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_service_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="14dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/tv_service"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:text="fanbox" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Info section below avatar -->
         <LinearLayout
             android:id="@+id/info_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
-            android:layout_marginEnd="12dp"
+            android:layout_marginTop="28dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="12dp"
             android:orientation="vertical"
-            app:layout_constraintStart_toEndOf="@+id/iv_avatar"
-            app:layout_constraintEnd_toStartOf="@+id/card_service_badge"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent">
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/iv_creator_background">
 
             <TextView
                 android:id="@+id/tv_creator_name"
@@ -90,29 +140,6 @@
                 android:text="" />
 
         </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_service_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimaryContainer"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/tv_service"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="4dp"
-                android:textColor="?attr/colorOnPrimaryContainer"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:text="fanbox" />
-        </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

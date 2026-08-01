@@ -6,117 +6,111 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
-    <!-- Creator background banner -->
-    <ImageView
-        android:id="@+id/iv_creator_background"
-        android:layout_width="match_parent"
-        android:layout_height="140dp"
-        android:scaleType="centerCrop"
-        android:contentDescription="@string/creator_profile"
-        android:background="?attr/colorSurfaceVariant"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Header area -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/header_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:padding="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/iv_creator_background">
-
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_arrow_back"
-            android:contentDescription="@string/back"
-            app:tint="?attr/colorOnSurface"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/iv_creator_avatar"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:scaleType="centerCrop"
-            android:layout_marginStart="12dp"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
-            app:layout_constraintStart_toEndOf="@+id/btn_back"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <TextView
-            android:id="@+id/tv_creator_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:text="@string/creator_profile"
-            app:layout_constraintEnd_toStartOf="@+id/btn_creator_bookmark"
-            app:layout_constraintStart_toEndOf="@+id/iv_creator_avatar"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:id="@+id/tv_creator_service"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorSecondary"
-            android:textSize="12sp"
-            android:text="Service"
-            app:layout_constraintStart_toStartOf="@+id/tv_creator_title"
-            app:layout_constraintTop_toBottomOf="@+id/tv_creator_title" />
-
-        <ImageView
-            android:id="@+id/btn_creator_bookmark"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@android:drawable/btn_star_big_off"
-            android:contentDescription="@string/bookmark_creator_description"
-            app:tint="?attr/colorOnSurface"
-            app:layout_constraintEnd_toStartOf="@+id/btn_block_creator"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_block_creator"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="@string/block_creator"
-            android:textSize="12sp"
-            android:minWidth="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_shield"
-            app:iconGravity="textStart"
-            app:iconSize="16dp"
-            app:iconPadding="2dp"
-            app:backgroundTint="?attr/colorErrorContainer"
-            android:textColor="?attr/colorOnErrorContainer"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Scrollable content -->
+    <!-- Scrollable content: background + header + posts scroll together -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header_layout">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <!-- Creator background banner -->
+            <ImageView
+                android:id="@+id/iv_creator_background"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/creator_profile"
+                android:background="?attr/colorSurfaceVariant" />
+
+            <!-- Header area (avatar + name + actions) -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/header_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSurface"
+                android:padding="16dp">
+
+                <ImageView
+                    android:id="@+id/btn_back"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_arrow_back"
+                    android:contentDescription="@string/back"
+                    app:tint="?attr/colorOnSurface"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/iv_creator_avatar"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:scaleType="centerCrop"
+                    android:layout_marginStart="12dp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
+                    app:layout_constraintStart_toEndOf="@+id/btn_back"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_creator_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:text="@string/creator_profile"
+                    app:layout_constraintEnd_toStartOf="@+id/btn_creator_bookmark"
+                    app:layout_constraintStart_toEndOf="@+id/iv_creator_avatar"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_creator_service"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorSecondary"
+                    android:textSize="12sp"
+                    android:text="Service"
+                    app:layout_constraintStart_toStartOf="@+id/tv_creator_title"
+                    app:layout_constraintTop_toBottomOf="@+id/tv_creator_title" />
+
+                <ImageView
+                    android:id="@+id/btn_creator_bookmark"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/btn_star_big_off"
+                    android:contentDescription="@string/bookmark_creator_description"
+                    app:tint="?attr/colorOnSurface"
+                    app:layout_constraintEnd_toStartOf="@+id/btn_block_creator"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_block_creator"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="@string/block_creator"
+                    android:textSize="12sp"
+                    android:minWidth="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_shield"
+                    app:iconGravity="textStart"
+                    app:iconSize="16dp"
+                    app:iconPadding="2dp"
+                    app:backgroundTint="?attr/colorErrorContainer"
+                    android:textColor="?attr/colorOnErrorContainer"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Announcements Section -->
             <TextView
@@ -245,6 +239,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header_layout" />
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -63,6 +63,13 @@ class CreatorAdapter(
                 error(R.drawable.ic_image_off)
             }
 
+            val backgroundUrl = "https://pawchive.pw/banners/${creator.service}/${creator.id}"
+            binding.ivCreatorBackground.load(backgroundUrl) {
+                crossfade(true)
+                placeholder(R.color.thumbnail_placeholder)
+                error(R.color.thumbnail_placeholder)
+            }
+
             binding.root.setOnClickListener {
                 onCreatorClicked(creator)
             }
