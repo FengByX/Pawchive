@@ -202,6 +202,15 @@ class CreatorProfileFragment : Fragment() {
                 return true
             }
         })
+        binding.searchViewCreator.setOnClickListener {
+            it.requestFocus()
+            it.requestFocusFromTouch()
+        }
+        binding.searchViewCreator.setOnTouchListener { view, event ->
+            view.requestFocus()
+            view.requestFocusFromTouch()
+            false
+        }
     }
 
     private fun showSortDialog() {

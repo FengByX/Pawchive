@@ -217,6 +217,8 @@
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="4dp"
                 android:iconifiedByDefault="false"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:queryHint="@string/search_creator_posts"
                 android:background="?attr/colorSurfaceVariant"
                 app:queryBackground="@android:color/transparent"
