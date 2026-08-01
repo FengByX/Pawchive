@@ -440,10 +440,10 @@ class PostDetailFragment : Fragment() {
             for (revision in revisions) {
                 val textView = TextView(requireContext()).apply {
                     text = "Revision #${revision.revisionId} - ${revision.added?.split("T")?.firstOrNull() ?: ""}"
-                    setTextColor(resources.getColor(R.color.text_secondary, null))
+                    setTextColor(requireContext().getColor(R.color.text_secondary))
                     textSize = 13f
                     setPadding(0, 8, 0, 8)
-                    background = resources.getDrawable(R.drawable.comment_bg, null)
+                    background = requireContext().getDrawable(R.drawable.comment_bg)
                     setPadding(12, 12, 12, 12)
                 }
                 binding.layoutRevisions.addView(textView)

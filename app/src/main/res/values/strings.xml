@@ -79,6 +79,8 @@
     <string name="announcements">公告</string>
     <string name="linked_accounts">关联账号</string>
     <string name="creator_last_updated">更新于 %1$s</string>
+    <string name="collapse">折叠</string>
+    <string name="expand">展开</string>
 
     <!-- Favorites -->
     <string name="favorite_posts">帖子收藏</string>

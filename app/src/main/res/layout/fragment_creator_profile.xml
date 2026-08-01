@@ -16,15 +16,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Creator background banner -->
-            <ImageView
-                android:id="@+id/iv_creator_background"
-                android:layout_width="match_parent"
-                android:layout_height="140dp"
-                android:scaleType="centerCrop"
-                android:contentDescription="@string/creator_profile"
-                android:background="?attr/colorSurfaceVariant" />
-
             <!-- Header area (avatar + name + actions) -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/header_layout"
@@ -112,18 +103,39 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Announcements Section -->
-            <TextView
-                android:id="@+id/tv_announcements_header"
+            <!-- Announcements Section (collapsible) -->
+            <LinearLayout
+                android:id="@+id/layout_announcements_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="16dp"
-                android:textColor="?attr/colorPrimary"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:text="@string/announcements"
-                android:visibility="gone" />
+                android:paddingBottom="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_announcements_header"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:text="@string/announcements" />
+
+                <ImageView
+                    android:id="@+id/ic_announcements_chevron"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_chevron_up"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="@string/collapse" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/layout_announcements"
@@ -131,7 +143,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="16dp"
-                android:paddingTop="8dp" />
+                android:paddingTop="4dp" />
 
             <!-- Linked Accounts Section -->
             <TextView

@@ -52,6 +52,7 @@ class CreatorProfileFragment : Fragment() {
 
     private var currentSort = PostSortOption.NEWEST_PUBLISHED
     private var searchQuery: String = ""
+    private var isAnnouncementsExpanded = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +86,7 @@ class CreatorProfileFragment : Fragment() {
         setupLoadMoreButton()
         setupSortButton()
         setupSearchView()
+        setupAnnouncementsToggle()
         observeCreatorState()
 
         viewModel.loadCreator(service, creatorId)
@@ -112,24 +114,24 @@ class CreatorProfileFragment : Fragment() {
                         CreatorNameCache.cacheCreatorName(service, creatorId, state.name)
                     }
                     loadAvatar()
-                    loadBackground()
 
                     // 更新公告
                     binding.layoutAnnouncements.removeAllViews()
                     if (state.announcements.isNotEmpty()) {
-                        binding.tvAnnouncementsHeader.visibility = View.VISIBLE
+                        binding.layoutAnnouncementsHeader.visibility = View.VISIBLE
+                        updateAnnouncementsVisibility()
                         for (announcement in state.announcements) {
                             val textView = TextView(requireContext()).apply {
                                 text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
-                                setTextColor(resources.getColor(R.color.text_secondary, null))
+                                setTextColor(requireContext().getColor(R.color.text_secondary))
                                 textSize = 13f
-                                background = resources.getDrawable(R.drawable.comment_bg, null)
+                                background = requireContext().getDrawable(R.drawable.comment_bg)
                                 setPadding(12, 12, 12, 12)
                             }
                             binding.layoutAnnouncements.addView(textView)
                         }
                     } else {
-                        binding.tvAnnouncementsHeader.visibility = View.GONE
+                        binding.layoutAnnouncementsHeader.visibility = View.GONE
                     }
 
                     // 更新关联链接
@@ -211,6 +213,21 @@ class CreatorProfileFragment : Fragment() {
             view.requestFocusFromTouch()
             false
         }
+    }
+
+    private fun setupAnnouncementsToggle() {
+        binding.layoutAnnouncementsHeader.setOnClickListener {
+            isAnnouncementsExpanded = !isAnnouncementsExpanded
+            updateAnnouncementsVisibility()
+        }
+    }
+
+    private fun updateAnnouncementsVisibility() {
+        binding.layoutAnnouncements.visibility = if (isAnnouncementsExpanded) View.VISIBLE else View.GONE
+        val chevronRes = if (isAnnouncementsExpanded) R.drawable.ic_chevron_up else R.drawable.ic_chevron_down
+        binding.icAnnouncementsChevron.setImageResource(chevronRes)
+        val contentDesc = if (isAnnouncementsExpanded) getString(R.string.collapse) else getString(R.string.expand)
+        binding.icAnnouncementsChevron.contentDescription = contentDesc
     }
 
     private fun showSortDialog() {
@@ -348,15 +365,6 @@ class CreatorProfileFragment : Fragment() {
             crossfade(true)
             placeholder(R.drawable.ic_image)
             error(R.drawable.ic_image_off)
-        }
-    }
-
-    private fun loadBackground() {
-        val backgroundUrl = "https://pawchive.pw/banners/$service/$creatorId"
-        binding.ivCreatorBackground.load(backgroundUrl) {
-            crossfade(true)
-            placeholder(R.color.thumbnail_placeholder)
-            error(R.color.thumbnail_placeholder)
         }
     }
 
