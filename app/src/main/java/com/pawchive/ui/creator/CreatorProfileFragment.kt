@@ -109,6 +109,7 @@ class CreatorProfileFragment : Fragment() {
                         CreatorNameCache.cacheCreatorName(service, creatorId, state.name)
                     }
                     loadAvatar()
+                    loadBackground()
 
                     // 更新公告
                     binding.layoutAnnouncements.removeAllViews()
@@ -316,6 +317,15 @@ class CreatorProfileFragment : Fragment() {
             crossfade(true)
             placeholder(R.drawable.ic_image)
             error(R.drawable.ic_image_off)
+        }
+    }
+
+    private fun loadBackground() {
+        val backgroundUrl = "https://pawchive.pw/banners/$service/$creatorId"
+        binding.ivCreatorBackground.load(backgroundUrl) {
+            crossfade(true)
+            placeholder(R.color.thumbnail_placeholder)
+            error(R.color.thumbnail_placeholder)
         }
     }
 

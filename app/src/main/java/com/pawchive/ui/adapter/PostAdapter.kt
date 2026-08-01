@@ -131,6 +131,17 @@ class PostAdapter(
                 ?: binding.root.context.getString(R.string.date_unknown)
             binding.tvDate.text = binding.root.context.getString(R.string.date_published, dateStr)
 
+            // 显示附件数量：主文件 + 附件列表，帮助用户判断是压缩包还是图片合集
+            val attachmentCount = (if (post.file?.path != null) 1 else 0) + (post.attachments?.size ?: 0)
+            if (attachmentCount > 0) {
+                binding.tvAttachmentCount.text = binding.root.context.getString(
+                    R.string.attachment_count_format, attachmentCount
+                )
+                binding.tvAttachmentCount.visibility = View.VISIBLE
+            } else {
+                binding.tvAttachmentCount.visibility = View.GONE
+            }
+
             // 在创作者详情页等场景下隐藏卡片内的创作者信息，避免冗余
             binding.topRow.visibility = if (showCreatorInfo) View.VISIBLE else View.GONE
 

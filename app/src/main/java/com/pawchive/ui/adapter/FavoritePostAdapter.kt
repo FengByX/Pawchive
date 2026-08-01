@@ -81,6 +81,17 @@ class FavoritePostAdapter(
                 ?: binding.root.context.getString(R.string.date_unknown)
             binding.tvDate.text = binding.root.context.getString(R.string.date_published, dateStr)
 
+            // 显示附件数量：主文件 + 附件列表
+            val attachmentCount = (if (post.file?.path != null) 1 else 0) + (post.attachments?.size ?: 0)
+            if (attachmentCount > 0) {
+                binding.tvAttachmentCount.text = binding.root.context.getString(
+                    R.string.attachment_count_format, attachmentCount
+                )
+                binding.tvAttachmentCount.visibility = View.VISIBLE
+            } else {
+                binding.tvAttachmentCount.visibility = View.GONE
+            }
+
             // Set service badge color based on platform
             setServiceBadgeColor(post.service, binding.root.context)
 

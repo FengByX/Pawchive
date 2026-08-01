@@ -6,6 +6,18 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
+    <!-- Creator background banner -->
+    <ImageView
+        android:id="@+id/iv_creator_background"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/creator_profile"
+        android:background="?attr/colorSurfaceVariant"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Header area -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header_layout"
@@ -13,7 +25,7 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
         android:padding="16dp"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@+id/iv_creator_background">
 
         <ImageView
             android:id="@+id/btn_back"

@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -62,6 +63,8 @@ class AccountFavoritesFragment : Fragment() {
 
     private var currentPostSort = PostSortOption.NEWEST_EDITED
     private var currentCreatorSort = CreatorSortOption.NEWEST_UPDATED
+    private var searchQuery: String = ""
+    private var hasMorePosts = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -84,6 +87,7 @@ class AccountFavoritesFragment : Fragment() {
         setupTabLayout()
         setupSortButton()
         setupSwipeRefresh()
+        setupSearchView()
 
         if (savedInstanceState == null) {
             binding.tabLayout.getTabAt(currentTab)?.select()
@@ -98,10 +102,12 @@ class AccountFavoritesFragment : Fragment() {
             binding.tvNotLoggedIn.visibility = View.VISIBLE
             binding.tabLayout.visibility = View.GONE
             binding.rvFavorites.visibility = View.GONE
+            binding.searchViewFavorites.visibility = View.GONE
         } else {
             binding.tvNotLoggedIn.visibility = View.GONE
             binding.tabLayout.visibility = View.VISIBLE
             binding.rvFavorites.visibility = View.VISIBLE
+            binding.searchViewFavorites.visibility = View.VISIBLE
             if (currentTab == 0) {
                 loadFavoritePosts()
             } else {
@@ -194,6 +200,8 @@ class AccountFavoritesFragment : Fragment() {
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
             currentOffset = 0
+            searchQuery = ""
+            binding.searchViewFavorites.setQuery("", false)
             if (currentTab == 0) {
                 loadedPosts.clear()
                 loadFavoritePosts(isRefresh = true)
@@ -205,6 +213,21 @@ class AccountFavoritesFragment : Fragment() {
         binding.swipeRefresh.setColorSchemeColors(
             getThemeColor(com.google.android.material.R.attr.colorPrimary)
         )
+    }
+
+    private fun setupSearchView() {
+        binding.searchViewFavorites.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                searchQuery = newText.orEmpty().trim()
+                if (currentTab == 0) {
+                    applyPostSort()
+                } else {
+                    applyCreatorSort()
+                }
+                return true
+            }
+        })
     }
 
     private fun getThemeColor(attr: Int): Int {
@@ -251,28 +274,69 @@ class AccountFavoritesFragment : Fragment() {
 
     private fun applyPostSort() {
         if (loadedPosts.isEmpty()) return
+        val filtered = if (searchQuery.isNotEmpty()) {
+            loadedPosts.filter {
+                it.title?.contains(searchQuery, ignoreCase = true) == true ||
+                it.content?.contains(searchQuery, ignoreCase = true) == true
+            }
+        } else {
+            loadedPosts
+        }
         val sorted = when (currentPostSort) {
-            PostSortOption.FAV_NEWEST -> loadedPosts.sortedByDescending { it.favedSeq ?: 0 }
-            PostSortOption.FAV_OLDEST -> loadedPosts.sortedBy { it.favedSeq ?: 0 }
-            PostSortOption.NEWEST_PUBLISHED -> loadedPosts.sortedByDescending { it.published }
-            PostSortOption.OLDEST_PUBLISHED -> loadedPosts.sortedBy { it.published }
-            PostSortOption.NEWEST_EDITED -> loadedPosts.sortedByDescending { it.edited ?: it.published }
-            PostSortOption.OLDEST_EDITED -> loadedPosts.sortedBy { it.edited ?: it.published }
+            PostSortOption.FAV_NEWEST -> filtered.sortedByDescending { it.favedSeq ?: 0 }
+            PostSortOption.FAV_OLDEST -> filtered.sortedBy { it.favedSeq ?: 0 }
+            PostSortOption.NEWEST_PUBLISHED -> filtered.sortedByDescending { it.published }
+            PostSortOption.OLDEST_PUBLISHED -> filtered.sortedBy { it.published }
+            PostSortOption.NEWEST_EDITED -> filtered.sortedByDescending { it.edited ?: it.published }
+            PostSortOption.OLDEST_EDITED -> filtered.sortedBy { it.edited ?: it.published }
         }
         postAdapter.updatePosts(sorted)
+        // 搜索时隐藏"加载更多"按钮，清除搜索时恢复
+        if (searchQuery.isNotEmpty()) {
+            postAdapter.setFooterVisible(false)
+        } else {
+            postAdapter.setFooterVisible(hasMorePosts)
+        }
+        updateSearchEmptyState(sorted.isEmpty(), loadedPosts.isNotEmpty())
     }
 
     private fun applyCreatorSort() {
         if (loadedCreators.isEmpty()) return
+        val filtered = if (searchQuery.isNotEmpty()) {
+            loadedCreators.filter {
+                it.name.contains(searchQuery, ignoreCase = true)
+            }
+        } else {
+            loadedCreators
+        }
         val sorted = when (currentCreatorSort) {
-            CreatorSortOption.FAV_NEWEST -> loadedCreators.sortedByDescending { it.favedSeq ?: 0 }
-            CreatorSortOption.FAV_OLDEST -> loadedCreators.sortedBy { it.favedSeq ?: 0 }
-            CreatorSortOption.NEWEST_UPDATED -> loadedCreators.sortedByDescending { it.updated ?: it.indexed ?: "" }
-            CreatorSortOption.OLDEST_UPDATED -> loadedCreators.sortedBy { it.updated ?: it.indexed ?: "" }
-            CreatorSortOption.NAME_ASC -> loadedCreators.sortedBy { it.name.lowercase() }
-            CreatorSortOption.NAME_DESC -> loadedCreators.sortedByDescending { it.name.lowercase() }
+            CreatorSortOption.FAV_NEWEST -> filtered.sortedByDescending { it.favedSeq ?: 0 }
+            CreatorSortOption.FAV_OLDEST -> filtered.sortedBy { it.favedSeq ?: 0 }
+            CreatorSortOption.NEWEST_UPDATED -> filtered.sortedByDescending { it.updated ?: it.indexed ?: "" }
+            CreatorSortOption.OLDEST_UPDATED -> filtered.sortedBy { it.updated ?: it.indexed ?: "" }
+            CreatorSortOption.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
+            CreatorSortOption.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
         }
         creatorAdapter.updateCreators(sorted)
+        updateSearchEmptyState(sorted.isEmpty(), loadedCreators.isNotEmpty())
+    }
+
+    /**
+     * 搜索过滤后无结果时显示空状态。
+     * @param isEmpty 过滤结果为空
+     * @param hasData 原始数据非空（区分"无收藏"和"搜索无匹配"）
+     */
+    private fun updateSearchEmptyState(isEmpty: Boolean, hasData: Boolean) {
+        if (isEmpty && searchQuery.isNotEmpty() && hasData) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.rvFavorites.visibility = View.GONE
+        } else if (!hasData) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.rvFavorites.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.rvFavorites.visibility = View.VISIBLE
+        }
     }
 
     private fun loadFavoritePosts(isRefresh: Boolean = false) {
@@ -437,7 +501,10 @@ class AccountFavoritesFragment : Fragment() {
      *        改为：本次返回 >= pageSize 才显示"加载更多"。
      */
     private fun updateLoadMoreButton(lastBatchSize: Int = pageSize) {
-        postAdapter.setFooterVisible(lastBatchSize >= pageSize)
+        hasMorePosts = lastBatchSize >= pageSize
+        if (searchQuery.isEmpty()) {
+            postAdapter.setFooterVisible(hasMorePosts)
+        }
     }
 
     override fun onDestroyView() {
