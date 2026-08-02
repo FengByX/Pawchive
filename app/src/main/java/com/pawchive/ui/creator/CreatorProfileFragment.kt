@@ -5,6 +5,7 @@ import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
@@ -77,6 +78,7 @@ class CreatorProfileFragment : Fragment() {
         authRepository = AuthRepository(requireContext())
 
         binding.btnBack.setOnClickListener {
+            hideKeyboard()
             parentFragmentManager.popBackStack()
         }
 
@@ -191,26 +193,34 @@ class CreatorProfileFragment : Fragment() {
     private fun setupSortButton() {
         binding.btnSort.text = getString(currentSort.displayNameRes)
         binding.btnSort.setOnClickListener {
+            hideKeyboard()
             showSortDialog()
         }
     }
 
     private fun setupSearchView() {
+        val focusAndShow = {
+            binding.searchViewCreator.apply {
+                isIconified = false
+                requestFocus()
+                requestFocusFromTouch()
+            }
+        }
         binding.searchViewCreator.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean = false
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                hideKeyboard()
+                return true
+            }
             override fun onQueryTextChange(newText: String?): Boolean {
                 searchQuery = newText.orEmpty().trim()
                 applySort(viewModel.uiState.value.posts)
                 return true
             }
         })
-        binding.searchViewCreator.setOnClickListener {
-            it.requestFocus()
-            it.requestFocusFromTouch()
-        }
+        binding.searchCardCreator.setOnClickListener { focusAndShow() }
+        binding.searchViewCreator.setOnClickListener { focusAndShow() }
         binding.searchViewCreator.setOnTouchListener { view, event ->
-            view.requestFocus()
-            view.requestFocusFromTouch()
+            focusAndShow()
             false
         }
     }
@@ -269,6 +279,7 @@ class CreatorProfileFragment : Fragment() {
         updateBookmarkIcon(isBookmarked)
 
         binding.btnCreatorBookmark.setOnClickListener {
+            hideKeyboard()
             val newStatus = !bookmarkManager.isCreatorBookmarked(service, creatorId)
             if (newStatus) {
                 bookmarkManager.bookmarkCreator(service, creatorId)
@@ -319,6 +330,7 @@ class CreatorProfileFragment : Fragment() {
         updateBlockButtonState(isBlocked)
 
         binding.btnBlockCreator.setOnClickListener {
+            hideKeyboard()
             val newBlocked = !blockedCreatorManager.isCreatorBlocked(service, creatorId)
             if (newBlocked) {
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
@@ -370,6 +382,17 @@ class CreatorProfileFragment : Fragment() {
 
     private fun updateLoadMoreButton(hasMore: Boolean) {
         binding.btnLoadMore.visibility = if (hasMore) View.VISIBLE else View.GONE
+    }
+
+    private fun hideKeyboard() {
+        val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        binding.searchViewCreator.clearFocus()
+        imm.hideSoftInputFromWindow(binding.searchViewCreator.windowToken, 0)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        hideKeyboard()
     }
 
     override fun onDestroyView() {

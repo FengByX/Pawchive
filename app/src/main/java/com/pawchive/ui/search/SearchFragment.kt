@@ -5,6 +5,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.SearchView
@@ -148,6 +149,7 @@ class SearchFragment : Fragment() {
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 if (!query.isNullOrEmpty()) {
+                    hideKeyboard()
                     performSearch(query, isRefresh = false)
                 }
                 return true
@@ -170,6 +172,7 @@ class SearchFragment : Fragment() {
     private fun setupTabLayout() {
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
+                hideKeyboard()
                 isSearchingPosts = tab?.position == 0
                 binding.rvResults.adapter = if (isSearchingPosts) postAdapter else creatorAdapter
                 updateSortButtonText()
@@ -190,12 +193,14 @@ class SearchFragment : Fragment() {
     private fun setupSortButton() {
         updateSortButtonText()
         binding.btnSort.setOnClickListener {
+            hideKeyboard()
             showSortDialog()
         }
     }
 
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
+            hideKeyboard()
             val query = binding.searchView.query.toString()
             if (query.isNotEmpty()) {
                 performSearch(query, isRefresh = true)
@@ -385,6 +390,7 @@ class SearchFragment : Fragment() {
         searchHistoryAdapter = SearchHistoryAdapter(
             items = searchHistoryManager.getHistory(),
             onItemClicked = { query ->
+                hideKeyboard()
                 binding.searchView.setQuery(query, true)
             },
             onDeleteClicked = { query ->
@@ -402,8 +408,8 @@ class SearchFragment : Fragment() {
         }
 
         binding.btnDone.setOnClickListener {
+            hideKeyboard()
             hideHistoryView()
-            binding.searchView.clearFocus()
         }
     }
 
@@ -442,6 +448,17 @@ class SearchFragment : Fragment() {
                 filterCreatorsLocal(query)
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        hideKeyboard()
+    }
+
+    private fun hideKeyboard() {
+        val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        binding.searchView.clearFocus()
+        imm.hideSoftInputFromWindow(binding.searchView.windowToken, 0)
     }
 
     override fun onDestroyView() {
