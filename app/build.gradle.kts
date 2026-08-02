@@ -14,8 +14,8 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 45
-        versionName = "1.4.9"
+        versionCode = 44
+        versionName = "1.4.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

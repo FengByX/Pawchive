@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<scale xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_launcher_fg_bitmap"
-    android:scaleGravity="center"
-    android:scaleWidth="140%"
-    android:scaleHeight="140%" />
