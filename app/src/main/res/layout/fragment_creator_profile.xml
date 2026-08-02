@@ -221,21 +221,34 @@
                     android:drawablePadding="4dp" />
             </LinearLayout>
 
-            <!-- Search bar for creator posts -->
-            <androidx.appcompat.widget.SearchView
-                android:id="@+id/search_view_creator"
+            <!-- Search bar for creator posts (same style as SearchFragment) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/search_card_creator"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="4dp"
-                android:iconifiedByDefault="false"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:queryHint="@string/search_creator_posts"
-                android:background="?attr/colorSurfaceVariant"
-                app:queryBackground="@android:color/transparent"
-                app:closeIcon="@drawable/ic_close"
-                app:searchIcon="@drawable/ic_search_outline" />
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline">
+
+                <androidx.appcompat.widget.SearchView
+                    android:id="@+id/search_view_creator"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:paddingStart="12dp"
+                    android:iconifiedByDefault="false"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:queryHint="@string/search_creator_posts"
+                    app:queryBackground="@android:color/transparent"
+                    app:closeIcon="@drawable/ic_close"
+                    app:searchIcon="@drawable/ic_search_outline"
+                    app:searchHintIcon="@null" />
+
+            </com.google.android.material.card.MaterialCardView>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_creator_posts"
