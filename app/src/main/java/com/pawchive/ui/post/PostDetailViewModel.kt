@@ -1,12 +1,17 @@
 package com.pawchive.ui.post
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pawchive.data.AppError
+import com.pawchive.data.api.ApiCallHandler
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Comment
 import com.pawchive.data.model.Post
 import com.pawchive.data.model.PostRevision
 import com.pawchive.data.repository.AppMemoryCache
+import com.pawchive.data.repository.BookmarkManager
+import com.pawchive.utils.NetworkUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,10 +25,11 @@ data class PostDetailUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val videoList: List<Pair<String, String>> = emptyList(),
-    val currentVideoIndex: Int = 0
+    val currentVideoIndex: Int = 0,
+    val isOfflineMode: Boolean = false
 )
 
-class PostDetailViewModel : ViewModel() {
+class PostDetailViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(PostDetailUiState())
     val uiState: StateFlow<PostDetailUiState> = _uiState.asStateFlow()
@@ -62,39 +68,83 @@ class PostDetailViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
         viewModelScope.launch {
-            try {
-                val post = api.getPostDetails(service, creatorId, postId)
-                val videoList = extractVideoUrls(post)
-                memoryCache.put(cacheKeyPost, post)
-
-                val comments = try {
-                    api.getPostComments(service, creatorId, postId)
-                } catch (e: Exception) {
-                    emptyList()
+            // 网络不可用时尝试从本地收藏加载（FEATURE-002 离线阅读）
+            if (!NetworkUtils.isNetworkAvailable(getApplication())) {
+                val bookmarkedPost = BookmarkManager.getInstance(getApplication())
+                    .getBookmarkedPost(service, creatorId, postId)
+                if (bookmarkedPost != null) {
+                    val videoList = extractVideoUrls(bookmarkedPost)
+                    _uiState.value = _uiState.value.copy(
+                        post = bookmarkedPost,
+                        comments = emptyList(),
+                        revisions = emptyList(),
+                        videoList = videoList,
+                        isLoading = false,
+                        errorMessage = null,
+                        isOfflineMode = true
+                    )
+                    return@launch
                 }
-                memoryCache.put(cacheKeyComments, comments)
-
-                val revisions = try {
-                    api.getPostRevisions(service, creatorId, postId)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                memoryCache.put(cacheKeyRevisions, revisions)
-
-                _uiState.value = _uiState.value.copy(
-                    post = post,
-                    comments = comments,
-                    revisions = revisions,
-                    videoList = videoList,
-                    isLoading = false,
-                    errorMessage = null
-                )
-            } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
+                    errorMessage = getApplication<Application>().getString(
+                        com.pawchive.R.string.offline_not_cached
+                    ),
+                    isOfflineMode = true
                 )
+                return@launch
             }
+
+            // 主请求失败时直接展示错误；附属数据（评论/修订）失败降级为空（P2 BACKEND-007）
+            val postResult = ApiCallHandler.runCatchingDirect {
+                api.getPostDetails(service, creatorId, postId)
+            }
+            val post = postResult.getOrNull()
+            if (post == null) {
+                // 网络请求失败时尝试从本地收藏回退（FEATURE-002）
+                val bookmarkedPost = BookmarkManager.getInstance(getApplication())
+                    .getBookmarkedPost(service, creatorId, postId)
+                if (bookmarkedPost != null) {
+                    val videoList = extractVideoUrls(bookmarkedPost)
+                    _uiState.value = _uiState.value.copy(
+                        post = bookmarkedPost,
+                        comments = emptyList(),
+                        revisions = emptyList(),
+                        videoList = videoList,
+                        isLoading = false,
+                        errorMessage = null,
+                        isOfflineMode = true
+                    )
+                    return@launch
+                }
+                val error = postResult.exceptionOrNull()?.let { it as? AppError ?: AppError.from(it) }
+                    ?: AppError.Unknown()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = error.toMessage(getApplication())
+                )
+                return@launch
+            }
+            val videoList = extractVideoUrls(post)
+            memoryCache.put(cacheKeyPost, post)
+
+            val comments = runCatching { api.getPostComments(service, creatorId, postId) }
+                .getOrDefault(emptyList())
+            memoryCache.put(cacheKeyComments, comments)
+
+            val revisions = runCatching { api.getPostRevisions(service, creatorId, postId) }
+                .getOrDefault(emptyList())
+            memoryCache.put(cacheKeyRevisions, revisions)
+
+            _uiState.value = _uiState.value.copy(
+                post = post,
+                comments = comments,
+                revisions = revisions,
+                videoList = videoList,
+                isLoading = false,
+                errorMessage = null,
+                isOfflineMode = false
+            )
         }
     }
 

@@ -5,6 +5,8 @@ import android.content.res.Configuration
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
@@ -15,13 +17,19 @@ import java.util.Date
 import java.util.Locale
 
 class CreatorAdapter(
-    private var creators: List<Creator>,
     private val onCreatorClicked: (Creator) -> Unit
-) : RecyclerView.Adapter<CreatorAdapter.CreatorViewHolder>() {
+) : ListAdapter<Creator, CreatorAdapter.CreatorViewHolder>(DIFF_CALLBACK) {
 
     fun updateCreators(newCreators: List<Creator>) {
-        creators = newCreators
-        notifyDataSetChanged()
+        submitList(newCreators)
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Creator>() {
+            override fun areItemsTheSame(oldItem: Creator, newItem: Creator) =
+                oldItem.id == newItem.id && oldItem.service == newItem.service
+            override fun areContentsTheSame(oldItem: Creator, newItem: Creator) = oldItem == newItem
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CreatorViewHolder {
@@ -30,19 +38,16 @@ class CreatorAdapter(
     }
 
     override fun onBindViewHolder(holder: CreatorViewHolder, position: Int) {
-        holder.bind(creators[position])
+        holder.bind(getItem(position))
     }
 
-    override fun getItemCount(): Int = creators.size
-
     inner class CreatorViewHolder(private val binding: ItemCreatorBinding) : RecyclerView.ViewHolder(binding.root) {
-        
+
         fun bind(creator: Creator) {
             binding.tvCreatorName.text = creator.name
             binding.tvCreatorId.text = "ID: ${creator.id}"
             binding.tvService.text = creator.service.uppercase()
 
-            // 显示最近更新时间（优先 updated，回退 indexed）
             val updateTime = creator.updated ?: creator.indexed
             if (updateTime != null && updateTime > 0) {
                 binding.tvUpdated.visibility = View.VISIBLE
@@ -53,7 +58,6 @@ class CreatorAdapter(
                 binding.tvUpdated.visibility = View.GONE
             }
 
-            // Set service badge color based on platform
             setServiceBadgeColor(creator.service, binding.root.context)
 
             val avatarUrl = "https://pawchive.pw/icons/${creator.service}/${creator.id}"
@@ -75,9 +79,6 @@ class CreatorAdapter(
             }
         }
 
-        /**
-         * 格式化 Unix 时间戳（秒级或毫秒级）为 yyyy-MM-dd
-         */
         private fun formatTimestamp(timestamp: Long): String {
             val millis = if (timestamp < 1_000_000_000_000L) timestamp * 1000 else timestamp
             return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
@@ -85,7 +86,7 @@ class CreatorAdapter(
 
         private fun setServiceBadgeColor(service: String, context: Context) {
             val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-            
+
             val (bgColorRes, textColorRes) = when (service.lowercase()) {
                 "patreon" -> if (isDarkMode) {
                     (R.color.patreon_bg_dark to R.color.patreon_text_dark)
@@ -103,7 +104,7 @@ class CreatorAdapter(
                     (R.color.service_bg_default_light to R.color.service_text_default_light)
                 }
             }
-            
+
             binding.cardServiceBadge.setCardBackgroundColor(context.getColor(bgColorRes))
             binding.tvService.setTextColor(context.getColor(textColorRes))
         }

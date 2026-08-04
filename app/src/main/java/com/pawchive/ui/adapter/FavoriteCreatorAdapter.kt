@@ -5,6 +5,8 @@ import android.content.res.Configuration
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
@@ -15,13 +17,19 @@ import java.util.Date
 import java.util.Locale
 
 class FavoriteCreatorAdapter(
-    private var creators: List<FavoriteCreator>,
     private val onCreatorClicked: (String, String) -> Unit
-) : RecyclerView.Adapter<FavoriteCreatorAdapter.FavoriteCreatorViewHolder>() {
+) : ListAdapter<FavoriteCreator, FavoriteCreatorAdapter.FavoriteCreatorViewHolder>(DIFF_CALLBACK) {
 
     fun updateCreators(newCreators: List<FavoriteCreator>) {
-        creators = newCreators
-        notifyDataSetChanged()
+        submitList(newCreators)
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<FavoriteCreator>() {
+            override fun areItemsTheSame(oldItem: FavoriteCreator, newItem: FavoriteCreator) =
+                oldItem.id == newItem.id && oldItem.service == newItem.service
+            override fun areContentsTheSame(oldItem: FavoriteCreator, newItem: FavoriteCreator) = oldItem == newItem
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FavoriteCreatorViewHolder {
@@ -30,10 +38,8 @@ class FavoriteCreatorAdapter(
     }
 
     override fun onBindViewHolder(holder: FavoriteCreatorViewHolder, position: Int) {
-        holder.bind(creators[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = creators.size
 
     inner class FavoriteCreatorViewHolder(private val binding: ItemCreatorBinding) : RecyclerView.ViewHolder(binding.root) {
 
@@ -41,16 +47,13 @@ class FavoriteCreatorAdapter(
             binding.tvCreatorName.text = creator.name
             binding.tvService.text = creator.service.uppercase()
 
-            // Set service badge color based on platform
             setServiceBadgeColor(creator.service, binding.root.context)
 
-            // 修复：设置真实创作者 ID
             binding.tvCreatorId.text = "ID: ${creator.id}"
 
             val favSeq = creator.favedSeq ?: 0
             binding.tvFavCount.text = "收藏序号: $favSeq"
 
-            // 显示最近更新时间（优先 updated，回退 indexed）
             val updateStr = creator.updated ?: creator.indexed
             if (!updateStr.isNullOrEmpty()) {
                 val formatted = formatTimestamp(updateStr)
@@ -85,23 +88,19 @@ class FavoriteCreatorAdapter(
             }
         }
 
-        /**
-         * 格式化时间戳字符串（秒级/毫秒级 Unix 时间戳，或 ISO 日期）为 yyyy-MM-dd
-         */
         private fun formatTimestamp(timestamp: String): String {
             return try {
                 val ts = timestamp.toLong()
                 val millis = if (ts < 1_000_000_000_000L) ts * 1000 else ts
                 SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(millis))
             } catch (_: NumberFormatException) {
-                // 非 Unix 时间戳，尝试取 ISO 日期部分
                 timestamp.split("T").firstOrNull()?.takeIf { it.isNotEmpty() } ?: ""
             }
         }
 
         private fun setServiceBadgeColor(service: String, context: Context) {
             val isDarkMode = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-            
+
             val (bgColorRes, textColorRes) = when (service.lowercase()) {
                 "patreon" -> if (isDarkMode) {
                     (R.color.patreon_bg_dark to R.color.patreon_text_dark)
@@ -119,7 +118,7 @@ class FavoriteCreatorAdapter(
                     (R.color.service_bg_default_light to R.color.service_text_default_light)
                 }
             }
-            
+
             binding.cardServiceBadge.setCardBackgroundColor(context.getColor(bgColorRes))
             binding.tvService.setTextColor(context.getColor(textColorRes))
         }

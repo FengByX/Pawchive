@@ -171,6 +171,16 @@
     <!-- Download Progress -->
     <string name="download_progress">ダウンロード中：%1$d%%</string>
 
+    <!-- Download Notification (WorkManager foreground task) -->
+    <string name="download_channel_name">動画ダウンロード</string>
+    <string name="download_channel_desc">通知バーに動画ダウンロードの進捗を表示</string>
+    <string name="download_notification_title">動画をダウンロード中</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">ダウンロードはキャンセルされました</string>
+    <string name="download_notification_failed">ダウンロード失敗：%1$s</string>
+    <string name="download_notification_complete">動画をアルバムに保存しました</string>
+    <string name="download_no_permission">進捗表示に通知権限が必要です。バックグラウンドダウンロードを開始しました</string>
+
     <!-- Settings: Download -->
     <string name="section_download">ダウンロード</string>
     <string name="download_location">ダウンロード場所</string>
@@ -200,6 +210,8 @@
     <string name="auto_check_update_desc">アプリ起動時に新バージョンを確認</string>
     <string name="cache_size">現在のキャッシュサイズ：%1$s</string>
     <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
+    <string name="cache_cleaned_freed">%1$s のキャッシュを解放しました</string>
+    <string name="cache_clean_failed">キャッシュのクリーンアップに失敗しました</string>
     <string name="cache_cleaning">キャッシュをクリーンアップ中...</string>
     <string name="cache_empty">キャッシュなし</string>
     <string name="clean">クリア</string>
@@ -213,6 +225,7 @@
     <string name="join_telegram">公式チャンネルに参加</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">ブラウザを開けません</string>
+    <string name="unsafe_link_blocked">安全でないリンクをブロックしました</string>
 
     <!-- Register -->
     <string name="register">登録</string>
@@ -249,4 +262,57 @@
 
     <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
     <string name="creator_service_placeholder">サービス</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">ダウンロードセンター</string>
+    <string name="nav_downloads">ダウンロード</string>
+    <string name="no_downloads">ダウンロード履歴なし</string>
+    <string name="filter_all">すべて</string>
+    <string name="filter_running">進行中</string>
+    <string name="filter_completed">完了</string>
+    <string name="filter_failed">失敗</string>
+    <string name="clear_history">履歴を消去</string>
+    <string name="download_type">ダウンロードの種類</string>
+    <string name="retry">再試行</string>
+    <string name="open">開く</string>
+    <string name="share">共有</string>
+    <string name="status_pending">待機中</string>
+    <string name="status_running">ダウンロード中 %1$d%%</string>
+    <string name="status_completed">完了</string>
+    <string name="status_failed">ダウンロード失敗</string>
+    <string name="status_cancelled">キャンセル済み</string>
+    <string name="download_cancelled">ダウンロードをキャンセルしました</string>
+    <string name="download_retried">ダウンロードを再試行中</string>
+    <string name="confirm_clear_history">すべてのダウンロード履歴を消去しますか？</string>
+    <!-- FEATURE-002 オフラインブックマーク -->
+    <string name="offline_reading_hint">オフラインモード：ローカルキャッシュのブックマークを表示中</string>
+    <string name="offline_not_cached">ネットワーク不可でブックマークされていないため表示できません</string>
+    <string name="search_in_local">ローカルブックマークを検索</string>
+    <!-- FEATURE-003 アカウントとデータ境界 -->
+    <string name="switch_account">アカウント切替</string>
+    <string name="current_account">現在のアカウント</string>
+    <string name="no_account">未ログイン</string>
+    <string name="logout_clear_data">ログアウトするとこのアカウントのローカルデータが消去されます</string>
+    <string name="ok">OK</string>
+    <string name="no_other_accounts">他に保存されたアカウントはありません</string>
+    <string name="switched_to_account">%1$s に切り替えました</string>
+    <!-- FEATURE-004 検索拡張 -->
+    <string name="filter_service">サービス</string>
+    <string name="filter_type">タイプ</string>
+    <string name="filter_has_attachment">添付付きのみ</string>
+    <string name="filter_bookmarked">ブックマークのみ</string>
+    <string name="filter_reset">フィルターリセット</string>
+    <!-- FEATURE-005 閲覧体験 -->
+    <string name="read_later">後で読む</string>
+    <string name="reading_progress">閲覧進捗</string>
+    <string name="external_link_warning">外部リンクを開こうとしています。続行しますか？</string>
+    <string name="save_all_images">すべての画像を保存</string>
+    <string name="video_resume_position">前回の再生位置から再開</string>
+    <string name="no_images_to_save">保存可能な画像はありません</string>
+    <string name="saving_images_count">%1$d 枚の画像を保存中</string>
+    <!-- FEATURE-006 エラーフィードバック -->
+    <string name="error_retry">再試行</string>
+    <string name="error_load_failed">読み込み失敗</string>
+    <string name="error_empty">コンテンツなし</string>
+    <string name="error_network">ネットワーク接続失敗</string>
 </resources>

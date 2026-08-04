@@ -1,7 +1,10 @@
 package com.pawchive.ui.post
 
+import android.Manifest
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
@@ -17,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -34,20 +38,16 @@ import com.pawchive.data.repository.CreatorNameCache
 import com.pawchive.databinding.FragmentPostDetailBinding
 import com.pawchive.ui.MainActivity
 import com.pawchive.ui.adapter.CommentAdapter
+import com.pawchive.utils.ErrorStateViewHelper
 import com.pawchive.utils.ErrorMessageHelper
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
-import java.util.concurrent.TimeUnit
 
 class PostDetailFragment : Fragment() {
 
@@ -60,6 +60,7 @@ class PostDetailFragment : Fragment() {
     private lateinit var authRepository: AuthRepository
     private lateinit var commentAdapter: CommentAdapter
     private lateinit var videoPlayerManager: VideoPlayerManager
+    private lateinit var readingProgressManager: com.pawchive.data.repository.ReadingProgressManager
 
     private var service: String = ""
     private var creatorId: String = ""
@@ -70,6 +71,22 @@ class PostDetailFragment : Fragment() {
     private var currentVideoIndex = 0
     private var isUserSeeking = false
     private var isFullscreen = false
+
+    // 内嵌错误页（FEATURE-006）
+    private lateinit var errorStateView: ErrorStateViewHelper.Bound
+
+    // 视频下载：Android 13+ 需运行时申请通知权限以展示进度条
+    private var pendingDownload: Pair<String, String>? = null
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+            val ctx = context ?: return@registerForActivityResult
+            val pending = pendingDownload ?: return@registerForActivityResult
+            pendingDownload = null
+            if (!granted) {
+                Toast.makeText(ctx, R.string.download_no_permission, Toast.LENGTH_LONG).show()
+            }
+            enqueueVideoDownload(ctx, pending.first, pending.second)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,9 +111,14 @@ class PostDetailFragment : Fragment() {
         bookmarkManager = BookmarkManager.getInstance(requireContext())
         authRepository = AuthRepository(requireContext())
         videoPlayerManager = VideoPlayerManager(requireContext())
+        readingProgressManager = com.pawchive.data.repository.ReadingProgressManager.getInstance(requireContext())
 
         binding.btnBack.setOnClickListener {
             parentFragmentManager.popBackStack()
+        }
+
+        binding.btnSaveAllImages.setOnClickListener {
+            currentPost?.let { saveAllImages(it) }
         }
 
         binding.tvPostCreator.setOnClickListener {
@@ -106,6 +128,10 @@ class PostDetailFragment : Fragment() {
 
         setupCommentsRecyclerView()
         setupVideoPlayer()
+        // 绑定内嵌错误页（FEATURE-006）
+        errorStateView = ErrorStateViewHelper.bind(binding.root) {
+            loadPostDetails()
+        }
         observeUiState()
         loadPostDetails()
     }
@@ -132,6 +158,18 @@ class PostDetailFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
+        // 持久化视频播放位置（FEATURE-005 视频记忆）
+        videoPlayerManager.updateCurrentPosition()
+        videoList.getOrNull(currentVideoIndex)?.first?.let { url ->
+            val pos = videoPlayerManager.currentPosition
+            if (pos > 1000) { // 仅保存超过 1 秒的位置
+                readingProgressManager.saveVideoPosition(url, pos)
+            }
+        }
+        // 持久化阅读滚动位置（FEATURE-005 阅读进度）
+        if (postId.isNotEmpty()) {
+            readingProgressManager.saveReadingScroll(postId, binding.nestedScrollView.scrollY)
+        }
         videoPlayerManager.savePlaybackState()
         videoPlayerManager.release()
     }
@@ -143,7 +181,7 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun setupCommentsRecyclerView() {
-        commentAdapter = CommentAdapter(emptyList())
+        commentAdapter = CommentAdapter()
         binding.rvComments.layoutManager = LinearLayoutManager(requireContext())
         binding.rvComments.adapter = commentAdapter
     }
@@ -153,13 +191,27 @@ class PostDetailFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     if (state.isLoading) {
+                        // 加载中：隐藏错误页
+                        errorStateView.hide()
                     } else if (state.errorMessage != null) {
-                        Toast.makeText(
-                            context,
-                            ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        if (state.post == null) {
+                            // 无内容：展示内嵌错误页，提供重试入口（FEATURE-006）
+                            binding.nestedScrollView.visibility = View.GONE
+                            errorStateView.show(state.errorMessage)
+                        } else {
+                            // 已有内容：错误以 Toast 呈现，不打断浏览
+                            binding.nestedScrollView.visibility = View.VISIBLE
+                            errorStateView.hide()
+                            Toast.makeText(
+                                context,
+                                ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     } else {
+                        // 正常展示内容
+                        binding.nestedScrollView.visibility = View.VISIBLE
+                        errorStateView.hide()
                         state.post?.let { post ->
                             currentPost = post
                             videoList = state.videoList.toMutableList()
@@ -169,7 +221,17 @@ class PostDetailFragment : Fragment() {
                             setupNavigationButtons(post)
                             displayComments(state.comments)
                             displayRevisions(state.revisions)
-                            binding.nestedScrollView.scrollTo(0, 0)
+                            binding.tvOfflineBanner.visibility =
+                                if (state.isOfflineMode) View.VISIBLE else View.GONE
+                            // 恢复阅读滚动位置（FEATURE-005 阅读进度）
+                            val savedScroll = readingProgressManager.getReadingScroll(post.id)
+                            if (savedScroll > 0) {
+                                binding.nestedScrollView.post {
+                                    binding.nestedScrollView.scrollTo(0, savedScroll)
+                                }
+                            } else {
+                                binding.nestedScrollView.scrollTo(0, 0)
+                            }
                         }
                     }
                 }
@@ -202,30 +264,27 @@ class PostDetailFragment : Fragment() {
         setServiceBadgeColor(post.service)
 
         val content = post.content ?: ""
-        // minSdk = 30，SDK_INT < N 分支永远不会执行（死代码），直接使用 N+ API。
-        binding.tvPostContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
+        // 安全渲染：仅保留白名单标签与 https 链接，危险 scheme 链接被剥离为纯文本（P1）
+        binding.tvPostContent.text = com.pawchive.utils.SafeHtmlHelper.render(content)
+        // 外链提示：拦截链接点击，弹出确认对话框（FEATURE-005）
         binding.tvPostContent.movementMethod = LinkMovementMethod.getInstance()
-
-        binding.tvPostContent.text = binding.tvPostContent.text.let {
-            if (it is android.text.Spannable) {
-                val spannable = android.text.SpannableString(it)
-                val urls = spannable.getSpans(0, spannable.length, android.text.style.URLSpan::class.java)
-                for (urlSpan in urls) {
-                    val start = spannable.getSpanStart(urlSpan)
-                    val end = spannable.getSpanEnd(urlSpan)
-                    val flags = spannable.getSpanFlags(urlSpan)
-                    val url = urlSpan.url
-                    spannable.removeSpan(urlSpan)
-                    spannable.setSpan(object : android.text.style.ClickableSpan() {
-                        override fun onClick(widget: android.view.View) {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                            startActivity(intent)
+        // 通过 URLSpan 拦截点击
+        val spannable = binding.tvPostContent.text as? android.text.Spannable
+        if (spannable != null) {
+            val urlSpans = spannable.getSpans(0, spannable.length, android.text.style.URLSpan::class.java)
+            for (span in urlSpans) {
+                val start = spannable.getSpanStart(span)
+                val end = spannable.getSpanEnd(span)
+                val url = span.url
+                spannable.removeSpan(span)
+                spannable.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: View) {
+                            showExternalLinkDialog(url)
                         }
-                    }, start, end, flags)
-                }
-                spannable
-            } else {
-                it
+                    },
+                    start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
         }
 
@@ -428,8 +487,7 @@ class PostDetailFragment : Fragment() {
     private fun displayComments(comments: List<com.pawchive.data.model.Comment>) {
         if (comments.isNotEmpty()) {
             binding.tvCommentsHeader.visibility = View.VISIBLE
-            commentAdapter = CommentAdapter(comments)
-            binding.rvComments.adapter = commentAdapter
+            commentAdapter.updateComments(comments)
         }
     }
 
@@ -543,6 +601,70 @@ class PostDetailFragment : Fragment() {
         binding.btnPostBookmark.setImageResource(
             if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline
         )
+    }
+
+    /**
+     * 外链提示对话框（FEATURE-005）。
+     * 点击帖子内容中的链接时弹出确认，避免误触跳转外部站点。
+     */
+    private fun showExternalLinkDialog(url: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.external_link_warning)
+            .setMessage(url)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, R.string.error_load_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * 批量保存帖子中的所有图片（FEATURE-005）。
+     * 遍历 file 和 attachments，对所有图片类型入队下载。
+     */
+    private fun saveAllImages(post: Post) {
+        val ctx = context ?: return
+        val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp")
+        var count = 0
+
+        // 检查主文件
+        post.file?.let { file ->
+            val name = file.name ?: ""
+            if (imageExtensions.any { name.endsWith(it, true) }) {
+                val fullUrl = "https://file.pawchive.pw/data${file.path.orEmpty()}"
+                viewLifecycleOwner.lifecycleScope.launch {
+                    com.pawchive.data.repository.DownloadCenter.enqueueImageDownload(
+                        ctx, fullUrl, name
+                    )
+                }
+                count++
+            }
+        }
+
+        // 检查附件
+        post.attachments?.forEach { attachment ->
+            val name = attachment.name ?: ""
+            if (imageExtensions.any { name.endsWith(it, true) }) {
+                val fullUrl = "https://file.pawchive.pw/data${attachment.path.orEmpty()}"
+                viewLifecycleOwner.lifecycleScope.launch {
+                    com.pawchive.data.repository.DownloadCenter.enqueueImageDownload(
+                        ctx, fullUrl, name
+                    )
+                }
+                count++
+            }
+        }
+
+        if (count == 0) {
+            Toast.makeText(ctx, R.string.no_images_to_save, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(ctx, getString(R.string.saving_images_count, count), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupNavigationButtons(post: Post) {
@@ -730,147 +852,50 @@ class PostDetailFragment : Fragment() {
         }
 
         val (url, fileName) = videoList[currentVideoIndex]
+        val ctx = context ?: return
 
-        val contextRef = requireContext()
-        val downloadingToast = Toast.makeText(context, "${getString(R.string.downloading)} $fileName", Toast.LENGTH_LONG)
-        downloadingToast.show()
-
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            var errorMessage: String? = null
-
-            try {
-                // 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，
-                // 并在 403 时透明过盾重试。延长读超时以适应大文件下载。
-                val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
-                    .readTimeout(120, TimeUnit.SECONDS)
-                    .build()
-
-                val request = Request.Builder()
-                    .url(url)
-                    .header("Accept", "*/*")
-                    .build()
-
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    errorMessage = "HTTP ${response.code}: ${response.message}"
-                    throw Exception(errorMessage)
-                }
-
-                val body = response.body
-                if (body == null) {
-                    errorMessage = "Empty response body"
-                    throw Exception(errorMessage)
-                }
-
-                val inputStream = body.byteStream()
-                val contentLength = body.contentLength()
-
-                val mimeType = when {
-                    fileName.endsWith(".mp4", true) -> "video/mp4"
-                    fileName.endsWith(".webm", true) -> "video/webm"
-                    fileName.endsWith(".mov", true) -> "video/quicktime"
-                    fileName.endsWith(".mkv", true) -> "video/x-matroska"
-                    fileName.endsWith(".avi", true) -> "video/x-msvideo"
-                    else -> "video/mp4"
-                }
-
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Pawchive")
-                        put(MediaStore.MediaColumns.IS_PENDING, 1)
-                    }
-                }
-
-                val resolver = contextRef.contentResolver
-                val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                } else {
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                }
-
-                val uri = resolver.insert(collection, contentValues)
-                if (uri == null) {
-                    errorMessage = "Failed to create media file entry"
-                    throw Exception(errorMessage)
-                }
-
-                val outputStream = resolver.openOutputStream(uri)
-                if (outputStream == null) {
-                    errorMessage = "Failed to open output stream"
-                    throw Exception(errorMessage)
-                }
-
-                outputStream.use { out ->
-                    inputStream.use { input ->
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        var totalBytesRead: Long = 0
-                        // 进度反馈：每下载 5% 至少弹一次进度 Toast，避免用户以为卡死
-                        var lastReportedPercent = -1
-
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            out.write(buffer, 0, bytesRead)
-                            totalBytesRead += bytesRead
-
-                            if (contentLength > 0) {
-                                val percent = (totalBytesRead * 100 / contentLength).toInt()
-                                if (percent - lastReportedPercent >= 5) {
-                                    lastReportedPercent = percent
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(
-                                            context,
-                                            getString(R.string.download_progress, percent),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                            }
-                        }
-
-                        if (contentLength > 0 && totalBytesRead != contentLength) {
-                            errorMessage = "Download incomplete: $totalBytesRead/$contentLength bytes"
-                            throw Exception(errorMessage)
-                        }
-                    }
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    contentValues.clear()
-                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
-                    resolver.update(uri, contentValues, null, null)
-                }
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        getString(R.string.video_downloaded),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-
-                return@launch
-
-            } catch (e: java.net.SocketTimeoutException) {
-                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
-            } catch (e: java.net.UnknownHostException) {
-                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
-            } catch (e: java.io.IOException) {
-                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
-            } catch (e: Exception) {
-                errorMessage = ErrorMessageHelper.getFriendlyMessage(context, e)
-                e.printStackTrace()
-            }
-
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    context,
-                    errorMessage ?: ErrorMessageHelper.getFriendlyMessage(context, ""),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        // Android 13+ 需运行时申请通知权限以展示下载进度条；
+        // 即便用户拒绝，下载仍会进行（仅无可见通知）。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingDownload = url to fileName
+            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
         }
+
+        enqueueVideoDownload(ctx, url, fileName)
+    }
+
+    /**
+     * 将视频下载任务交给 WorkManager 前台 Worker 执行（P2 FRONTEND-006）。
+     * - App 切后台不中断下载；
+     * - 通知栏展示进度条与完成/失败状态；
+     * - 文件写入仍走 DownloadRepository（优先 SAF，回退 MediaStore）。
+     */
+    private fun enqueueVideoDownload(context: Context, url: String, fileName: String) {
+        val data = androidx.work.Data.Builder()
+            .putString(com.pawchive.work.DownloadWorker.KEY_URL, url)
+            .putString(com.pawchive.work.DownloadWorker.KEY_FILE_NAME, fileName)
+            .build()
+
+        val request = androidx.work.OneTimeWorkRequestBuilder<com.pawchive.work.DownloadWorker>()
+            .setInputData(data)
+            // 保持下载任务存活，覆盖最近一次同文件名下载
+            .setConstraints(
+                androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+            )
+            .addTag(DOWNLOAD_WORK_TAG)
+            .build()
+
+        androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+            "$DOWNLOAD_WORK_TAG:$fileName",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            request
+        )
     }
 
     @OptIn(UnstableApi::class)
@@ -889,6 +914,13 @@ class PostDetailFragment : Fragment() {
 
         videoPlayerManager.attachPlayerView(binding.playerView)
         videoPlayerManager.play(url)
+
+        // 恢复上次播放位置（FEATURE-005 视频记忆）
+        val savedPos = readingProgressManager.getVideoPosition(url)
+        if (savedPos > 1000) {
+            videoPlayerManager.seekTo(savedPos)
+            Toast.makeText(context, R.string.video_resume_position, Toast.LENGTH_SHORT).show()
+        }
 
         binding.nestedScrollView.post {
             binding.nestedScrollView.scrollTo(0, 0)
@@ -1076,6 +1108,7 @@ class PostDetailFragment : Fragment() {
         private const val ARG_SERVICE = "service"
         private const val ARG_CREATOR_ID = "creator_id"
         private const val ARG_POST_ID = "post_id"
+        private const val DOWNLOAD_WORK_TAG = "video_download"
 
         fun newInstance(service: String, creatorId: String, postId: String): PostDetailFragment {
             val fragment = PostDetailFragment()

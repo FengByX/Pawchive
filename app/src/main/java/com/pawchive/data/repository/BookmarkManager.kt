@@ -115,6 +115,36 @@ class BookmarkManager private constructor(private val context: Context) {
         return list
     }
 
+    /**
+     * 在本地收藏中搜索（FEATURE-002 离线搜索）。
+     * 匹配标题和创作者名称（不区分大小写）。
+     */
+    fun searchBookmarkedPosts(query: String): List<Post> {
+        if (query.isBlank()) return getBookmarkedPosts()
+        val lowerQuery = query.lowercase().trim()
+        return getBookmarkedPosts().filter { post ->
+            post.title?.lowercase()?.contains(lowerQuery) == true ||
+                post.userName?.lowercase()?.contains(lowerQuery) == true ||
+                post.user.lowercase().contains(lowerQuery) ||
+                post.content?.lowercase()?.contains(lowerQuery) == true
+        }
+    }
+
+    /**
+     * 获取单个已收藏的 Post（FEATURE-002 离线阅读）。
+     * 用于网络不可用时从本地缓存加载帖子详情。
+     */
+    fun getBookmarkedPost(service: String, creatorId: String, postId: String): Post? {
+        ensureLoaded()
+        val objectKey = getPostObjectKey(service, creatorId, postId)
+        val json = cache[objectKey] ?: return null
+        return try {
+            gson.fromJson(json, Post::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun bookmarkCreator(service: String, creatorId: String) {
         ensureLoaded()
         editSync { it[getCreatorKey(service, creatorId)] = true }
@@ -127,6 +157,15 @@ class BookmarkManager private constructor(private val context: Context) {
 
     fun isCreatorBookmarked(service: String, creatorId: String): Boolean {
         return cache[getCreatorKey(service, creatorId)] ?: false
+    }
+
+    /**
+     * 清除所有本地收藏数据（FEATURE-003 账号切换/登出时数据隔离）。
+     * 同步清空内存缓存并异步落盘。
+     */
+    fun clearAllForAccountSwitch() {
+        ensureLoaded()
+        editSync { prefs -> prefs.clear() }
     }
 
     private fun getPostKey(service: String, creatorId: String, postId: String): Preferences.Key<Boolean> {

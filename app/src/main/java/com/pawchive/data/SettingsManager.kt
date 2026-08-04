@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -17,6 +18,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 // 顶层 DataStore 单例（DataStore 必须是单例，每个文件名只允许一个实例）
 private val Context.appSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "app_settings")
@@ -46,11 +48,26 @@ class SettingsManager private constructor(context: Context) {
     @Volatile
     private var settingsCache: Preferences = loadInitialCache()
 
+    init {
+        // 如果启动期同步加载超时降级为空缓存，后台异步补加载一次真实数据（P2）
+        if (settingsCache.asMap().isEmpty()) {
+            ioScope.launch {
+                runCatching {
+                    val loaded = dataStore.data.first()
+                    settingsCache = loaded
+                }
+            }
+        }
+    }
+
     private fun loadInitialCache(): Preferences {
         return try {
-            runBlocking { dataStore.data.first() }
+            // 限制最大阻塞时间 500ms，避免低端设备/DataStore 异常时卡住启动（P2）。
+            // 超时降级为空缓存（使用默认值），后台 init 块会异步补加载。
+            runBlocking {
+                withTimeoutOrNull(500L) { dataStore.data.first() } ?: emptyPreferences()
+            }
         } catch (_: Exception) {
-            // DataStore 文件损坏/磁盘异常时降级为空缓存，避免启动崩溃
             emptyPreferences()
         }
     }
@@ -112,6 +129,41 @@ class SettingsManager private constructor(context: Context) {
     }
 
     /**
+     * 上次缓存清理的时间戳（毫秒）。0 表示从未清理。
+     * 用于 FRONTEND-003：展示上次清理时间，避免每次启动无条件清空。
+     */
+    fun getLastCacheCleanTime(): Long {
+        return read { it[KEY_LAST_CACHE_CLEAN_TIME] } ?: 0L
+    }
+
+    fun setLastCacheCleanTime(timestamp: Long) {
+        write { it[KEY_LAST_CACHE_CLEAN_TIME] = timestamp }
+    }
+
+    /**
+     * 缓存容量阈值（字节）。超过此值时自动触发清理（FRONTEND-003）。
+     * 默认 200MB，与图片磁盘缓存上限 100MB + 其他临时文件相匹配。
+     */
+    fun getCacheThresholdBytes(): Long {
+        return read { it[KEY_CACHE_THRESHOLD_BYTES] } ?: DEFAULT_CACHE_THRESHOLD_BYTES
+    }
+
+    fun setCacheThresholdBytes(bytes: Long) {
+        write { it[KEY_CACHE_THRESHOLD_BYTES] = bytes }
+    }
+
+    /**
+     * 是否应基于容量阈值触发自动清理（而非每次启动无条件清空）。
+     * - 缓存大小超过阈值时返回 true
+     * - 从未清理过时返回 true（首次启动场景）
+     */
+    fun shouldAutoCleanByThreshold(context: Context): Boolean {
+        if (getLastCacheCleanTime() == 0L) return true
+        val currentSize = getCacheSize(context)
+        return currentSize > getCacheThresholdBytes()
+    }
+
+    /**
      * 同步读取内存缓存快照（无磁盘 I/O、无 runBlocking）。
      */
     private fun <T> read(block: (Preferences) -> T): T = block(settingsCache)
@@ -137,6 +189,11 @@ class SettingsManager private constructor(context: Context) {
         private val KEY_DOWNLOAD_LOCATION_NAME = stringPreferencesKey("download_location_name")
         private val KEY_AUTO_CLEAN_CACHE = booleanPreferencesKey("auto_clean_cache")
         private val KEY_AUTO_CHECK_UPDATE = booleanPreferencesKey("auto_check_update")
+        private val KEY_LAST_CACHE_CLEAN_TIME = longPreferencesKey("last_cache_clean_time")
+        private val KEY_CACHE_THRESHOLD_BYTES = longPreferencesKey("cache_threshold_bytes")
+
+        // 默认缓存阈值：200MB（FRONTEND-003）
+        private const val DEFAULT_CACHE_THRESHOLD_BYTES = 200L * 1024 * 1024
 
         @Volatile
         private var instance: SettingsManager? = null
@@ -154,8 +211,10 @@ class SettingsManager private constructor(context: Context) {
 
         fun getCacheSize(context: Context): Long {
             return try {
-                val cacheDir = context.cacheDir
-                getDirSize(cacheDir)
+                // 同时统计 cacheDir 与 externalCacheDir，反映真实占用（P2）
+                var size = getDirSize(context.cacheDir)
+                context.externalCacheDir?.let { size += getDirSize(it) }
+                size
             } catch (_: Exception) {
                 0L
             }

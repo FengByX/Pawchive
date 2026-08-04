@@ -2,18 +2,25 @@ package com.pawchive.ui.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.pawchive.databinding.ItemSearchHistoryBinding
 
 class SearchHistoryAdapter(
-    private var items: List<String>,
     private val onItemClicked: (String) -> Unit,
     private val onDeleteClicked: (String) -> Unit
-) : RecyclerView.Adapter<SearchHistoryAdapter.SearchHistoryViewHolder>() {
+) : ListAdapter<String, SearchHistoryAdapter.SearchHistoryViewHolder>(DIFF_CALLBACK) {
 
     fun updateItems(newItems: List<String>) {
-        items = newItems
-        notifyDataSetChanged()
+        submitList(newItems)
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<String>() {
+            override fun areItemsTheSame(oldItem: String, newItem: String) = oldItem == newItem
+            override fun areContentsTheSame(oldItem: String, newItem: String) = oldItem == newItem
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchHistoryViewHolder {
@@ -22,10 +29,8 @@ class SearchHistoryAdapter(
     }
 
     override fun onBindViewHolder(holder: SearchHistoryViewHolder, position: Int) {
-        holder.bind(items[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = items.size
 
     inner class SearchHistoryViewHolder(private val binding: ItemSearchHistoryBinding) :
         RecyclerView.ViewHolder(binding.root) {

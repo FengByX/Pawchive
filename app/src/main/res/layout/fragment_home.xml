@@ -116,4 +116,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/swipe_refresh" />
 
+    <!-- 内嵌错误页（FEATURE-006）：列表为空且请求失败时展示，替代 Toast -->
+    <include
+        android:id="@+id/error_state_view"
+        layout="@layout/layout_error_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/swipe_refresh" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

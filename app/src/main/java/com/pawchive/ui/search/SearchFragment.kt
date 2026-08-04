@@ -7,15 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.annotation.StringRes
-import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.pawchive.R
-import com.pawchive.data.api.ApiClient
-import com.pawchive.data.model.Creator
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
@@ -28,12 +26,11 @@ import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.adapter.SearchHistoryAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
-import com.pawchive.utils.ErrorMessageHelper
+import com.pawchive.utils.ErrorStateViewHelper
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class SearchFragment : Fragment() {
@@ -41,11 +38,12 @@ class SearchFragment : Fragment() {
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
 
+    private val viewModel: SearchViewModel by viewModels()
+
     companion object {
         private const val KEY_SEARCHING_POSTS = "searching_posts"
     }
 
-    private val api = ApiClient.publicApi
     private lateinit var bookmarkManager: BookmarkManager
     private lateinit var authRepository: AuthRepository
     private lateinit var blockedCreatorManager: BlockedCreatorManager
@@ -55,28 +53,13 @@ class SearchFragment : Fragment() {
     private lateinit var searchHistoryAdapter: SearchHistoryAdapter
     private lateinit var searchHistoryManager: SearchHistoryManager
 
-    private var allCreators = emptyList<Creator>()
     private var isSearchingPosts = true
-    private var searchResults = emptyList<com.pawchive.data.model.Post>()
-    private var filteredCreators = emptyList<Creator>()
-    private var creatorsCacheLoaded = false
-    private var pendingCreatorQuery: String? = null
-
-    private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
-        RELEVANCE(R.string.sort_relevance),
-        NEWEST_PUBLISHED(R.string.sort_newest_published),
-        OLDEST_PUBLISHED(R.string.sort_oldest_published),
-        NEWEST_EDITED(R.string.sort_newest_edited),
-        OLDEST_EDITED(R.string.sort_oldest_edited)
-    }
-
-    private enum class CreatorSortOption(@param:StringRes val displayNameRes: Int) {
-        NAME_ASC(R.string.sort_name_asc),
-        NAME_DESC(R.string.sort_name_desc)
-    }
-
     private var currentPostSort = PostSortOption.RELEVANCE
     private var currentCreatorSort = CreatorSortOption.NAME_ASC
+
+    // 最近一次搜索关键词，用于错误页"重试"
+    private var lastQuery: String = ""
+    private lateinit var errorStateView: ErrorStateViewHelper.Bound
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -102,6 +85,14 @@ class SearchFragment : Fragment() {
         setupSortButton()
         setupSwipeRefresh()
         setupSearchHistory()
+        setupFilterChips()
+        // 绑定内嵌错误页（FEATURE-006）
+        errorStateView = ErrorStateViewHelper.bind(binding.root) {
+            if (lastQuery.isNotEmpty()) {
+                performSearch(lastQuery, isRefresh = false)
+            }
+        }
+        observeUiState()
 
         if (savedInstanceState != null) {
             val tabIndex = if (isSearchingPosts) 0 else 1
@@ -110,13 +101,78 @@ class SearchFragment : Fragment() {
             }
         }
 
-        fetchCreatorsCache()
+        viewModel.loadCreatorsCache()
         showSearchPrompt()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_SEARCHING_POSTS, isSearchingPosts)
+    }
+
+    /**
+     * 订阅 ViewModel 状态，按当前 Tab 渲染 UI（P2 FRONTEND-008）。
+     * - 帖子/创作者结果变化时更新对应 Adapter
+     * - loading 状态控制 ProgressBar 与 SwipeRefresh
+     * - 错误信息以 Toast 展示并清除
+     * - 空结果提示控制 tvNoResults 显示
+     */
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    // 更新帖子结果
+                    postAdapter.updatePosts(state.postResults)
+                    // 创作者名称预取完成后刷新帖子列表
+                    if (state.postResults.isNotEmpty()) {
+                        launch {
+                            CreatorNameCache.prefetchCreatorNames(state.postResults)
+                            postAdapter.notifyDataSetChanged()
+                        }
+                    }
+                    // 更新创作者结果
+                    creatorAdapter.updateCreators(state.creatorResults)
+
+                    // loading 状态
+                    binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+                    binding.swipeRefresh.isRefreshing = state.isLoading
+
+                    // 空结果提示
+                    if (state.emptyHintResId != null) {
+                        binding.tvEmptyText.text = getString(state.emptyHintResId)
+                        binding.tvNoResults.visibility = View.VISIBLE
+                    } else if (state.postResults.isNotEmpty() || state.creatorResults.isNotEmpty()) {
+                        binding.tvNoResults.visibility = View.GONE
+                    }
+
+                    // 错误提示（FEATURE-006）：列表为空时展示内嵌错误页，有结果时仅 Toast 提示
+                    state.errorMessage?.let { msg ->
+                        val hasResults = state.postResults.isNotEmpty() || state.creatorResults.isNotEmpty()
+                        if (!hasResults) {
+                            // 列表为空：展示内嵌错误页，提供重试入口
+                            binding.tvNoResults.visibility = View.GONE
+                            errorStateView.show(msg)
+                        } else {
+                            // 已有结果：错误以 Toast 呈现，不打断浏览
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                        viewModel.clearError()
+                    } ?: run {
+                        // 无错误时隐藏错误页
+                        errorStateView.hide()
+                    }
+                }
+            }
+        }
+
+        // 订阅屏蔽列表变化，触发重新过滤
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                blockedCreatorManager.blockedCreatorsFlow.collect {
+                    viewModel.refreshBlockedFilter()
+                }
+            }
+        }
     }
 
     private fun setupAdapters() {
@@ -137,7 +193,6 @@ class SearchFragment : Fragment() {
         )
 
         creatorAdapter = CreatorAdapter(
-            creators = emptyList(),
             onCreatorClicked = { creator ->
                 val creatorFragment = CreatorProfileFragment.newInstance(creator.service, creator.id)
                 (activity as? MainActivity)?.loadFragment(creatorFragment)
@@ -149,7 +204,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun setupSearchView() {
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 if (!query.isNullOrEmpty()) {
                     hideKeyboard()
@@ -164,7 +219,7 @@ class SearchFragment : Fragment() {
                 } else {
                     hideHistoryView()
                     if (!isSearchingPosts) {
-                        filterCreatorsLocal(newText)
+                        viewModel.filterCreatorsLocal(newText)
                     }
                 }
                 return true
@@ -197,6 +252,46 @@ class SearchFragment : Fragment() {
             hideKeyboard()
             showSortSheet()
         }
+    }
+
+    /**
+     * 搜索筛选 chips（FEATURE-004）。
+     * - 来源筛选：弹出对话框选择平台
+     * - 仅含附件：切换开关
+     * - 仅看收藏：切换开关
+     */
+    private fun setupFilterChips() {
+        binding.chipService.setOnClickListener {
+            showServiceFilterDialog()
+        }
+        binding.chipAttachment.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setHasAttachmentOnly(isChecked)
+        }
+        binding.chipBookmarked.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setBookmarkedOnly(isChecked)
+        }
+    }
+
+    private fun showServiceFilterDialog() {
+        val services = arrayOf("fanbox", "fantia", "patreon", "discord")
+        val current = viewModel.uiState.value.selectedService
+        val checkedItem = services.indexOf(current).let { if (it >= 0) it else -1 }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.filter_service)
+            .setSingleChoiceItems(services, checkedItem) { dialog, which ->
+                viewModel.setServiceFilter(services[which])
+                binding.chipService.text = services[which]
+                binding.chipService.isChecked = true
+                dialog.dismiss()
+            }
+            .setNeutralButton(R.string.filter_reset) { _, _ ->
+                viewModel.setServiceFilter(null)
+                binding.chipService.text = getString(R.string.filter_service)
+                binding.chipService.isChecked = false
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun setupSwipeRefresh() {
@@ -257,36 +352,14 @@ class SearchFragment : Fragment() {
                 ?: return@setOnCheckedChangeListener
             if (isSearchingPosts) {
                 currentPostSort = PostSortOption.values()[idx]
-                applyPostSort()
+                viewModel.setPostSort(currentPostSort)
             } else {
                 currentCreatorSort = CreatorSortOption.values()[idx]
-                applyCreatorSort()
+                viewModel.setCreatorSort(currentCreatorSort)
             }
             sheet.dismiss()
         }
         sheet.show()
-    }
-
-    private fun applyPostSort() {
-        if (searchResults.isEmpty()) return
-        val sorted = when (currentPostSort) {
-            PostSortOption.RELEVANCE -> searchResults
-            PostSortOption.NEWEST_PUBLISHED -> searchResults.sortedByDescending { it.published }
-            PostSortOption.OLDEST_PUBLISHED -> searchResults.sortedBy { it.published }
-            PostSortOption.NEWEST_EDITED -> searchResults.sortedByDescending { it.edited ?: it.published }
-            PostSortOption.OLDEST_EDITED -> searchResults.sortedBy { it.edited ?: it.published }
-        }
-        val filtered = sorted.filter { !blockedCreatorManager.isCreatorBlocked(it.service, it.user) }
-        postAdapter.updatePosts(filtered)
-    }
-
-    private fun applyCreatorSort() {
-        if (filteredCreators.isEmpty()) return
-        val sorted = when (currentCreatorSort) {
-            CreatorSortOption.NAME_ASC -> filteredCreators.sortedBy { it.name.lowercase() }
-            CreatorSortOption.NAME_DESC -> filteredCreators.sortedByDescending { it.name.lowercase() }
-        }
-        creatorAdapter.updateCreators(sorted)
     }
 
     private fun showSearchPrompt() {
@@ -298,6 +371,8 @@ class SearchFragment : Fragment() {
             binding.tvNoResults.visibility = View.VISIBLE
             binding.progressBar.visibility = View.GONE
             binding.tvEmptyText.text = getString(R.string.search_initial_hint)
+            // 清空关键词时隐藏错误页
+            errorStateView.hide()
             if (isSearchingPosts) {
                 postAdapter.updatePosts(emptyList())
             } else {
@@ -308,99 +383,20 @@ class SearchFragment : Fragment() {
 
     private fun performSearch(query: String, isRefresh: Boolean = false) {
         showResultsView()
+        lastQuery = query
+        // 发起新搜索前隐藏错误页
+        errorStateView.hide()
         searchHistoryManager.addHistory(query)
         if (isSearchingPosts) {
-            searchPosts(query, isRefresh)
+            viewModel.searchPosts(query)
         } else {
-            filterCreatorsLocal(query)
+            viewModel.filterCreatorsLocal(query)
         }
-    }
-
-    private var searchJob: Job? = null
-
-    private fun searchPosts(query: String, isRefresh: Boolean = false) {
-        if (!isRefresh) {
-            binding.progressBar.visibility = View.VISIBLE
-        }
-        binding.tvNoResults.visibility = View.GONE
-        searchJob?.cancel()
-        searchJob = viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val results = api.getRecentPosts(query = query)
-                searchResults = results
-                if (results.isEmpty()) {
-                    binding.tvEmptyText.text = getString(R.string.no_posts_found)
-                    binding.tvNoResults.visibility = View.VISIBLE
-                }
-                applyPostSort()
-                launch {
-                    CreatorNameCache.prefetchCreatorNames(results)
-                    postAdapter.notifyDataSetChanged()
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                e.printStackTrace()
-                binding.tvNoResults.visibility = View.VISIBLE
-                binding.tvEmptyText.text = getString(R.string.search_initial_hint)
-                Toast.makeText(context, ErrorMessageHelper.getFriendlyMessage(context, e), Toast.LENGTH_SHORT).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-                binding.swipeRefresh.isRefreshing = false
-            }
-        }
-    }
-
-    private fun fetchCreatorsCache() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                allCreators = api.getCreators()
-                creatorsCacheLoaded = true
-                pendingCreatorQuery?.let { query ->
-                    filterCreatorsLocal(query)
-                    pendingCreatorQuery = null
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                creatorsCacheLoaded = true
-                pendingCreatorQuery?.let { query ->
-                    filterCreatorsLocal(query)
-                    pendingCreatorQuery = null
-                }
-            }
-        }
-    }
-
-    private fun filterCreatorsLocal(query: String) {
-        hideHistoryView()
-        binding.tvNoResults.visibility = View.GONE
-
-        if (!creatorsCacheLoaded) {
-            pendingCreatorQuery = query
-            binding.progressBar.visibility = View.VISIBLE
-            return
-        }
-
-        val filtered = allCreators.filter {
-            (it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true))
-                    && !blockedCreatorManager.isCreatorBlocked(it.service, it.id)
-        }
-        filteredCreators = filtered
-        binding.progressBar.visibility = View.GONE
-
-        if (filtered.isEmpty()) {
-            binding.tvEmptyText.text = getString(R.string.no_creators_found)
-            binding.tvNoResults.visibility = View.VISIBLE
-        } else {
-            binding.tvNoResults.visibility = View.GONE
-        }
-        applyCreatorSort()
     }
 
     private fun setupSearchHistory() {
-        searchHistoryManager = SearchHistoryManager(requireContext())
+        searchHistoryManager = SearchHistoryManager.getInstance(requireContext())
         searchHistoryAdapter = SearchHistoryAdapter(
-            items = searchHistoryManager.getHistory(),
             onItemClicked = { query ->
                 hideKeyboard()
                 binding.searchView.setQuery(query, true)
@@ -451,15 +447,8 @@ class SearchFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (searchResults.isNotEmpty() && isSearchingPosts) {
-            applyPostSort()
-        }
-        if (filteredCreators.isNotEmpty() && !isSearchingPosts) {
-            val query = binding.searchView.query.toString()
-            if (query.isNotEmpty()) {
-                filterCreatorsLocal(query)
-            }
-        }
+        // 屏蔽状态可能变化，触发 ViewModel 重新过滤已加载数据
+        viewModel.refreshBlockedFilter()
     }
 
     override fun onPause() {

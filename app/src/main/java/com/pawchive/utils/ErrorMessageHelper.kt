@@ -3,6 +3,7 @@ package com.pawchive.utils
 import android.content.Context
 import android.util.Log
 import com.pawchive.R
+import com.pawchive.data.AppError
 import java.net.UnknownHostException
 import java.net.SocketTimeoutException
 import java.net.ConnectException
@@ -15,9 +16,9 @@ object ErrorMessageHelper {
     fun getFriendlyMessage(context: Context?, throwable: Throwable?): String {
         if (context == null) return "操作失败，请稍后重试"
         if (throwable == null) return context.getString(R.string.error_unknown)
-        val rootCause = findRootCause(throwable)
-        val originalMessage = rootCause.message ?: throwable.message ?: ""
-        return mapMessage(context, rootCause.javaClass.simpleName, originalMessage)
+        // 优先使用 AppError 的结构化映射，避免脆弱的字符串匹配（P2 BACKEND-007）
+        val appError = (throwable as? AppError) ?: AppError.from(throwable)
+        return appError.toMessage(context)
     }
 
     fun getFriendlyMessage(context: Context?, rawMessage: String?): String {

@@ -21,6 +21,7 @@ import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
 import com.pawchive.utils.ErrorMessageHelper
+import com.pawchive.utils.ErrorStateViewHelper
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -36,6 +37,9 @@ class HomeFragment : Fragment() {
 
     private var showBookmarksOnly = false
     private val loadedPosts = mutableListOf<Post>()
+
+    // 内嵌错误页（FEATURE-006）
+    private lateinit var errorStateView: ErrorStateViewHelper.Bound
 
     private enum class PostSortOption(@param:StringRes val displayNameRes: Int) {
         NEWEST_PUBLISHED(R.string.sort_newest_published),
@@ -69,6 +73,10 @@ class HomeFragment : Fragment() {
         setupRecyclerView()
         setupSwipeRefresh()
         setupSortButton()
+        // 绑定内嵌错误页（FEATURE-006）
+        errorStateView = ErrorStateViewHelper.bind(binding.root) {
+            viewModel.refresh()
+        }
 
         if (showBookmarksOnly) {
             loadBookmarks(isRefresh = false)
@@ -86,6 +94,8 @@ class HomeFragment : Fragment() {
                 binding.tvEmpty.visibility = View.VISIBLE
             } else {
                 binding.tvEmpty.visibility = View.GONE
+                // 有内容时隐藏错误页
+                errorStateView.hide()
                 applySort()
                 viewLifecycleOwner.lifecycleScope.launch {
                     var lastRefreshAt = 0L
@@ -114,15 +124,21 @@ class HomeFragment : Fragment() {
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             if (!message.isNullOrBlank()) {
-                Toast.makeText(
-                    context,
-                    ErrorMessageHelper.getFriendlyMessage(context, message),
-                    Toast.LENGTH_LONG
-                ).show()
                 if (loadedPosts.isEmpty()) {
-                    binding.tvEmpty.text = getString(R.string.connection_error)
-                    binding.tvEmpty.visibility = View.VISIBLE
+                    // 列表为空：展示内嵌错误页，提供重试入口（FEATURE-006）
+                    binding.tvEmpty.visibility = View.GONE
+                    errorStateView.show(message)
+                } else {
+                    // 已有内容：错误以 Toast 呈现，不打断浏览
+                    Toast.makeText(
+                        context,
+                        ErrorMessageHelper.getFriendlyMessage(context, message),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
+            } else {
+                // 错误清除时隐藏错误页
+                errorStateView.hide()
             }
         }
 
@@ -223,6 +239,8 @@ class HomeFragment : Fragment() {
 
     private fun loadBookmarks(isRefresh: Boolean = false) {
         val bookmarkedPosts = bookmarkManager.getBookmarkedPosts()
+        // 收藏页不展示网络错误页
+        errorStateView.hide()
         if (bookmarkedPosts.isEmpty()) {
             binding.tvEmpty.text = getString(R.string.no_favorites)
             binding.tvEmpty.visibility = View.VISIBLE

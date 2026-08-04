@@ -118,9 +118,7 @@ class AccountFavoritesFragment : Fragment() {
 
     private fun setupAdapters() {
         postAdapter = FavoritePostAdapter(
-            posts = emptyList(),
             onPostClicked = { post ->
-                // 导航到帖子详情
                 val fragment = PostDetailFragment.newInstance(
                     service = post.service,
                     creatorId = post.user,
@@ -129,7 +127,6 @@ class AccountFavoritesFragment : Fragment() {
                 (activity as? com.pawchive.ui.MainActivity)?.loadFragment(fragment)
             },
             onCreatorClicked = { service, creatorId ->
-                // 导航到创作者页面
                 val fragment = CreatorProfileFragment.newInstance(
                     service = service,
                     creatorId = creatorId
@@ -141,11 +138,9 @@ class AccountFavoritesFragment : Fragment() {
             },
             onLoadMore = { loadMorePosts() }
         )
-        
+
         creatorAdapter = FavoriteCreatorAdapter(
-            creators = emptyList(),
             onCreatorClicked = { service, creatorId ->
-                // 导航到创作者页面
                 val fragment = CreatorProfileFragment.newInstance(
                     service = service,
                     creatorId = creatorId

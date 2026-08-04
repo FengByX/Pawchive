@@ -11,7 +11,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -56,6 +58,19 @@ class BlockedCreatorManager private constructor(private val context: Context) {
                 loaded.set(true)
             }
         }
+    }
+
+    /**
+     * 暴露屏蔽列表的 Flow，UI 层用 repeatOnLifecycle 收集以自动刷新（P1）。
+     * 解决异步加载竞态：首次进入页面不再出现空数据，加载完成后 UI 自动更新。
+     */
+    val blockedCreatorsFlow: Flow<List<Pair<String, String>>> = dataStore.data.map { prefs ->
+        prefs.asMap().entries
+            .filter { it.key.name.startsWith(KEY_PREFIX) && it.value == true }
+            .mapNotNull { entry ->
+                val parts = entry.key.name.removePrefix(KEY_PREFIX).split("|")
+                if (parts.size == 2) parts[0] to parts[1] else null
+            }
     }
 
     /**

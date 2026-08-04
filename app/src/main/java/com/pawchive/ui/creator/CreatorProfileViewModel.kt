@@ -1,7 +1,10 @@
 package com.pawchive.ui.creator
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pawchive.data.AppError
+import com.pawchive.data.api.ApiCallHandler
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Announcement
 import com.pawchive.data.model.CreatorProfile
@@ -22,7 +25,7 @@ data class CreatorProfileUiState(
     val hasMore: Boolean = false
 )
 
-class CreatorProfileViewModel : ViewModel() {
+class CreatorProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(CreatorProfileUiState())
     val uiState: StateFlow<CreatorProfileUiState> = _uiState.asStateFlow()
@@ -73,46 +76,44 @@ class CreatorProfileViewModel : ViewModel() {
         _uiState.value = CreatorProfileUiState(isLoading = true, errorMessage = null)
 
         viewModelScope.launch {
-            try {
-                val posts = api.getCreatorPosts(service, creatorId, offset = 0)
-                memoryCache.put(cacheKeyPosts, posts)
-
-                val announcements = try {
-                    api.getCreatorAnnouncements(service, creatorId)
-                } catch (_: Exception) {
-                    emptyList()
-                }
-                memoryCache.put(cacheKeyAnnouncements, announcements)
-
-                val links = try {
-                    api.getCreatorLinks(service, creatorId)
-                } catch (_: Exception) {
-                    emptyList()
-                }
-                memoryCache.put(cacheKeyLinks, links)
-
-                val name = try {
-                    api.getCreatorProfile(service, creatorId).name
-                } catch (_: Exception) {
-                    creatorId
-                }
-                memoryCache.put(cacheKeyProfile, name)
-
-                _uiState.value = CreatorProfileUiState(
-                    name = name,
-                    posts = posts,
-                    announcements = announcements,
-                    links = links,
-                    isLoading = false,
-                    errorMessage = null,
-                    hasMore = posts.size >= pageSize
-                )
-            } catch (e: Exception) {
-                _uiState.value = CreatorProfileUiState(
-                    isLoading = false,
-                    errorMessage = e.message
-                )
+            // 主请求失败时直接展示错误；附属数据（公告/链接/昵称）失败降级为空（P2 BACKEND-007）
+            val postsResult = ApiCallHandler.runCatchingDirect {
+                api.getCreatorPosts(service, creatorId, offset = 0)
             }
+            val posts = postsResult.getOrNull()
+            if (posts == null) {
+                val error = postsResult.exceptionOrNull()?.let { it as? AppError ?: AppError.from(it) }
+                    ?: AppError.Unknown()
+                _uiState.value = CreatorProfileUiState(
+                    isLoading = false,
+                    errorMessage = error.toMessage(getApplication())
+                )
+                return@launch
+            }
+            memoryCache.put(cacheKeyPosts, posts)
+
+            // 附属数据：失败不影响主流程，降级为空列表/使用 creatorId 作为名称
+            val announcements = runCatching { api.getCreatorAnnouncements(service, creatorId) }
+                .getOrDefault(emptyList())
+            memoryCache.put(cacheKeyAnnouncements, announcements)
+
+            val links = runCatching { api.getCreatorLinks(service, creatorId) }
+                .getOrDefault(emptyList())
+            memoryCache.put(cacheKeyLinks, links)
+
+            val name = runCatching { api.getCreatorProfile(service, creatorId).name }
+                .getOrDefault(creatorId)
+            memoryCache.put(cacheKeyProfile, name)
+
+            _uiState.value = CreatorProfileUiState(
+                name = name,
+                posts = posts,
+                announcements = announcements,
+                links = links,
+                isLoading = false,
+                errorMessage = null,
+                hasMore = posts.size >= pageSize
+            )
         }
     }
 
@@ -121,21 +122,22 @@ class CreatorProfileViewModel : ViewModel() {
         currentOffset += pageSize
 
         viewModelScope.launch {
-            try {
-                val morePosts = api.getCreatorPosts(currentService, currentCreatorId, offset = currentOffset)
+            val result = ApiCallHandler.runCatchingDirect {
+                api.getCreatorPosts(currentService, currentCreatorId, offset = currentOffset)
+            }
+            result.onSuccess { morePosts ->
                 val allPosts = _uiState.value.posts + morePosts
-
-                // 更新缓存
                 val cacheKey = "creator_posts:$currentService|$currentCreatorId|0"
                 memoryCache.put(cacheKey, allPosts)
-
                 _uiState.value = _uiState.value.copy(
                     posts = allPosts,
                     hasMore = morePosts.size >= pageSize
                 )
-            } catch (e: Exception) {
+            }.onFailure { error ->
                 currentOffset -= pageSize
-                _uiState.value = _uiState.value.copy(errorMessage = e.message)
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = (error as? AppError ?: AppError.from(error)).toMessage(getApplication())
+                )
             }
         }
     }

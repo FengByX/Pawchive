@@ -119,7 +119,8 @@ class UpdateChecker(context: Context) {
      *  - 数字部分按数值比较；
      *  - 后缀（如 -beta / -rc.1）视为预发布版本，比同号无后缀版本旧（语义化版本约定）。
      */
-    private fun isNewerVersion(latest: String, current: String): Boolean {
+    @JvmSynthetic
+    internal fun isNewerVersion(latest: String, current: String): Boolean {
         val latestVer = parseSemver(latest)
         val currentVer = parseSemver(current)
 
@@ -224,7 +225,7 @@ class UpdateChecker(context: Context) {
                     append(notesHtml)
                 }
             }
-            text = Html.fromHtml(fullHtml, Html.FROM_HTML_MODE_LEGACY)
+            text = com.pawchive.utils.SafeHtmlHelper.render(fullHtml)
             movementMethod = LinkMovementMethod.getInstance()
             setLineSpacing(dpToPx(context, 4).toFloat(), 1.0f)
         }

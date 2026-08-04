@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.pawchive.R
 import com.pawchive.ui.account.AccountFragment
+import com.pawchive.ui.downloads.DownloadsFragment
 import com.pawchive.ui.favorites.AccountFavoritesFragment
 import com.pawchive.ui.home.HomeFragment
 import com.pawchive.ui.search.SearchFragment
@@ -52,6 +53,7 @@ class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activi
             R.id.navigation_search -> SearchFragment()
             R.id.navigation_bookmarks -> AccountFavoritesFragment()
             R.id.navigation_account -> AccountFragment()
+            R.id.navigation_downloads -> DownloadsFragment()
             else -> HomeFragment()
         }
     }

@@ -2,8 +2,7 @@ package com.pawchive.data.api
 
 import com.pawchive.BuildConfig
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -13,6 +12,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -33,12 +33,12 @@ object ApiClient {
     private data class CacheEntry(val timestamp: Long, val body: ByteArray, val contentType: String?)
     private val apiMemoryCache = ConcurrentHashMap<String, CacheEntry>()
 
-    // 当前登录会话（用于缓存命名空间隔离，避免跨用户缓存复用 / P0）
+    // 当前登录会话的 hash（用于缓存命名空间隔离，避免明文 cookie 驻留内存键 / P2）
     @Volatile
-    private var currentSessionCookie: String? = null
+    private var currentSessionHash: String? = null
 
-    // 过盾过程串行化锁，避免并发 403 时多个线程同时驱动 WebView（P1）
-    private val clearanceMutex = Mutex()
+    // 过盾等待超时：与 CloudflareManager 的挑战超时对齐，避免 OkHttp 线程被无限阻塞（P1）
+    private const val CLEARANCE_WAIT_TIMEOUT_MS = 32_000L
 
     // 用于构造“过盾失败”占位响应（避免依赖已关闭的响应体 / P1）
     private val EMPTY_RESPONSE_BODY = ByteArray(0).toResponseBody("text/plain".toMediaType())
@@ -69,10 +69,8 @@ object ApiClient {
             return@Interceptor chain.proceed(request)
         }
 
-        // 缓存键加入账号维度：登录态请求归入各自 session 命名空间，
-        // 匿名/公开请求归入 "public"，避免另一账号或登出后复用旧响应（P0）。
-        val session = currentSessionCookie
-        val namespace = if (session.isNullOrEmpty()) "public" else "u:$session"
+        // 缓存键加入账号维度：用 session hash 替代明文 cookie，避免凭据驻留内存键（P2）
+        val namespace = currentSessionHash?.let { "u:$it" } ?: "public"
         val key = "$namespace|${request.url}"
 
         val now = System.currentTimeMillis()
@@ -194,13 +192,13 @@ object ApiClient {
         // 关闭原始 403 响应释放连接（其 body 已无用）
         response.close()
 
-        // 串行化过盾过程，避免并发 403 时多个线程同时驱动 WebView 造成资源耗尽/冲突（P1）
+        // CloudflareManager.ensureClearance 内部已实现单飞（inFlight CompletableDeferred），
+        // 并发 403 会复用同一过盾任务，不会启动多个 WebView。
+        // 这里仅阻塞当前 OkHttp 线程等待结果，带超时避免无限阻塞（P1）。
         val success = runBlocking {
-            runCatching {
-                clearanceMutex.withLock {
-                    CloudflareManager.ensureClearance(forceRefresh = true)
-                }
-            }.getOrDefault(false)
+            withTimeoutOrNull(CLEARANCE_WAIT_TIMEOUT_MS) {
+                runCatching { CloudflareManager.ensureClearance(forceRefresh = true) }.getOrDefault(false)
+            } ?: false
         }
 
         if (success) {
@@ -254,9 +252,14 @@ object ApiClient {
     }
 
     private fun buildOkHttpClient(): OkHttpClient {
-        val logger = HttpLoggingInterceptor().apply {
+        // 日志级别：debug 用 HEADERS（不打印 body 避免泄漏登录响应/Cookie/帖子内容），
+        // release 用 NONE。敏感头（Authorization/Cookie/Set-Cookie）始终脱敏（P1）。
+        val logger = HttpLoggingInterceptor { message ->
+            val sanitized = sanitizeLogMessage(message)
+            if (sanitized != null) okhttp3.internal.platform.Platform.get().log(sanitized)
+        }.apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.HEADERS
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
@@ -277,6 +280,23 @@ object ApiClient {
             .build()
     }
 
+    /**
+     * 日志脱敏：拦截 Authorization / Cookie / Set-Cookie 头，仅输出头名与掩码值（P1）。
+     * 返回 null 表示丢弃该行（如 BODY 级别的二进制内容）。
+     */
+    private fun sanitizeLogMessage(message: String): String? {
+        val sensitiveHeaders = listOf("Authorization", "Cookie", "Set-Cookie")
+        for (header in sensitiveHeaders) {
+            if (message.startsWith("$header:", ignoreCase = true)) {
+                val parts = message.split(":", limit = 2)
+                val value = if (parts.size == 2) parts[1].trim() else ""
+                val masked = if (value.isEmpty()) "<empty>" else "<redacted ${value.length} chars>"
+                return "$header: $masked"
+            }
+        }
+        return message
+    }
+
     private val okHttpClient: OkHttpClient by lazy { buildOkHttpClient() }
 
     val publicApi: PawchiveApi by lazy {
@@ -294,8 +314,8 @@ object ApiClient {
             if (cachedAuthCookie == sessionCookie) return cached
         }
 
-        // 设定当前会话，使内存缓存归入该账号命名空间（P0 隔离）
-        currentSessionCookie = sessionCookie
+        // 设定当前会话 hash，使内存缓存归入该账号命名空间（P2：用 hash 替代明文 cookie）
+        currentSessionHash = hashSession(sessionCookie)
 
         val cookieInterceptor = Interceptor { chain ->
             val original = chain.request()
@@ -336,7 +356,22 @@ object ApiClient {
         apiMemoryCache.clear()
         cachedAuthApi = null
         cachedAuthCookie = null
-        currentSessionCookie = null
+        currentSessionHash = null
+    }
+
+    /**
+     * 将 session cookie 转为 SHA-256 hash 前 16 字符，用于缓存键命名空间（P2）。
+     * 不存储原始 cookie，仅存 hash，降低内存泄漏风险。
+     */
+    private fun hashSession(cookie: String): String {
+        return try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val bytes = digest.digest(cookie.toByteArray(Charsets.UTF_8))
+            bytes.joinToString("") { "%02x".format(it) }.take(16)
+        } catch (_: Exception) {
+            // 极端情况降级为 hashCode，仍不含明文
+            cookie.hashCode().toString(16)
+        }
     }
 
     val loginApi: PawchiveLoginApi by lazy {

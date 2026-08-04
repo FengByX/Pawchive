@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.pawchive.data.AppError
+import com.pawchive.data.api.ApiCallHandler
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.model.Post
 import com.pawchive.data.repository.BlockedCreatorManager
@@ -49,17 +51,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         currentOffset += pageSize
 
         viewModelScope.launch {
-            try {
-                val morePosts = api.getRecentPosts(offset = currentOffset)
+            // 使用统一错误处理：失败时回滚 offset 并通过 AppError 映射友好文案（P2 BACKEND-007）
+            val result = ApiCallHandler.runCatchingDirect {
+                api.getRecentPosts(offset = currentOffset)
+            }
+            result.onSuccess { morePosts ->
                 loadedPosts.addAll(morePosts)
                 _posts.value = filterBlocked(loadedPosts)
                 _hasMore.value = morePosts.size >= pageSize
-            } catch (e: Exception) {
+            }.onFailure { error ->
                 currentOffset -= pageSize
-                _errorMessage.value = e.message
-            } finally {
-                _isLoading.value = false
+                _errorMessage.value = (error as? AppError ?: AppError.from(error))
+                    .toMessage(getApplication())
             }
+            _isLoading.value = false
         }
     }
 
@@ -82,22 +87,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            try {
-                val posts = api.getRecentPosts(offset = currentOffset, cacheControl = cacheControl)
+            val result = ApiCallHandler.runCatchingDirect {
+                api.getRecentPosts(offset = currentOffset, cacheControl = cacheControl)
+            }
+            result.onSuccess { posts ->
                 if (reset) {
                     loadedPosts.clear()
                 }
                 loadedPosts.addAll(posts)
                 _posts.value = filterBlocked(loadedPosts)
                 _hasMore.value = posts.size >= pageSize
-            } catch (e: Exception) {
+            }.onFailure { error ->
                 if (reset) {
                     currentOffset = 0
                 }
-                _errorMessage.value = e.message
-            } finally {
-                _isLoading.value = false
+                _errorMessage.value = (error as? AppError ?: AppError.from(error))
+                    .toMessage(getApplication())
             }
+            _isLoading.value = false
         }
     }
 

@@ -171,6 +171,16 @@
     <!-- Download Progress -->
     <string name="download_progress">下载中：%1$d%%</string>
 
+    <!-- Download Notification (WorkManager 前台任务) -->
+    <string name="download_channel_name">视频下载</string>
+    <string name="download_channel_desc">在通知栏显示视频下载进度</string>
+    <string name="download_notification_title">正在下载视频</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">下载已取消</string>
+    <string name="download_notification_failed">下载失败：%1$s</string>
+    <string name="download_notification_complete">视频已保存到相册</string>
+    <string name="download_no_permission">需要通知权限才能显示下载进度，已开始后台下载</string>
+
     <!-- Settings: Download -->
     <string name="section_download">下载</string>
     <string name="download_location">下载位置</string>
@@ -200,6 +210,8 @@
     <string name="auto_check_update_desc">应用启动时检查新版本</string>
     <string name="cache_size">当前缓存大小：%1$s</string>
     <string name="cache_cleaned">缓存已清理</string>
+    <string name="cache_cleaned_freed">已释放 %1$s 缓存</string>
+    <string name="cache_clean_failed">缓存清理失败</string>
     <string name="cache_cleaning">正在清理缓存...</string>
     <string name="cache_empty">无缓存</string>
     <string name="clean">清理</string>
@@ -213,6 +225,7 @@
     <string name="join_telegram">加入官方频道</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">无法打开浏览器</string>
+    <string name="unsafe_link_blocked">已拦截不安全的链接</string>
 
     <!-- Register -->
     <string name="register">注册</string>
@@ -249,4 +262,57 @@
 
     <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
     <string name="creator_service_placeholder">服务</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">下载中心</string>
+    <string name="nav_downloads">下载</string>
+    <string name="no_downloads">暂无下载记录</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_running">进行中</string>
+    <string name="filter_completed">已完成</string>
+    <string name="filter_failed">失败</string>
+    <string name="clear_history">清空历史</string>
+    <string name="download_type">下载类型</string>
+    <string name="retry">重试</string>
+    <string name="open">打开</string>
+    <string name="share">分享</string>
+    <string name="status_pending">等待中</string>
+    <string name="status_running">下载中 %1$d%%</string>
+    <string name="status_completed">已完成</string>
+    <string name="status_failed">下载失败</string>
+    <string name="status_cancelled">已取消</string>
+    <string name="download_cancelled">下载已取消</string>
+    <string name="download_retried">正在重试下载</string>
+    <string name="confirm_clear_history">确定清空所有下载历史吗？</string>
+    <!-- FEATURE-002 离线收藏与阅读 -->
+    <string name="offline_reading_hint">离线模式：正在查看本地缓存的收藏内容</string>
+    <string name="offline_not_cached">网络不可用且该帖子未收藏，无法离线查看</string>
+    <string name="search_in_local">在本地收藏中搜索</string>
+    <!-- FEATURE-003 账号与数据边界 -->
+    <string name="switch_account">切换账号</string>
+    <string name="current_account">当前账号</string>
+    <string name="no_account">未登录</string>
+    <string name="logout_clear_data">退出登录将清除该账号的本地数据（收藏、历史、下载）</string>
+    <string name="ok">确定</string>
+    <string name="no_other_accounts">没有其他已保存的账号</string>
+    <string name="switched_to_account">已切换到 %1$s</string>
+    <!-- FEATURE-004 搜索增强 -->
+    <string name="filter_service">来源</string>
+    <string name="filter_type">类型</string>
+    <string name="filter_has_attachment">仅含附件</string>
+    <string name="filter_bookmarked">仅看收藏</string>
+    <string name="filter_reset">重置筛选</string>
+    <!-- FEATURE-005 内容阅读体验 -->
+    <string name="read_later">稍后读</string>
+    <string name="reading_progress">阅读进度</string>
+    <string name="external_link_warning">即将打开外部链接，是否继续？</string>
+    <string name="save_all_images">保存全部图片</string>
+    <string name="video_resume_position">已恢复至上次播放位置</string>
+    <string name="no_images_to_save">没有可保存的图片</string>
+    <string name="saving_images_count">正在保存 %1$d 张图片</string>
+    <!-- FEATURE-006 可观察的错误与反馈 -->
+    <string name="error_retry">重试</string>
+    <string name="error_load_failed">加载失败</string>
+    <string name="error_empty">暂无内容</string>
+    <string name="error_network">网络连接失败</string>
 </resources>

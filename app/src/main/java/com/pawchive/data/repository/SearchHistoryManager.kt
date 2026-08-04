@@ -25,7 +25,7 @@ private val Context.searchHistoryDataStore: DataStore<Preferences> by preference
 // 共享 IO 作用域：替代 GlobalScope，明确运行在 IO 线程并带 SupervisorJob 隔离异常（P1）
 private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-class SearchHistoryManager(private val context: Context) {
+class SearchHistoryManager private constructor(private val context: Context) {
 
     private val dataStore = context.searchHistoryDataStore
     private val writeMutex = Mutex()
@@ -88,6 +88,13 @@ class SearchHistoryManager(private val context: Context) {
         editSync { it.remove(KEY_HISTORY) }
     }
 
+    /**
+     * 清除所有搜索历史（FEATURE-003 账号切换/登出时数据隔离）。
+     */
+    fun clearAllForAccountSwitch() {
+        clearAll()
+    }
+
     private fun saveHistory(list: List<String>) {
         val arr = JSONArray()
         list.forEach { arr.put(it) }
@@ -116,6 +123,14 @@ class SearchHistoryManager(private val context: Context) {
         private const val MIGRATION_DONE_KEY = "datastore_migration_done"
         private const val OLD_PREFS_NAME = "search_history_prefs"
         private const val OLD_KEY_HISTORY = "search_history"
+
+        @Volatile
+        private var instance: SearchHistoryManager? = null
+
+        fun getInstance(context: Context): SearchHistoryManager =
+            instance ?: synchronized(this) {
+                instance ?: SearchHistoryManager(context.applicationContext).also { instance = it }
+            }
 
         /**
          * 一次性迁移：把旧 SharedPreferences 数据导入 DataStore

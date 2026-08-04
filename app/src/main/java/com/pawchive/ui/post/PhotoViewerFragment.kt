@@ -139,49 +139,27 @@ class PhotoViewerFragment : Fragment() {
         try {
             val fileName = "Pawchive_${System.currentTimeMillis()}_${imageName.takeLast(30)}"
 
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Pawchive")
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
-            }
+            // 统一下载入口：优先用 SAF 树 URI，未配置时回退 MediaStore（P1）
+            val target = com.pawchive.data.repository.DownloadRepository.DownloadTarget(
+                type = com.pawchive.data.repository.DownloadRepository.DownloadType.IMAGE,
+                displayName = fileName,
+                mimeType = mimeType
+            )
+            val (outputStream, mediaUri) = com.pawchive.data.repository.DownloadRepository
+                .openDownloadStream(requireContext(), target)
 
-            val resolver = requireContext().contentResolver
-            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else {
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            outputStream.use { out ->
+                inputStream.use { input -> input.copyTo(out) }
             }
+            com.pawchive.data.repository.DownloadRepository
+                .finalizeDownload(requireContext(), mediaUri)
 
-            val uri = resolver.insert(collection, contentValues)
-            if (uri != null) {
-                resolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
-                    inputStream.use { input ->
-                        input.copyTo(outputStream)
-                    }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    contentValues.clear()
-                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
-                    resolver.update(uri, contentValues, null, null)
-                }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.image_saved),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.save_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.image_saved),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         } catch (e: Exception) {
             e.printStackTrace()

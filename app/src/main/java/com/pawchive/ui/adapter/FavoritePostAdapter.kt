@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.pawchive.R
@@ -14,13 +15,13 @@ import com.pawchive.databinding.ItemLoadMoreFooterBinding
 import com.pawchive.databinding.ItemPostBinding
 
 class FavoritePostAdapter(
-    private var posts: List<FavoritePost>,
     private val onPostClicked: (FavoritePost) -> Unit,
     private val onCreatorClicked: (String, String) -> Unit,
     private val onRemoveFavorite: (FavoritePost) -> Unit,
     private val onLoadMore: () -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    private var posts: List<FavoritePost> = emptyList()
     private var showFooter = false
 
     companion object {
@@ -31,8 +32,17 @@ class FavoritePostAdapter(
     }
 
     fun updatePosts(newPosts: List<FavoritePost>) {
+        val diffCallback = object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = posts.size
+            override fun getNewListSize(): Int = newPosts.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean =
+                posts[oldPos].id == newPosts[newPos].id && posts[oldPos].service == newPosts[newPos].service
+            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean =
+                posts[oldPos] == newPosts[newPos]
+        }
+        val result = DiffUtil.calculateDiff(diffCallback)
         posts = newPosts
-        notifyDataSetChanged()
+        result.dispatchUpdatesTo(this)
     }
 
     fun setFooterVisible(visible: Boolean) {

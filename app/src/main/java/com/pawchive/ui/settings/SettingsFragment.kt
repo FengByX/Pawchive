@@ -11,57 +11,31 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
-import com.pawchive.BuildConfig
 import com.pawchive.R
 import com.pawchive.data.SettingsManager
-import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.databinding.FragmentSettingsBinding
 import com.pawchive.ui.MainActivity
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
-    private lateinit var settingsManager: SettingsManager
-    private lateinit var blockedCreatorManager: BlockedCreatorManager
+    private val viewModel: SettingsViewModel by viewModels()
+
+    // 缓存清理 loading Toast 引用，由 isCleaningCache 状态控制显示/取消
+    private var cleaningToast: Toast? = null
 
     private val pickDownloadLocation = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
-        if (uri == null) return@registerForActivityResult
-        try {
-            val activity = activity ?: return@registerForActivityResult
-
-            try {
-                activity.contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-            } catch (_: Exception) {}
-
-            val displayName = getFolderDisplayName(uri)
-            settingsManager.setDownloadTreeUri(uri, displayName)
-            updateDownloadLocationText()
-
-            Toast.makeText(
-                activity,
-                getString(R.string.download_location_set_to, displayName),
-                Toast.LENGTH_SHORT
-            ).show()
-        } catch (_: Exception) {
-            activity?.let {
-                Toast.makeText(
-                    it,
-                    R.string.file_picker_not_available,
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        if (uri != null) {
+            viewModel.setDownloadTreeUri(uri)
         }
     }
 
@@ -76,8 +50,6 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        settingsManager = SettingsManager.getInstance(requireContext())
-        blockedCreatorManager = BlockedCreatorManager.getInstance(requireContext())
 
         setupBackButton()
         setupToggleButtonColors()
@@ -87,15 +59,67 @@ class SettingsFragment : Fragment() {
         setupDownloadLocation()
         setupAutoCleanCache()
         setupManualCleanCache()
-        setupVersionInfo()
         setupAutoCheckUpdate()
         setupTelegramButton()
+        observeUiState()
     }
 
     override fun onResume() {
         super.onResume()
-        updateCacheSize()
-        updateDownloadLocationText()
+        viewModel.refreshCacheSize()
+        viewModel.refreshDownloadLocationText()
+    }
+
+    /**
+     * 订阅 ViewModel 状态，渲染屏蔽计数、下载位置、缓存大小、版本号、Toast 等（P2 FRONTEND-008）。
+     * - 语言/外观/开关：初始值在 setup 中从 UiState 读取，避免双向同步循环
+     * - 屏蔽计数、下载位置文本、缓存大小、版本号：由 UiState 驱动
+     * - isCleaningCache：控制 loading Toast 的显示与取消
+     * - toastMessage：一次性 Toast，展示后清除
+     */
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    // 屏蔽计数
+                    binding.tvBlockedCount.text = if (state.blockedCount == 0) {
+                        getString(R.string.blocked_count_zero)
+                    } else {
+                        getString(R.string.blocked_count, state.blockedCount)
+                    }
+
+                    // 下载位置
+                    binding.tvDownloadLocation.text = state.downloadLocationText
+
+                    // 缓存大小
+                    binding.tvCacheSize.text = state.cacheSizeText
+
+                    // 版本号（仅展示语义化版本号，不暴露 versionCode）
+                    binding.tvVersion.text = "v${state.versionName}"
+
+                    // 缓存清理 loading Toast
+                    if (state.isCleaningCache) {
+                        if (cleaningToast == null) {
+                            cleaningToast = Toast.makeText(
+                                requireContext(),
+                                R.string.cache_cleaning,
+                                Toast.LENGTH_SHORT
+                            )
+                            cleaningToast?.show()
+                        }
+                    } else {
+                        cleaningToast?.cancel()
+                        cleaningToast = null
+                    }
+
+                    // 一次性 Toast
+                    state.toastMessage?.let { msg ->
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                        viewModel.clearToast()
+                    }
+                }
+            }
+        }
     }
 
     private fun setupBackButton() {
@@ -136,12 +160,12 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupLanguage() {
-        val currentLang = settingsManager.getLanguage()
-        when (currentLang) {
-            SettingsManager.Language.CHINESE -> binding.toggleLanguage.check(R.id.btn_lang_zh)
-            SettingsManager.Language.ENGLISH -> binding.toggleLanguage.check(R.id.btn_lang_en)
-            SettingsManager.Language.JAPANESE -> binding.toggleLanguage.check(R.id.btn_lang_ja)
+        val langId = when (viewModel.uiState.value.language) {
+            SettingsManager.Language.CHINESE -> R.id.btn_lang_zh
+            SettingsManager.Language.ENGLISH -> R.id.btn_lang_en
+            SettingsManager.Language.JAPANESE -> R.id.btn_lang_ja
         }
+        binding.toggleLanguage.check(langId)
 
         binding.toggleLanguage.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
@@ -151,19 +175,19 @@ class SettingsFragment : Fragment() {
                 R.id.btn_lang_ja -> SettingsManager.Language.JAPANESE
                 else -> return@addOnButtonCheckedListener
             }
-            if (language == currentLang) return@addOnButtonCheckedListener
-            settingsManager.setLanguage(language)
+            if (language == viewModel.uiState.value.language) return@addOnButtonCheckedListener
+            viewModel.setLanguage(language)
             (activity as? MainActivity)?.restartForLanguageChange()
         }
     }
 
     private fun setupAppearance() {
-        val currentAppearance = settingsManager.getAppearance()
-        when (currentAppearance) {
-            SettingsManager.Appearance.LIGHT -> binding.toggleAppearance.check(R.id.btn_appearance_light)
-            SettingsManager.Appearance.DARK -> binding.toggleAppearance.check(R.id.btn_appearance_dark)
-            SettingsManager.Appearance.FOLLOW_SYSTEM -> binding.toggleAppearance.check(R.id.btn_appearance_system)
+        val appearanceId = when (viewModel.uiState.value.appearance) {
+            SettingsManager.Appearance.LIGHT -> R.id.btn_appearance_light
+            SettingsManager.Appearance.DARK -> R.id.btn_appearance_dark
+            SettingsManager.Appearance.FOLLOW_SYSTEM -> R.id.btn_appearance_system
         }
+        binding.toggleAppearance.check(appearanceId)
 
         binding.toggleAppearance.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
@@ -173,29 +197,19 @@ class SettingsFragment : Fragment() {
                 R.id.btn_appearance_system -> SettingsManager.Appearance.FOLLOW_SYSTEM
                 else -> return@addOnButtonCheckedListener
             }
-            settingsManager.setAppearance(appearance)
+            if (appearance == viewModel.uiState.value.appearance) return@addOnButtonCheckedListener
+            viewModel.setAppearance(appearance)
         }
     }
 
     private fun setupBlockedCreators() {
-        updateBlockedCount()
-
         binding.btnManageBlocked.setOnClickListener {
             showBlockedCreatorsDialog()
         }
     }
 
-    private fun updateBlockedCount() {
-        val count = blockedCreatorManager.getBlockedCount()
-        binding.tvBlockedCount.text = if (count == 0) {
-            getString(R.string.blocked_count_zero)
-        } else {
-            getString(R.string.blocked_count, count)
-        }
-    }
-
     private fun showBlockedCreatorsDialog() {
-        val blocked = blockedCreatorManager.getBlockedCreators()
+        val blocked = viewModel.getBlockedCreators()
         if (blocked.isEmpty()) {
             Toast.makeText(requireContext(), R.string.no_blocked_creators, Toast.LENGTH_SHORT).show()
             return
@@ -206,23 +220,25 @@ class SettingsFragment : Fragment() {
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.blocked_creators)
-            .setMultiChoiceItems(items, checkedItems) { _, _, _ -> }
+            .setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
+                checkedItems[which] = isChecked
+            }
             .setPositiveButton(R.string.done) { _, _ ->
+                val toUnblock = mutableListOf<Pair<String, String>>()
                 for (i in items.indices) {
                     if (!checkedItems[i]) {
-                        val (service, creatorId) = blocked[i]
-                        blockedCreatorManager.unblockCreator(service, creatorId)
+                        toUnblock.add(blocked[i])
                     }
                 }
-                updateBlockedCount()
+                if (toUnblock.isNotEmpty()) {
+                    viewModel.unblockCreators(toUnblock)
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun setupDownloadLocation() {
-        updateDownloadLocationText()
-
         binding.btnChangeLocation.setOnClickListener {
             openSystemFilePicker()
         }
@@ -240,116 +256,23 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private fun getFolderDisplayName(uri: Uri): String {
-        try {
-            val projection = arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-            val cursor = requireContext().contentResolver.query(uri, projection, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val name = it.getString(0)
-                    if (!name.isNullOrEmpty()) return name
-                }
-            }
-        } catch (_: Exception) {}
-        val lastSegment = uri.lastPathSegment ?: ""
-        val name = lastSegment.substringAfterLast('/')
-        return name.ifEmpty { getString(R.string.unknown_folder) }
-    }
-
-    private fun updateDownloadLocationText() {
-        val name = settingsManager.getDownloadLocationName()
-        val uri = settingsManager.getDownloadTreeUri()
-        val displayName = when {
-            uri == null || name.isEmpty() -> null
-            name.startsWith("primary:") -> getString(R.string.download_location_internal_storage) + name.removePrefix("primary:")
-            else -> name
-        }
-        if (displayName != null) {
-            binding.tvDownloadLocation.text = getString(R.string.download_location_label) + displayName
-        } else {
-            binding.tvDownloadLocation.text = getString(R.string.download_location_not_set)
-        }
-    }
-
     private fun setupAutoCleanCache() {
-        binding.switchAutoClean.isChecked = settingsManager.isAutoCleanCacheEnabled()
+        binding.switchAutoClean.isChecked = viewModel.uiState.value.autoCleanCacheEnabled
         binding.switchAutoClean.setOnCheckedChangeListener { _, isChecked ->
-            settingsManager.setAutoCleanCacheEnabled(isChecked)
+            viewModel.setAutoCleanCacheEnabled(isChecked)
         }
     }
 
     private fun setupManualCleanCache() {
-        updateCacheSize()
-
         binding.btnCleanCache.setOnClickListener {
-            cleanCache()
+            viewModel.cleanCache()
         }
-    }
-
-    private fun updateCacheSize() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val size = withContext(Dispatchers.IO) {
-                SettingsManager.getCacheSize(requireContext())
-            }
-            if (size > 0) {
-                binding.tvCacheSize.text = getString(
-                    R.string.cache_size,
-                    SettingsManager.formatSize(size)
-                )
-            } else {
-                binding.tvCacheSize.text = getString(R.string.cache_empty)
-            }
-        }
-    }
-
-    private fun cleanCache() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val loadingToast = Toast.makeText(
-                requireContext(),
-                R.string.cache_cleaning,
-                Toast.LENGTH_SHORT
-            )
-            loadingToast.show()
-
-            withContext(Dispatchers.IO) {
-                try {
-                    val app = requireActivity().application as? com.pawchive.PawchiveApplication
-                    app?.clearCache()
-
-                    val cacheDir = requireContext().cacheDir
-                    if (cacheDir.exists()) {
-                        cacheDir.deleteRecursively()
-                        cacheDir.mkdirs()
-                    }
-                } catch (_: Exception) {}
-            }
-
-            loadingToast.cancel()
-
-            Toast.makeText(
-                requireContext(),
-                R.string.cache_cleaned,
-                Toast.LENGTH_SHORT
-            ).show()
-
-            updateCacheSize()
-        }
-    }
-
-    private fun setupVersionInfo() {
-        val versionName = BuildConfig.VERSION_NAME
-        val versionCode = BuildConfig.VERSION_CODE
-        binding.tvVersion.text = getString(
-            R.string.version_format,
-            versionName,
-            versionCode
-        )
     }
 
     private fun setupAutoCheckUpdate() {
-        binding.switchAutoCheckUpdate.isChecked = settingsManager.isAutoCheckUpdateEnabled()
+        binding.switchAutoCheckUpdate.isChecked = viewModel.uiState.value.autoCheckUpdateEnabled
         binding.switchAutoCheckUpdate.setOnCheckedChangeListener { _, isChecked ->
-            settingsManager.setAutoCheckUpdateEnabled(isChecked)
+            viewModel.setAutoCheckUpdateEnabled(isChecked)
         }
     }
 
@@ -371,6 +294,8 @@ class SettingsFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        cleaningToast?.cancel()
+        cleaningToast = null
         _binding = null
     }
 }

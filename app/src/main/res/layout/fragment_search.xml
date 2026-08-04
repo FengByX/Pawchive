@@ -81,6 +81,49 @@
 
     </com.google.android.material.tabs.TabLayout>
 
+    <!-- Filter chips row (FEATURE-004) -->
+    <HorizontalScrollView
+        android:id="@+id/filter_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        app:layout_constraintTop_toBottomOf="@+id/tab_layout">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_filters"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            app:singleLine="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_service"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_service"
+                android:checked="false" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_attachment"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_has_attachment"
+                android:checked="false" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_bookmarked"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/filter_bookmarked"
+                android:checked="false" />
+
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
+
     <!-- Thin divider -->
     <View
         android:id="@+id/divider"
@@ -89,7 +132,7 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="4dp"
         android:background="?attr/colorOutline"
-        app:layout_constraintTop_toBottomOf="@+id/tab_layout" />
+        app:layout_constraintTop_toBottomOf="@+id/filter_scroll" />
 
     <!-- Content Container: FrameLayout ensures only one child is visible at a time -->
     <FrameLayout
@@ -151,6 +194,14 @@
                             android:textSize="15sp" />
 
                     </LinearLayout>
+
+                    <!-- 内嵌错误页（FEATURE-006）：列表为空且请求失败时展示，替代 Toast -->
+                    <include
+                        android:id="@+id/error_state_view"
+                        layout="@layout/layout_error_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center" />
 
                 </FrameLayout>
 

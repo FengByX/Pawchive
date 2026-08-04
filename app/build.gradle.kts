@@ -14,8 +14,8 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 44
-        versionName = "1.4.8"
+        versionCode = 50
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,6 +39,11 @@ android {
     }
     lint {
         disable += "UnsafeOptInUsageError"
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
 }
 
@@ -76,6 +81,9 @@ dependencies {
     // ViewPager2 - 主页面跟手滑动切换
     implementation("androidx.viewpager2:viewpager2:1.1.0")
 
+    // WorkManager - 视频下载前台任务+通知栏进度（P2 FRONTEND-006）
+    implementation(libs.androidx.work.runtime.ktx)
+
     // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.8.0")
 
@@ -89,6 +97,9 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 }

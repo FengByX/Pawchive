@@ -171,6 +171,16 @@
     <!-- Download Progress -->
     <string name="download_progress">Downloading: %1$d%%</string>
 
+    <!-- Download Notification (WorkManager foreground task) -->
+    <string name="download_channel_name">Video Download</string>
+    <string name="download_channel_desc">Shows video download progress in the notification bar</string>
+    <string name="download_notification_title">Downloading video</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">Download canceled</string>
+    <string name="download_notification_failed">Download failed: %1$s</string>
+    <string name="download_notification_complete">Video saved to gallery</string>
+    <string name="download_no_permission">Notification permission required to show progress; background download started</string>
+
     <!-- Settings: Download -->
     <string name="section_download">Download</string>
     <string name="download_location">Download Location</string>
@@ -200,6 +210,8 @@
     <string name="auto_check_update_desc">Check for new versions on app startup</string>
     <string name="cache_size">Current cache size: %1$s</string>
     <string name="cache_cleaned">Cache cleared</string>
+    <string name="cache_cleaned_freed">Freed %1$s of cache</string>
+    <string name="cache_clean_failed">Failed to clear cache</string>
     <string name="cache_cleaning">Clearing cache...</string>
     <string name="cache_empty">No cache</string>
     <string name="clean">Clear</string>
@@ -213,6 +225,7 @@
     <string name="join_telegram">Join Official Channel</string>
     <string name="telegram_channel_url">https://t.me/PawchiveX</string>
     <string name="browser_not_available">Cannot open browser</string>
+    <string name="unsafe_link_blocked">Unsafe link blocked</string>
 
     <!-- Register -->
     <string name="register">Register</string>
@@ -249,4 +262,57 @@
 
     <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
     <string name="creator_service_placeholder">Service</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">Download Center</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="no_downloads">No downloads yet</string>
+    <string name="filter_all">All</string>
+    <string name="filter_running">Running</string>
+    <string name="filter_completed">Completed</string>
+    <string name="filter_failed">Failed</string>
+    <string name="clear_history">Clear History</string>
+    <string name="download_type">Download type</string>
+    <string name="retry">Retry</string>
+    <string name="open">Open</string>
+    <string name="share">Share</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_running">Downloading %1$d%%</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_failed">Download failed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="download_cancelled">Download cancelled</string>
+    <string name="download_retried">Retrying download</string>
+    <string name="confirm_clear_history">Clear all download history?</string>
+    <!-- FEATURE-002 Offline bookmarks -->
+    <string name="offline_reading_hint">Offline mode: viewing locally cached bookmarks</string>
+    <string name="offline_not_cached">No network and this post is not bookmarked for offline viewing</string>
+    <string name="search_in_local">Search in local bookmarks</string>
+    <!-- FEATURE-003 Account & data boundary -->
+    <string name="switch_account">Switch Account</string>
+    <string name="current_account">Current Account</string>
+    <string name="no_account">Not logged in</string>
+    <string name="logout_clear_data">Logging out will clear this account\'s local data (bookmarks, history, downloads)</string>
+    <string name="ok">OK</string>
+    <string name="no_other_accounts">No other saved accounts</string>
+    <string name="switched_to_account">Switched to %1$s</string>
+    <!-- FEATURE-004 Search enhancements -->
+    <string name="filter_service">Service</string>
+    <string name="filter_type">Type</string>
+    <string name="filter_has_attachment">Has attachments only</string>
+    <string name="filter_bookmarked">Bookmarked only</string>
+    <string name="filter_reset">Reset filters</string>
+    <!-- FEATURE-005 Reading experience -->
+    <string name="read_later">Read later</string>
+    <string name="reading_progress">Reading progress</string>
+    <string name="external_link_warning">You are about to open an external link. Continue?</string>
+    <string name="save_all_images">Save all images</string>
+    <string name="video_resume_position">Resumed to last playback position</string>
+    <string name="no_images_to_save">No images to save</string>
+    <string name="saving_images_count">Saving %1$d images</string>
+    <!-- FEATURE-006 Observable errors -->
+    <string name="error_retry">Retry</string>
+    <string name="error_load_failed">Load failed</string>
+    <string name="error_empty">No content</string>
+    <string name="error_network">Network connection failed</string>
 </resources>

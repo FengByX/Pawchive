@@ -1,19 +1,25 @@
 package com.pawchive.ui.adapter
 
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.pawchive.data.model.Comment
 import com.pawchive.databinding.ItemCommentBinding
+import com.pawchive.utils.SafeHtmlHelper
 
-class CommentAdapter(
-    private var comments: List<Comment>
-) : RecyclerView.Adapter<CommentAdapter.CommentViewHolder>() {
+class CommentAdapter : ListAdapter<Comment, CommentAdapter.CommentViewHolder>(DIFF_CALLBACK) {
 
     fun updateComments(newComments: List<Comment>) {
-        comments = newComments
-        notifyDataSetChanged()
+        submitList(newComments)
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Comment>() {
+            override fun areItemsTheSame(oldItem: Comment, newItem: Comment) = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: Comment, newItem: Comment) = oldItem == newItem
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentViewHolder {
@@ -22,24 +28,14 @@ class CommentAdapter(
     }
 
     override fun onBindViewHolder(holder: CommentViewHolder, position: Int) {
-        holder.bind(comments[position])
+        holder.bind(getItem(position))
     }
-
-    override fun getItemCount(): Int = comments.size
 
     class CommentViewHolder(private val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(comment: Comment) {
             binding.tvCommenter.text = "User #${comment.commenter}"
             binding.tvCommentDate.text = comment.published?.split("T")?.firstOrNull() ?: ""
-            
-            // Render HTML content safely
-            val content = comment.content ?: ""
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                binding.tvCommentContent.text = Html.fromHtml(content, Html.FROM_HTML_MODE_COMPACT)
-            } else {
-                @Suppress("DEPRECATED")
-                binding.tvCommentContent.text = Html.fromHtml(content)
-            }
+            binding.tvCommentContent.text = SafeHtmlHelper.render(comment.content ?: "")
         }
     }
 }

@@ -54,6 +54,10 @@ class AccountFragment : Fragment() {
             performLogout()
         }
 
+        binding.btnSwitchAccount.setOnClickListener {
+            showAccountSwitchDialog()
+        }
+
         val openSettings = {
             (activity as? com.pawchive.ui.MainActivity)?.loadFragment(SettingsFragment())
         }
@@ -159,6 +163,59 @@ class AccountFragment : Fragment() {
                 ).show()
             }
         }
+    }
+
+    /**
+     * 账号切换对话框（FEATURE-003）。
+     * 显示已保存的账号列表，切换时清除当前账号本地数据。
+     */
+    private fun showAccountSwitchDialog() {
+        val accounts = authRepository.getSavedAccounts()
+        val currentUsername = authRepository.getUsername()
+        val otherAccounts = accounts.keys.filter { it != currentUsername }
+
+        if (otherAccounts.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.no_other_accounts, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val accountArray = otherAccounts.toTypedArray()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.switch_account)
+            .setItems(accountArray) { _, which ->
+                val target = accountArray[which]
+                confirmSwitchAccount(target)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmSwitchAccount(targetUsername: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.switch_account)
+            .setMessage(R.string.logout_clear_data)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                lifecycleScope.launch {
+                    val result = authRepository.switchAccount(targetUsername)
+                    if (result.isSuccess) {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.switched_to_account, targetUsername),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        updateUIForLoginState()
+                        (activity as? com.pawchive.ui.MainActivity)?.updateBottomNavVisibility()
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            ErrorMessageHelper.getFriendlyMessage(requireContext(), result.exceptionOrNull()),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     override fun onResume() {

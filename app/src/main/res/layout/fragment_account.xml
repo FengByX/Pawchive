@@ -266,6 +266,25 @@
                     android:background="?attr/colorOutlineVariant" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_switch_account"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="@string/switch_account"
+                    android:textSize="16sp"
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_users"
+                    app:iconGravity="textStart"
+                    android:gravity="start|center_vertical"
+                    android:paddingHorizontal="16dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:background="?attr/colorOutlineVariant" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_logout"
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="match_parent"

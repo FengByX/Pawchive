@@ -16,4 +16,8 @@
         android:id="@+id/navigation_account"
         android:icon="@drawable/ic_person_outline"
         android:title="@string/nav_account" />
+    <item
+        android:id="@+id/navigation_downloads"
+        android:icon="@drawable/ic_download_outline"
+        android:title="@string/nav_downloads" />
 </menu>

@@ -43,6 +43,19 @@
             app:layout_constraintBottom_toBottomOf="parent" />
 
         <ImageButton
+            android:id="@+id/btn_save_all_images"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_download_outline"
+            android:contentDescription="@string/save_all_images"
+            app:tint="?attr/colorOnSurface"
+            app:layout_constraintEnd_toStartOf="@+id/btn_post_bookmark"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
             android:id="@+id/btn_post_bookmark"
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -244,13 +257,27 @@
 
     </LinearLayout>
 
+    <!-- Offline mode banner (FEATURE-002) -->
+    <TextView
+        android:id="@+id/tv_offline_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorErrorContainer"
+        android:textColor="?attr/colorOnErrorContainer"
+        android:padding="8dp"
+        android:textSize="12sp"
+        android:text="@string/offline_reading_hint"
+        android:visibility="gone"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/video_player_container" />
+
     <!-- Scrollable content -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nestedScrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/video_player_container">
+        app:layout_constraintTop_toBottomOf="@+id/tv_offline_banner">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -445,5 +472,15 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- 内嵌错误页（FEATURE-006）：加载失败且无缓存时展示，替代 Toast -->
+    <include
+        android:id="@+id/error_state_view"
+        layout="@layout/layout_error_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_offline_banner" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
