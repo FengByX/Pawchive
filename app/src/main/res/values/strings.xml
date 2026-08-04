@@ -196,6 +196,8 @@
     <string name="auto_clean_cache_desc">在应用启动时自动清理临时缓存文件</string>
     <string name="manual_clean_cache">立即清理缓存</string>
     <string name="manual_clean_cache_desc">释放缓存占用的存储空间</string>
+    <string name="auto_check_update">自动检查更新</string>
+    <string name="auto_check_update_desc">应用启动时检查新版本</string>
     <string name="cache_size">当前缓存大小：%1$s</string>
     <string name="cache_cleaned">缓存已清理</string>
     <string name="cache_cleaning">正在清理缓存...</string>
@@ -244,4 +246,7 @@
     <string name="blocked_count">已屏蔽 %1$d 位创作者</string>
     <string name="no_blocked_creators">暂无屏蔽的创作者</string>
     <string name="manage">管理</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">服务</string>
 </resources>

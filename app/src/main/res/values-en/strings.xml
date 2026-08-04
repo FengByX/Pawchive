@@ -196,6 +196,8 @@
     <string name="auto_clean_cache_desc">Automatically clear temporary cache files on app launch</string>
     <string name="manual_clean_cache">Clear Cache Now</string>
     <string name="manual_clean_cache_desc">Free up storage used by cached data</string>
+    <string name="auto_check_update">Auto-check Updates</string>
+    <string name="auto_check_update_desc">Check for new versions on app startup</string>
     <string name="cache_size">Current cache size: %1$s</string>
     <string name="cache_cleaned">Cache cleared</string>
     <string name="cache_cleaning">Clearing cache...</string>
@@ -244,4 +246,7 @@
     <string name="blocked_count">%1$d creator(s) blocked</string>
     <string name="no_blocked_creators">No blocked creators</string>
     <string name="manage">Manage</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">Service</string>
 </resources>

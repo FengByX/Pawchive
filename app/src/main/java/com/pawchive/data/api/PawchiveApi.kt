@@ -17,6 +17,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -31,7 +32,8 @@ interface PawchiveApi {
     @GET("posts")
     suspend fun getRecentPosts(
         @Query("q") query: String? = null,
-        @Query("o") offset: Int? = null
+        @Query("o") offset: Int? = null,
+        @Header("Cache-Control") cacheControl: String? = null
     ): List<Post>
 
     @GET("{service}/user/{creator_id}/profile")

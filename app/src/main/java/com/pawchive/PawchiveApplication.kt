@@ -8,6 +8,10 @@ import coil.memory.MemoryCache
 import com.pawchive.data.SettingsManager
 import com.pawchive.data.api.ApiClient
 import com.pawchive.data.api.CloudflareManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.File
 
 class PawchiveApplication : Application(), ImageLoaderFactory {
@@ -15,12 +19,23 @@ class PawchiveApplication : Application(), ImageLoaderFactory {
     companion object {
         private const val IMAGE_DISK_CACHE_DIR = "image_cache"
         private const val IMAGE_DISK_CACHE_MAX_SIZE = 100L * 1024 * 1024
+
+        /**
+         * 应用级协程作用域，替代 GlobalScope。
+         * 使用 SupervisorJob 确保一个子协程失败不会影响其他协程。
+         * 使用 Dispatchers.IO 适合后台数据操作。
+         */
+        val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     override fun onCreate() {
         super.onCreate()
         // 初始化 Cloudflare 过盾管理器（用于 WebView 通过 pawchive.pw 的 CF 挑战）
         CloudflareManager.init(this)
+        // 若用户开启了"自动清理缓存"，在后台线程清理临时缓存文件
+        if (SettingsManager.getInstance(this).isAutoCleanCacheEnabled()) {
+            applicationScope.launch { clearCache() }
+        }
     }
 
     override fun newImageLoader(): ImageLoader {

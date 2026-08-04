@@ -135,6 +135,8 @@ class AuthRepository(private val context: Context) {
             // 调用 SharedPreferences.edit().apply()，不会抛异常，catch 块为死代码。
             // 简化为直接调用。
             sessionManager.clearSession()
+            // 清除内存缓存并重置认证实例，避免旧账号数据被继续复用（P0 / P1）
+            ApiClient.clearMemoryCache()
             Result.success(Unit)
         }
     }

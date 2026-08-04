@@ -63,7 +63,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        bookmarkManager = BookmarkManager(requireContext())
+        bookmarkManager = BookmarkManager.getInstance(requireContext())
         authRepository = AuthRepository(requireContext())
 
         setupRecyclerView()

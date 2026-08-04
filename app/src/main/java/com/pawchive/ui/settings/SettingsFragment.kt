@@ -76,7 +76,7 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        settingsManager = SettingsManager(requireContext())
+        settingsManager = SettingsManager.getInstance(requireContext())
         blockedCreatorManager = BlockedCreatorManager.getInstance(requireContext())
 
         setupBackButton()
@@ -88,6 +88,7 @@ class SettingsFragment : Fragment() {
         setupAutoCleanCache()
         setupManualCleanCache()
         setupVersionInfo()
+        setupAutoCheckUpdate()
         setupTelegramButton()
     }
 
@@ -343,6 +344,13 @@ class SettingsFragment : Fragment() {
             versionName,
             versionCode
         )
+    }
+
+    private fun setupAutoCheckUpdate() {
+        binding.switchAutoCheckUpdate.isChecked = settingsManager.isAutoCheckUpdateEnabled()
+        binding.switchAutoCheckUpdate.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.setAutoCheckUpdateEnabled(isChecked)
+        }
     }
 
     private fun setupTelegramButton() {

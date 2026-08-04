@@ -2,6 +2,8 @@ package com.pawchive.data.api
 
 import com.pawchive.BuildConfig
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -27,14 +29,32 @@ object ApiClient {
 
     // ── 内存缓存（应用运行期间有效，退出后自动清除）──
     private const val CACHE_MAX_AGE_MILLIS = 5 * 60 * 1000L // 5 分钟
+    private const val CACHE_MAX_ENTRIES = 200 // 容量上限，防止缓存无限增长（补充③）
     private data class CacheEntry(val timestamp: Long, val body: ByteArray, val contentType: String?)
     private val apiMemoryCache = ConcurrentHashMap<String, CacheEntry>()
+
+    // 当前登录会话（用于缓存命名空间隔离，避免跨用户缓存复用 / P0）
+    @Volatile
+    private var currentSessionCookie: String? = null
+
+    // 过盾过程串行化锁，避免并发 403 时多个线程同时驱动 WebView（P1）
+    private val clearanceMutex = Mutex()
+
+    // 用于构造“过盾失败”占位响应（避免依赖已关闭的响应体 / P1）
+    private val EMPTY_RESPONSE_BODY = ByteArray(0).toResponseBody("text/plain".toMediaType())
 
     /**
      * 内存缓存拦截器：缓存 GET 请求的 JSON 响应，避免短时间内重复请求。
      * 缓存有效期 5 分钟，应用退出后随进程销毁自动清除。
      * 只缓存 JSON 响应，不缓存图片等大文件。
      * 下拉刷新可通过 Header "Cache-Control: no-cache" 跳过缓存。
+     */
+    /**
+     * 内存缓存拦截器：缓存 GET 请求的 JSON 响应，避免短时间内重复请求。
+     * 缓存有效期 5 分钟，应用退出后随进程销毁自动清除。
+     * 只缓存 JSON 响应，不缓存图片等大文件。
+     * 下拉刷新可通过 Header "Cache-Control: no-cache" 跳过缓存。
+     * 缓存键包含账号命名空间，杜绝跨用户缓存复用（P0）。
      */
     private val memoryCacheInterceptor = Interceptor { chain ->
         val request = chain.request()
@@ -49,7 +69,12 @@ object ApiClient {
             return@Interceptor chain.proceed(request)
         }
 
-        val key = request.url.toString()
+        // 缓存键加入账号维度：登录态请求归入各自 session 命名空间，
+        // 匿名/公开请求归入 "public"，避免另一账号或登出后复用旧响应（P0）。
+        val session = currentSessionCookie
+        val namespace = if (session.isNullOrEmpty()) "public" else "u:$session"
+        val key = "$namespace|${request.url}"
+
         val now = System.currentTimeMillis()
 
         // 检查缓存
@@ -73,7 +98,7 @@ object ApiClient {
             if (contentType?.contains("json") == true) {
                 val bodyBytes = response.body?.bytes()
                 if (bodyBytes != null) {
-                    apiMemoryCache[key] = CacheEntry(now, bodyBytes, contentType)
+                    putCache(key, CacheEntry(now, bodyBytes, contentType))
                     // body 已被消费，需重新构建 Response
                     return@Interceptor response.newBuilder()
                         .body(bodyBytes.toResponseBody(contentType.toMediaType()))
@@ -83,6 +108,22 @@ object ApiClient {
         }
 
         response
+    }
+
+    /**
+     * 写入内存缓存，并回收过期条目、淘汰最旧条目以维持容量上限（补充③）。
+     */
+    private fun putCache(key: String, entry: CacheEntry) {
+        val now = System.currentTimeMillis()
+        // 回收过期条目
+        apiMemoryCache.entries
+            .filter { now - it.value.timestamp >= CACHE_MAX_AGE_MILLIS }
+            .forEach { apiMemoryCache.remove(it.key) }
+        // 超出容量上限则淘汰最旧的一条
+        if (apiMemoryCache.size >= CACHE_MAX_ENTRIES) {
+            apiMemoryCache.minByOrNull { it.value.timestamp }?.key?.let { apiMemoryCache.remove(it) }
+        }
+        apiMemoryCache[key] = entry
     }
 
     /**
@@ -130,33 +171,54 @@ object ApiClient {
      *   2. 过盾失败时返回原始 403 响应（而非抛异常），让上层（如 Coil）
      *      能正常将其作为加载失败处理，而不是崩溃。
      */
+    /**
+     * Cloudflare 透明重试拦截器：
+     * 若响应为 403，强制刷新 cf_clearance 并重试一次。
+     * 本拦截器必须注册在 cloudflareInterceptor 之前（见 buildOkHttpClient），
+     * 这样重试请求才能重新经过 cloudflareInterceptor 注入新 Cookie（修复自愈失效 / 补充①）。
+     */
     private val cloudflareRetryInterceptor = Interceptor { chain ->
         val request = chain.request()
+
+        // 已重试过一次，直接放行，避免无限循环
+        if (request.header("X-CF-Retry") == "1") {
+            return@Interceptor chain.proceed(request)
+        }
+
         val response = chain.proceed(request)
 
-        if (response.code == 403) {
-            // 先关闭原始响应，再尝试刷新并重试一次
-            response.close()
-            val success = runBlocking {
-                CloudflareManager.ensureClearance(forceRefresh = true)
-            }
-            if (success) {
-                // 重建请求（cloudflareInterceptor 会自动注入新 Cookie）
-                val rebuiltRequest = request.newBuilder().build()
-                val retryResponse = chain.proceed(rebuiltRequest)
-                // 重试后仍为 403，直接返回，不再继续重试
-                retryResponse
-            } else {
-                // 过盾失败，返回新的 403 响应替代抛出异常
-                // 这样 Coil/Retrofit 能正确处理为加载失败
-                response.newBuilder()
-                    .code(403)
-                    .message("Cloudflare clearance failed")
-                    .request(request)
-                    .build()
-            }
+        if (response.code != 403) {
+            return@Interceptor response
+        }
+
+        // 关闭原始 403 响应释放连接（其 body 已无用）
+        response.close()
+
+        // 串行化过盾过程，避免并发 403 时多个线程同时驱动 WebView 造成资源耗尽/冲突（P1）
+        val success = runBlocking {
+            runCatching {
+                clearanceMutex.withLock {
+                    CloudflareManager.ensureClearance(forceRefresh = true)
+                }
+            }.getOrDefault(false)
+        }
+
+        if (success) {
+            // 标记已重试，重建请求后重新走完整链（cloudflareInterceptor 会注入新 Cookie）
+            val rebuiltRequest = request.newBuilder()
+                .header("X-CF-Retry", "1")
+                .build()
+            chain.proceed(rebuiltRequest)
         } else {
-            response
+            // 过盾失败：返回新的 403 响应（不再依赖已关闭的原始响应），
+            // 让上层（Coil / Retrofit）按加载失败处理
+            Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_1_1)
+                .code(403)
+                .message("Cloudflare clearance failed")
+                .body(EMPTY_RESPONSE_BODY)
+                .build()
         }
     }
 
@@ -209,8 +271,8 @@ object ApiClient {
             .followRedirects(true)
             .followSslRedirects(true)
             .addInterceptor(memoryCacheInterceptor)
-            .addInterceptor(cloudflareInterceptor)
             .addInterceptor(cloudflareRetryInterceptor)
+            .addInterceptor(cloudflareInterceptor)
             .addInterceptor(logger)
             .build()
     }
@@ -231,6 +293,9 @@ object ApiClient {
         cachedAuthApi?.let { cached ->
             if (cachedAuthCookie == sessionCookie) return cached
         }
+
+        // 设定当前会话，使内存缓存归入该账号命名空间（P0 隔离）
+        currentSessionCookie = sessionCookie
 
         val cookieInterceptor = Interceptor { chain ->
             val original = chain.request()
@@ -261,6 +326,17 @@ object ApiClient {
         cachedAuthCookie = sessionCookie
         cachedAuthApi = api
         return api
+    }
+
+    /**
+     * 清除内存缓存并重置认证实例与当前会话。
+     * 登出或切换账号时调用，避免旧账号数据残留（P0 / P1）。
+     */
+    fun clearMemoryCache() {
+        apiMemoryCache.clear()
+        cachedAuthApi = null
+        cachedAuthCookie = null
+        currentSessionCookie = null
     }
 
     val loginApi: PawchiveLoginApi by lazy {

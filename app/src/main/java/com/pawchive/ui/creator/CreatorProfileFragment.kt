@@ -73,7 +73,7 @@ class CreatorProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        bookmarkManager = BookmarkManager(requireContext())
+        bookmarkManager = BookmarkManager.getInstance(requireContext())
         blockedCreatorManager = BlockedCreatorManager.getInstance(requireContext())
         authRepository = AuthRepository(requireContext())
 
@@ -108,7 +108,7 @@ class CreatorProfileFragment : Fragment() {
                         ).show()
                     }
 
-                    // 更新创作者信息
+                    // 更新创作者信�?
                     binding.tvCreatorTitle.text = state.name.ifEmpty { creatorId }
                     binding.tvCreatorService.text = service.uppercase()
                     setServiceLabelColor(service)

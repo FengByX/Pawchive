@@ -18,12 +18,18 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pawchive.R
+import com.pawchive.data.SettingsManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 // 顶层 DataStore 单例（更新检查时间戳）
 private val Context.updateCheckerDataStore: DataStore<Preferences> by preferencesDataStore(name = "update_checker_prefs")
+
+// 共享 IO 作用域：替代 GlobalScope，明确运行在 IO 线程并带 SupervisorJob 隔离异常（补充②）
+private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 sealed class UpdateResult {
     data class UpdateAvailable(
@@ -42,10 +48,16 @@ class UpdateChecker(context: Context) {
     private val dataStore = context.updateCheckerDataStore
     private val githubApi: GithubApi = GithubApi.create()
 
-    // 内存缓存快照（shouldSkipCheck 同步调用，避免每次 runBlocking）
+    // 内存缓存快照（shouldSkipCheck 同步调用）：初始为 0，构造后在 IO 线程异步加载，
+    // 避免主线程构造时 runBlocking（补充②）
     @Volatile
-    private var lastCheckTime: Long = runBlocking {
-        dataStore.data.first()[KEY_LAST_CHECK_TIME] ?: 0L
+    private var lastCheckTime: Long = 0L
+
+    init {
+        ioScope.launch {
+            runCatching { lastCheckTime = dataStore.data.first()[KEY_LAST_CHECK_TIME] ?: 0L }
+                .onFailure { it.printStackTrace() }
+        }
     }
 
     /**
@@ -82,6 +94,10 @@ class UpdateChecker(context: Context) {
         currentVersion: String,
         context: Context
     ) {
+        // 用户在设置中关闭了自动检查更新时，跳过启动时的更新检查
+        if (!SettingsManager.getInstance(context).isAutoCheckUpdateEnabled()) {
+            return
+        }
         if (shouldSkipCheck()) {
             return
         }
@@ -161,8 +177,9 @@ class UpdateChecker(context: Context) {
     private fun recordCheckTime() {
         val now = System.currentTimeMillis()
         lastCheckTime = now
-        kotlinx.coroutines.GlobalScope.launch {
-            dataStore.edit { it[KEY_LAST_CHECK_TIME] = now }
+        ioScope.launch {
+            runCatching { dataStore.edit { it[KEY_LAST_CHECK_TIME] = now } }
+                .onFailure { it.printStackTrace() }
         }
     }
 

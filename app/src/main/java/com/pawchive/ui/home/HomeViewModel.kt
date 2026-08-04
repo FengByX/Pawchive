@@ -39,7 +39,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refresh() {
-        fetchPosts(reset = true)
+        fetchPosts(reset = true, cacheControl = "no-cache")
     }
 
     fun loadMore() {
@@ -72,7 +72,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun fetchPosts(reset: Boolean) {
+    private fun fetchPosts(reset: Boolean, cacheControl: String? = null) {
         if (_isLoading.value == true) return
         _isLoading.value = true
         _errorMessage.value = null
@@ -83,7 +83,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val posts = api.getRecentPosts(offset = currentOffset)
+                val posts = api.getRecentPosts(offset = currentOffset, cacheControl = cacheControl)
                 if (reset) {
                     loadedPosts.clear()
                 }

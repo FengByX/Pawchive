@@ -6,85 +6,80 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
-    <!-- Search Bar -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/search_card"
+    <!-- Search Bar + Sort trigger -->
+    <LinearLayout
+        android:id="@+id/search_sort_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="12dp"
-        app:cardCornerRadius="28dp"
-        app:cardElevation="0dp"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant"
-        app:strokeWidth="1dp"
-        app:strokeColor="?attr/colorOutline"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/search_view"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:paddingStart="12dp"
-            app:iconifiedByDefault="false"
-            app:queryBackground="@android:color/transparent"
-            app:queryHint="@string/search_hint"
-            app:searchIcon="@drawable/ic_search_outline"
-            app:searchHintIcon="@null" />
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Tabs + Sort in one row -->
-    <LinearLayout
-        android:id="@+id/tab_sort_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toBottomOf="@+id/search_card">
+        app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Tab Layout (takes remaining space) -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tab_layout"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/search_card"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:minHeight="48dp"
-            android:background="@android:color/transparent"
-            app:tabSelectedTextColor="?attr/colorPrimary"
-            app:tabTextColor="?attr/colorTextSecondary"
-            app:tabIndicatorColor="?attr/colorPrimary"
-            app:tabIndicatorHeight="2dp"
-            app:tabMode="fixed">
+            app:cardCornerRadius="28dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline">
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/tab_posts" />
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/search_view"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:paddingStart="12dp"
+                app:iconifiedByDefault="false"
+                app:queryBackground="@android:color/transparent"
+                app:queryHint="@string/search_hint"
+                app:searchIcon="@drawable/ic_search_outline"
+                app:searchHintIcon="@null" />
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/tab_creators" />
+        </com.google.android.material.card.MaterialCardView>
 
-        </com.google.android.material.tabs.TabLayout>
-
-        <com.google.android.material.button.MaterialButton
+        <ImageButton
             android:id="@+id/btn_sort"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginEnd="16dp"
-            android:text="@string/sort_default"
-            android:textSize="12sp"
-            app:icon="@drawable/ic_sort"
-            app:iconGravity="textStart"
-            app:iconPadding="4dp"
-            app:iconTint="?attr/colorPrimary"
-            android:textColor="?attr/colorPrimary"
-            app:cornerRadius="18dp" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_sort"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/select_sort"
+            android:scaleType="centerInside"
+            app:tint="?attr/colorPrimary" />
 
     </LinearLayout>
+
+    <!-- Tabs row: now full width since sort moved into the search row -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:background="@android:color/transparent"
+        app:tabSelectedTextColor="?attr/colorPrimary"
+        app:tabTextColor="?attr/colorTextSecondary"
+        app:tabIndicatorColor="?attr/colorPrimary"
+        app:tabIndicatorHeight="2dp"
+        app:tabMode="fixed"
+        app:layout_constraintTop_toBottomOf="@+id/search_sort_row">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tab_posts" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tab_creators" />
+
+    </com.google.android.material.tabs.TabLayout>
 
     <!-- Thin divider -->
     <View
@@ -94,7 +89,7 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="4dp"
         android:background="?attr/colorOutline"
-        app:layout_constraintTop_toBottomOf="@+id/tab_sort_row" />
+        app:layout_constraintTop_toBottomOf="@+id/tab_layout" />
 
     <!-- Content Container: FrameLayout ensures only one child is visible at a time -->
     <FrameLayout
@@ -191,16 +186,15 @@
                     android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
-                <TextView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_clear_all"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:minHeight="48dp"
                     android:text="@string/search_history_clear_all"
                     android:textSize="15sp"
-                    android:textColor="?attr/colorPrimary"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp"
-                    android:background="?attr/selectableItemBackground" />
+                    android:paddingHorizontal="8dp" />
 
                 <View
                     android:layout_width="1dp"
@@ -208,16 +202,15 @@
                     android:layout_marginHorizontal="4dp"
                     android:background="?attr/colorOutlineVariant" />
 
-                <TextView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_done"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:minHeight="48dp"
                     android:text="@string/done"
                     android:textSize="15sp"
-                    android:textColor="?attr/colorPrimary"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp"
-                    android:background="?attr/selectableItemBackground" />
+                    android:paddingHorizontal="8dp" />
 
             </LinearLayout>
 

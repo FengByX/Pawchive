@@ -24,10 +24,12 @@
                 android:background="?attr/colorSurface"
                 android:padding="16dp">
 
-                <ImageView
+                <ImageButton
                     android:id="@+id/btn_back"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
                     android:src="@drawable/ic_arrow_back"
                     android:contentDescription="@string/back"
                     app:tint="?attr/colorOnSurface"
@@ -66,14 +68,16 @@
                     android:layout_height="wrap_content"
                     android:textColor="?attr/colorSecondary"
                     android:textSize="12sp"
-                    android:text="Service"
+                    android:text="@string/creator_service_placeholder"
                     app:layout_constraintStart_toStartOf="@+id/tv_creator_title"
                     app:layout_constraintTop_toBottomOf="@+id/tv_creator_title" />
 
-                <ImageView
+                <ImageButton
                     android:id="@+id/btn_creator_bookmark"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
                     android:src="@android:drawable/btn_star_big_off"
                     android:contentDescription="@string/bookmark_creator_description"
                     app:tint="?attr/colorOnSurface"

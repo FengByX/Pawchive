@@ -11,6 +11,11 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -61,9 +66,11 @@ object CloudflareManager {
     @Volatile
     private var cachedUserAgent: String? = null
 
-    // 是否正在过盾，避免并发重复启动 WebView
+    // 单飞：进行中的过盾任务，并发调用复用同一结果，避免并发启动多个 WebView
     @Volatile
-    private var isSolving: Boolean = false
+    private var inFlight: CompletableDeferred<Boolean>? = null
+    private val flightLock = Any()
+    private val cfScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun init(context: Context) {
         appContext = context.applicationContext
@@ -145,7 +152,26 @@ object CloudflareManager {
      */
     suspend fun ensureClearance(forceRefresh: Boolean = false): Boolean {
         if (!forceRefresh && hasClearance()) return true
-        return solveChallenge()
+        // 单飞：临界区内只做状态判断（不调用挂起函数），创建/复用结果在区外 await
+        val (deferred, isNew) = synchronized(flightLock) {
+            inFlight?.let { return@synchronized it to false } // 已有进行中的过盾，复用其结果
+            val d = CompletableDeferred<Boolean>()
+            inFlight = d
+            d to true
+        }
+        // 仅当本次新建任务时才启动 WebView；并发调用复用同一 deferred，不再另起过盾
+        if (isNew) {
+            cfScope.launch {
+                try {
+                    deferred.complete(solveChallenge())
+                } catch (e: Throwable) {
+                    if (!deferred.isCompleted) deferred.completeExceptionally(e)
+                } finally {
+                    synchronized(flightLock) { inFlight = null }
+                }
+            }
+        }
+        return runCatching { deferred.await() }.getOrDefault(false)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -156,13 +182,6 @@ object CloudflareManager {
             val mainHandler = Handler(Looper.getMainLooper())
 
             mainHandler.post {
-                if (isSolving) {
-                    // 已有过盾任务在进行，避免重复；直接以当前结果返回
-                   if (cont.isActive) cont.resume(hasClearance())
-                    return@post
-                }
-                isSolving = true
-
                 val webView = WebView(context)
                 val cookieManager = CookieManager.getInstance()
                 cookieManager.setAcceptCookie(true)
@@ -182,7 +201,6 @@ object CloudflareManager {
                 fun finish(success: Boolean) {
                     if (finished) return
                     finished = true
-                    isSolving = false
                     mainHandler.removeCallbacksAndMessages(null)
                     try {
                         webView.stopLoading()

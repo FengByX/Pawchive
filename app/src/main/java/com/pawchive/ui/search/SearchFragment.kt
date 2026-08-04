@@ -29,7 +29,10 @@ import com.pawchive.ui.adapter.SearchHistoryAdapter
 import com.pawchive.ui.creator.CreatorProfileFragment
 import com.pawchive.ui.post.PostDetailFragment
 import com.pawchive.utils.ErrorMessageHelper
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -85,7 +88,7 @@ class SearchFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        bookmarkManager = BookmarkManager(requireContext())
+        bookmarkManager = BookmarkManager.getInstance(requireContext())
         authRepository = AuthRepository(requireContext())
         blockedCreatorManager = BlockedCreatorManager.getInstance(requireContext())
 
@@ -175,7 +178,6 @@ class SearchFragment : Fragment() {
                 hideKeyboard()
                 isSearchingPosts = tab?.position == 0
                 binding.rvResults.adapter = if (isSearchingPosts) postAdapter else creatorAdapter
-                updateSortButtonText()
 
                 val query = binding.searchView.query.toString()
                 if (query.isNotEmpty()) {
@@ -191,10 +193,9 @@ class SearchFragment : Fragment() {
     }
 
     private fun setupSortButton() {
-        updateSortButtonText()
         binding.btnSort.setOnClickListener {
             hideKeyboard()
-            showSortDialog()
+            showSortSheet()
         }
     }
 
@@ -219,40 +220,51 @@ class SearchFragment : Fragment() {
         return typedValue.data
     }
 
-    private fun updateSortButtonText() {
-        binding.btnSort.text = if (isSearchingPosts) {
-            getString(currentPostSort.displayNameRes)
-        } else {
-            getString(currentCreatorSort.displayNameRes)
-        }
-    }
+    private fun showSortSheet() {
+        val density = resources.displayMetrics.density
+        val sheet = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.sheet_sort_options, null)
+        sheet.setContentView(sheetView)
 
-    private fun showSortDialog() {
-        if (isSearchingPosts) {
-            val options = PostSortOption.values().map { getString(it.displayNameRes) }.toTypedArray()
-            val currentIndex = PostSortOption.values().indexOf(currentPostSort)
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.select_sort)
-                .setSingleChoiceItems(options, currentIndex) { dialog, which ->
-                    currentPostSort = PostSortOption.values()[which]
-                    updateSortButtonText()
-                    applyPostSort()
-                    dialog.dismiss()
-                }
-                .show()
+        val radioGroup = sheetView.findViewById<RadioGroup>(R.id.sort_radio_group)
+
+        val entries: List<Pair<Int, String>> = if (isSearchingPosts) {
+            PostSortOption.values().map { it.ordinal to getString(it.displayNameRes) }
         } else {
-            val options = CreatorSortOption.values().map { getString(it.displayNameRes) }.toTypedArray()
-            val currentIndex = CreatorSortOption.values().indexOf(currentCreatorSort)
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.select_sort)
-                .setSingleChoiceItems(options, currentIndex) { dialog, which ->
-                    currentCreatorSort = CreatorSortOption.values()[which]
-                    updateSortButtonText()
-                    applyCreatorSort()
-                    dialog.dismiss()
-                }
-                .show()
+            CreatorSortOption.values().map { it.ordinal to getString(it.displayNameRes) }
         }
+        val currentIndex = if (isSearchingPosts) {
+            PostSortOption.values().indexOf(currentPostSort)
+        } else {
+            CreatorSortOption.values().indexOf(currentCreatorSort)
+        }
+
+        val buttons = entries.map { (index, label) ->
+            RadioButton(requireContext()).apply {
+                text = label
+                id = View.generateViewId()
+                tag = index
+                setMinHeight((48 * density).toInt())
+                textSize = 15f
+                setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            }
+        }
+        buttons.forEach { radioGroup.addView(it) }
+        // 先 check 当前项：此时监听器尚未设置，不会触发回调
+        radioGroup.check(buttons[currentIndex].id)
+        radioGroup.setOnCheckedChangeListener { _, checkedId ->
+            val idx = radioGroup.findViewById<RadioButton>(checkedId)?.tag as? Int
+                ?: return@setOnCheckedChangeListener
+            if (isSearchingPosts) {
+                currentPostSort = PostSortOption.values()[idx]
+                applyPostSort()
+            } else {
+                currentCreatorSort = CreatorSortOption.values()[idx]
+                applyCreatorSort()
+            }
+            sheet.dismiss()
+        }
+        sheet.show()
     }
 
     private fun applyPostSort() {

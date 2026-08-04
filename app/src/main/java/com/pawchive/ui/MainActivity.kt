@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pagerAdapter: MainPagerAdapter
 
     override fun attachBaseContext(newBase: Context) {
-        val settingsManager = SettingsManager(newBase)
+        val settingsManager = SettingsManager.getInstance(newBase)
         val language = settingsManager.getLanguage()
         val locale = Locale.forLanguageTag(language.code)
         val config = Configuration(newBase.resources.configuration)

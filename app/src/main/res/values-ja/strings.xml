@@ -196,6 +196,8 @@
     <string name="auto_clean_cache_desc">アプリ起動時に一時キャッシュファイルを自動的にクリーンアップ</string>
     <string name="manual_clean_cache">キャッシュをクリーンアップ</string>
     <string name="manual_clean_cache_desc">キャッシュデータが使用するストレージ容量を解放</string>
+    <string name="auto_check_update">アップデート自動確認</string>
+    <string name="auto_check_update_desc">アプリ起動時に新バージョンを確認</string>
     <string name="cache_size">現在のキャッシュサイズ：%1$s</string>
     <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
     <string name="cache_cleaning">キャッシュをクリーンアップ中...</string>
@@ -244,4 +246,7 @@
     <string name="blocked_count">%1$d件のクリエイターをブロック中</string>
     <string name="no_blocked_creators">ブロック済みクリエイターなし</string>
     <string name="manage">管理</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">サービス</string>
 </resources>

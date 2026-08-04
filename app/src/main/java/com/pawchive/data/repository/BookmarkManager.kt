@@ -5,35 +5,65 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.pawchive.data.model.Post
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicBoolean
 
 // 顶层 DataStore 单例
 private val Context.bookmarksDataStore: DataStore<Preferences> by preferencesDataStore(name = "pawchive_bookmarks")
 
-class BookmarkManager(context: Context) {
+// 共享 IO 作用域：替代 GlobalScope，明确运行在 IO 线程并带 SupervisorJob 隔离异常（P1）
+private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+class BookmarkManager private constructor(private val context: Context) {
 
     private val dataStore = context.bookmarksDataStore
     private val gson = Gson()
+    private val writeMutex = Mutex()
+    private val loaded = AtomicBoolean(false)
 
-    // 内存缓存快照：构造时一次性加载，后续读取零开销（适配器高频调用 isPostBookmarked）
-    // 写入时同步更新缓存 + 异步落盘
+    // 内存缓存快照：初始为空，构造后在 IO 线程异步加载，避免主线程阻塞（P1）
     @Volatile
-    private var cache: Preferences = runBlocking {
-        // 首次访问时执行 SP → DataStore 一次性迁移，避免用户丢失已有收藏
-        migrateFromSharedPreferencesIfNeeded(context)
-        dataStore.data.first()
+    private var cache: Preferences = preferencesOf()
+
+    init {
+        ioScope.launch { runCatching { loadCache() }.onFailure { it.printStackTrace() } }
+    }
+
+    // 确保缓存已从磁盘加载；仅在未加载时短暂阻塞（IO 线程），
+    // 避免基于空缓存计算并写入导致旧数据丢失。
+    private fun ensureLoaded() {
+        if (!loaded.get()) {
+            runBlocking(Dispatchers.IO) { loadCache() }
+        }
+    }
+
+    private suspend fun loadCache() {
+        writeMutex.withLock {
+            if (!loaded.get()) {
+                migrateFromSharedPreferencesIfNeeded(context)
+                cache = dataStore.data.first()
+                loaded.set(true)
+            }
+        }
     }
 
     private val orderedPostKeysKey = stringPreferencesKey("ordered_post_object_keys")
     private val separator = "|"
 
     fun bookmarkPost(post: Post) {
+        ensureLoaded()
         val objectKey = getPostObjectKey(post.service, post.user, post.id)
         editSync { prefs ->
             prefs[getPostKey(post.service, post.user, post.id)] = true
@@ -43,6 +73,7 @@ class BookmarkManager(context: Context) {
     }
 
     fun unbookmarkPost(service: String, creatorId: String, postId: String) {
+        ensureLoaded()
         val objectKey = getPostObjectKey(service, creatorId, postId)
         editSync { prefs ->
             prefs.remove(getPostKey(service, creatorId, postId))
@@ -85,10 +116,12 @@ class BookmarkManager(context: Context) {
     }
 
     fun bookmarkCreator(service: String, creatorId: String) {
+        ensureLoaded()
         editSync { it[getCreatorKey(service, creatorId)] = true }
     }
 
     fun unbookmarkCreator(service: String, creatorId: String) {
+        ensureLoaded()
         editSync { it.remove(getCreatorKey(service, creatorId)) }
     }
 
@@ -118,6 +151,7 @@ class BookmarkManager(context: Context) {
     }
 
     private fun appendOrderedKey(key: String) {
+        ensureLoaded()
         val current = getOrderedKeys()
         if (key !in current) {
             saveOrderedKeys(current + key)
@@ -125,6 +159,7 @@ class BookmarkManager(context: Context) {
     }
 
     private fun removeFromOrdered(key: String) {
+        ensureLoaded()
         val current = getOrderedKeys()
         if (key in current) {
             saveOrderedKeys(current - key)
@@ -132,18 +167,34 @@ class BookmarkManager(context: Context) {
     }
 
     /**
-     * 同步更新内存缓存 + 异步落盘到 DataStore
+     * 同步更新内存缓存（保证 UI 立即可见）+ 异步、串行、带异常处理地落盘（P1）。
      */
     private fun editSync(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         // 先更新内存缓存（保证后续同步读取立即可见）
         cache = cache.toMutablePreferences().apply { block(this) }
-        // 异步落盘
-        kotlinx.coroutines.GlobalScope.launch {
-            dataStore.edit(block)
+        // 异步、串行、带异常处理的落盘
+        ioScope.launch {
+            runCatching {
+                val updated = writeMutex.withLock { dataStore.edit(block) }
+                // 以磁盘最新状态刷新内存快照，保持权威一致
+                cache = updated
+            }.onFailure { it.printStackTrace() }
         }
     }
 
     companion object {
+        @Volatile
+        private var instance: BookmarkManager? = null
+
+        /**
+         * 全局单例：所有画面共享同一份内存缓存与串行写锁，
+         * 避免多实例各自维护缓存导致的跨屏状态不一致与并发写覆盖（跨屏串号 fix）。
+         */
+        fun getInstance(context: Context): BookmarkManager =
+            instance ?: synchronized(this) {
+                instance ?: BookmarkManager(context.applicationContext).also { instance = it }
+            }
+
         private const val MIGRATION_DONE_KEY = "datastore_migration_done"
         private const val OLD_PREFS_NAME = "pawchive_bookmarks"
 
