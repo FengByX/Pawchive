@@ -20,7 +20,7 @@ workRuntime = "2.9.0"
 # KSP >= 2.3.6，Hilt >= 2.59.2
 ksp = "2.3.6"
 hilt = "2.59.2"
-hiltWork = "1.2.0"
+hiltWork = "1.4.0"
 # Room - 下载历史存储迁移（ARCH-004）
 room = "2.8.4"
 # 代码覆盖率（ARCH-014 质量门禁）
