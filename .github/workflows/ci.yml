@@ -38,7 +38,7 @@ jobs:
 
       # gradle/actions/setup-gradle 负责 wrapper 校验、Gradle 与依赖缓存
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --console=plain
