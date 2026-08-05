@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 网络状态检测（NetworkUtils.isNetworkAvailable，lint MissingPermission 修复） -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"
@@ -24,6 +26,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pawchive">
 
+        <!-- ARCH-007：AppCompat 自动持久化应用语言并在 attachBaseContext 自动应用
+             （配合 AppCompatDelegate.setApplicationLocales） -->
+        <meta-data
+            android:name="autoStoreLocales"
+            android:value="true" />
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -34,6 +42,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 禁用 WorkManager 默认初始化器：改由 HiltWorkerFactory 在 Application 中配置（ARCH-003） -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
     </application>
 

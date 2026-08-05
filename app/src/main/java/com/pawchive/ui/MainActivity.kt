@@ -15,26 +15,47 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.pawchive.BuildConfig
+import com.pawchive.PawchiveApplication
 import com.pawchive.R
-import com.pawchive.data.SettingsManager
+import com.pawchive.core.store.SettingsManager
+import com.pawchive.core.util.ContentUpdateConstants
 import com.pawchive.data.github.UpdateChecker
 import com.pawchive.data.repository.AuthRepository
+import com.pawchive.data.repository.OfflineArchiveBackfill
 import com.pawchive.databinding.ActivityMainBinding
+import com.pawchive.common.nav.AppNavigator
 import com.pawchive.ui.account.AccountFragment
+import com.pawchive.ui.creator.CreatorProfileFragment
+import com.pawchive.ui.login.LoginFragment
+import com.pawchive.ui.post.PostDetailFragment
+import com.pawchive.ui.settings.ContentUpdatesFragment
+import com.pawchive.ui.settings.SettingsFragment
+import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
+import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class MainActivity : AppCompatActivity() {
+@AndroidEntryPoint
+class MainActivity : AppCompatActivity(), AppNavigator {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var authRepository: AuthRepository
+    @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var updateChecker: UpdateChecker
+    @Inject lateinit var offlineArchiveBackfill: OfflineArchiveBackfill
     private lateinit var pagerAdapter: MainPagerAdapter
 
     override fun attachBaseContext(newBase: Context) {
-        val settingsManager = SettingsManager.getInstance(newBase)
-        val language = settingsManager.getLanguage()
+        // attachBaseContext 在 Hilt 注入 Activity 字段之前被系统调用，
+        // 因此通过 PawchiveApplication.getSettingsManager() 读取已注入到 Application 的实例。
+        // ARCH-007：改读轻量启动缓存（SharedPreferences），启动路径不再读取 DataStore。
+        val settingsManager = PawchiveApplication.getSettingsManager()
+        val language = settingsManager.getStartupLanguage()
         val locale = Locale.forLanguageTag(language.code)
         val config = Configuration(newBase.resources.configuration)
         config.setLocale(locale)
@@ -43,7 +64,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        SettingsManager.applyAppearance(this)
+        // 应用外观模式：settingsManager 由 Hilt 注入，但 onCreate 时已可用
+        PawchiveApplication.getSettingsManager().applyAppearance()
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -51,7 +73,6 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        authRepository = AuthRepository(this)
 
         setupWindowInsets()
         setupBottomNavigationColors()
@@ -92,11 +113,42 @@ class MainActivity : AppCompatActivity() {
 
         updateBottomNavVisibility()
 
-        UpdateChecker(this).checkAndShowDialog(
+        updateChecker.checkAndShowDialog(
             lifecycleOwner = this,
             currentVersion = BuildConfig.VERSION_NAME,
             context = this
         )
+
+        // 内容更新通知点击 → 打开内容更新页（ARCH-FEATURE-003 系统通知推送）
+        handleContentUpdateIntent(intent)
+
+        // ARCH-FEATURE-001 遗留项：老收藏一次性回填离线归档索引（异步 IO，不阻塞启动路径）
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching { offlineArchiveBackfill.runIfNeeded() }
+                    .onFailure { it.printStackTrace() }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleContentUpdateIntent(intent)
+    }
+
+    /**
+     * 处理内容更新系统通知的跳转 intent（[ContentUpdateConstants.EXTRA_OPEN_CONTENT_UPDATES]）。
+     * 延迟到视图绘制后再压栈，避免与 ViewPager2 初始化竞争。
+     */
+    private fun handleContentUpdateIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(ContentUpdateConstants.EXTRA_OPEN_CONTENT_UPDATES, false) != true) return
+        intent.removeExtra(ContentUpdateConstants.EXTRA_OPEN_CONTENT_UPDATES)
+        binding.root.post {
+            if (!isFinishing && !isDestroyed) {
+                loadFragment(ContentUpdatesFragment())
+            }
+        }
     }
 
     override fun onResume() {
@@ -206,7 +258,7 @@ class MainActivity : AppCompatActivity() {
      * 根据登录状态更新底部导航栏的可见项，并同步 ViewPager2 的 page 列表。
      * 未登录时隐藏 Bookmarks 页。
      */
-    fun updateBottomNavVisibility() {
+    override fun updateBottomNavVisibility() {
         val loggedIn = authRepository.isLoggedIn()
         val menu = binding.bottomNavigation.menu
         menu.findItem(R.id.navigation_bookmarks)?.isVisible = loggedIn
@@ -214,7 +266,6 @@ class MainActivity : AppCompatActivity() {
         // 同步 ViewPager2 的 page 列表
         updateVisiblePages()
     }
-
     /**
      * 根据 BottomNavigationView 可见项更新 ViewPager2 的 page 列表。
      * 使用 DiffUtil 精确增删，避免已有 page 重建。
@@ -268,6 +319,36 @@ class MainActivity : AppCompatActivity() {
         navigateToDetail(fragment)
     }
 
+    // ---- AppNavigator 实现（ARCH-002 阶段 3）----
+
+    override fun openPostDetail(service: String, creatorId: String, postId: String) {
+        loadFragment(PostDetailFragment.newInstance(service, creatorId, postId))
+    }
+
+    override fun openCreatorProfile(service: String, creatorId: String) {
+        loadFragment(CreatorProfileFragment.newInstance(service, creatorId))
+    }
+
+    override fun openLogin() {
+        loadFragment(LoginFragment())
+    }
+
+    override fun openSettings() {
+        loadFragment(SettingsFragment())
+    }
+
+    override fun openFragment(fragment: Fragment) {
+        loadFragment(fragment)
+    }
+
+    override fun navigateToHomeTab() {
+        navigateToMainTab(R.id.navigation_home)
+    }
+
+    override fun navigateToBookmarksTab() {
+        navigateToMainTab(R.id.navigation_bookmarks)
+    }
+
     /**
      * 切换到主界面Tab（清除返回栈，显示底部导航）。
      * 用于登录成功后跳转、外部请求跳转等场景。
@@ -319,7 +400,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * 重启 Activity 以应用语言变更（带淡入淡出动画）
      */
-    fun restartForLanguageChange() {
+    override fun restartForLanguageChange() {
         val intent = this.intent
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         finish()

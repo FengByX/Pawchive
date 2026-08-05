@@ -1,5 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -14,8 +17,8 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 50
-        versionName = "1.5.0"
+        versionCode = 51
+        versionName = "1.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,6 +59,19 @@ androidComponents {
 }
 
 dependencies {
+    // 模块拆分（ARCH-002）：:core 提供网络/错误/模型/存储/数据库基础设施
+    implementation(project(":core"))
+    // 模块拆分（ARCH-002 阶段 2）：:data 提供业务 Repository/Manager/Worker
+    implementation(project(":data"))
+    // 模块拆分（ARCH-002 阶段 3）：:feature-common 提供共享 UI + AppNavigator 接口
+    implementation(project(":feature-common"))
+    implementation(project(":feature-home"))
+    implementation(project(":feature-search"))
+    implementation(project(":feature-post"))
+    implementation(project(":feature-downloads"))
+    implementation(project(":feature-settings"))
+    implementation(project(":feature-account"))
+
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
@@ -96,10 +112,22 @@ dependencies {
     implementation("androidx.media3:media3-cast:1.4.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
 
+    // Hilt - 依赖注入（ARCH-003）
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    // Hilt + WorkManager 集成（@HiltWorker）
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
+
+    // Room - 下载历史存储迁移（ARCH-004）
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.runner)
+    testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 }

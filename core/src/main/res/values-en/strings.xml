@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_network_unreachable">Network error, please check your connection</string>
+    <string name="error_server_unreachable">Server is temporarily unavailable, please try again later</string>
+    <string name="error_timeout">Request timed out, please check your network and retry</string>
+    <string name="error_ssl">Secure connection failed, please check your system time or try again later</string>
+    <string name="error_connection_reset">Connection was interrupted, please retry</string>
+    <string name="error_forbidden">Access denied, you may not have permission to perform this action</string>
+    <string name="error_not_found">The requested content was not found</string>
+    <string name="error_server_error">Server encountered an issue, please try again later</string>
+    <string name="error_cloudflare">Security verification failed, please try again later</string>
+    <string name="error_auth">Your login session has expired, please log in again</string>
+    <string name="error_auth_expired">Login has expired, please log in again</string>
+    <string name="error_not_logged_in">Not logged in</string>
+    <string name="error_unknown">Operation failed, please try again later</string>
+    <string name="browser_not_available">Cannot open browser</string>
+    <string name="unsafe_link_blocked">Unsafe link blocked</string>
+</resources>

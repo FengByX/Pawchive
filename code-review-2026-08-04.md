@@ -16,11 +16,11 @@
 - 影响：用公开 debug 密钥签署正式包，任何持有该密钥的人都可替换/伪造应用；未启用 R8，接口路径、实现细节、Cookie 处理逻辑完全暴露。
 - 建议：为发布建立独立 `release` 签名配置（keystore 放 CI/环境变量，不入库），至少开启 `isMinifyEnabled = true` + `shrinkResources = true`。
 
-**S2. 网络拦截器内 `runBlocking` 驱动 WebView 过盾（P0/P1，已核实）**
-- 位置：`app/src/main/java/com/pawchive/data/api/ApiClient.kt:198`（`cloudflareRetryInterceptor` 内 `runBlocking { clearanceMutex.withLock { CloudflareManager.ensureClearance(...) } }`）
+**S2. 网络拦截器内 `runBlocking` 驱动 WebView 过盾（P0/P1，已核实）✅ 已修复（ARCH-009，2026-08-05）**
+- 位置：`core/src/main/java/com/pawchive/core/api/ClearanceRetryInterceptor.kt`（原 `ApiClient.kt` 内 `cloudflareRetryInterceptor`）
 - 现象：该拦截器运行在 OkHttp 调度线程，内部 `runBlocking` 阻塞当前网络线程去跑一个需要创建/轮询 `WebView` 的挂起操作（WebView 本身还在主线程跑，见 S6）。
-- 影响：OkHttp 默认 `maxRequestsPerHost=5`，并发 403（图片+接口同时）时多个网络线程被长期占用，可能耗尽连接池、放大超时，存在 ANR 风险。前几轮加的 `Mutex` 只解决了"并发启动多个 WebView"，没解决"阻塞网络线程"本身。
-- 建议：把过盾从拦截器剥离，改为在 Repository/ ViewModel 调用层用 `withContext` 先确保 `cf_clearance` 再发请求；或把过盾结果作为 Header 注入，拦截器只负责"检测到 403 且未带 clearance 时挂起等待"而非阻塞式驱动。
+- 影响：OkHttp 默认 `maxRequestsPerHost=5`，并发 403（图片+接口同时）时多个网络线程被长期占用，可能耗尽连接池、放大超时，存在 ANR 风险。
+- 修复：拦截器移除 runBlocking，403 时仅非阻塞触发过盾预热（`ClearanceCoordinator.preheat()`）并返回 403；过盾前移调用层——`ApiCallHandler` 全部方法请求前 `ensureClearance()`（直接调用经 `withClearance` 自动重试一次），登录/注册/下载/创作者名预取均已接入，启动时异步预热。
 
 **S3. DEBUG 构建 Http 日志级别为 BODY，泄露凭证（P1，已核实）**
 - 位置：`app/src/main/java/com/pawchive/data/api/ApiClient.kt:257-263`（主客户端 `buildOkHttpClient()`）
@@ -78,11 +78,11 @@
 
 ### 🟠 性能
 
-**P1. SettingsManager 首次构造同步读 DataStore（P1，已核实）**
-- 位置：`app/src/main/java/com/pawchive/data/SettingsManager.kt:47,49-56`（`settingsCache = loadInitialCache()` → `runBlocking { dataStore.data.first() }`）
+**P1. SettingsManager 首次构造同步读 DataStore（P1，已核实）✅ 已修复（ARCH-007，2026-08-05）**
+- 位置：`core/src/main/java/com/pawchive/core/store/SettingsManager.kt`
 - 现象：前几轮已把 `read()` 改为读内存快照（好），但**首构造**仍 `runBlocking` 同步读盘。若 `SettingsManager.getInstance()` 首次在主线线程触发（启动期 `attachBaseContext`/`applyAppearance`），即阻塞主线程做磁盘 I/O。
 - 影响：冷启动/首屏在低端机或 DataStore 首次迁移时可能卡顿甚至 ANR。
-- 建议：首构造改为异步预加载（挂起函数 + `viewModelScope`/应用 scope），启动期用默认值，加载完成后通知重渲染；或构造即 `launch` 预读、读取接口返回"加载中"占位。
+- 修复：构造移除 runBlocking，改为异步预加载；语言走 AppCompat locale 持久化（autoStoreLocales），主题走轻量 SharedPreferences 启动缓存；`attachBaseContext`/`applyAppearance` 零磁盘 I/O。
 
 **P2. 搜索全量拉取创作者 + 主线程线性过滤（P2）**
 - 位置：`app/src/main/java/com/pawchive/ui/search/SearchFragment.kt:354-387`
@@ -125,10 +125,10 @@
 
 ### 🟢 错误处理 / 用户体验
 
-**M1. 多处静默吞异常，用户无感知（P2）**
+**M1. 多处静默吞异常，用户无感知（P2）✅ 已修复（ARCH-008，2026-08-05）**
 - 位置：`CreatorNameCache.kt:67`、`PostDetailFragment.kt:198`、`PostDetailViewModel.kt:70-81`、`CreatorProfileViewModel.kt:80-98` 等（catch 后直接 `emptyList()` 或空处理）
 - 影响：评论/创作者名/公告加载失败，界面"看起来正常但数据不全"，用户无法重试。
-- 建议：至少上报遥测 + 轻量错误提示；列表类失败可降级提示"部分内容加载失败，点击重试"。
+- 修复：全仓空 catch 清零（17 处）；失败路径统一 `Log.w`；下载页打开/分享失败经 `toastMessage` 通道 Toast 提示；JSON 解析降级补日志；后台下载失败已写历史 errorMessage。
 
 **M4. 9+ 处 ImageView 缺 contentDescription（P3，Lint 已报）**
 - 位置：`fragment_account.xml:177`、`fragment_post_detail.xml:331`、`fragment_settings.xml`（多处）及动态创建的 `playIcon` 等

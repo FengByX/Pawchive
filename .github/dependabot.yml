@@ -1,0 +1,40 @@
+# Dependabot 自动依赖更新（ARCH-011 依赖治理）
+# - gradle: 跟踪 Gradle 依赖（libs.versions.toml / build.gradle.kts）
+# - github-actions: 跟踪 CI 工作流依赖（若日后接入）
+# 每周一自动检查并提交升级 PR，人工合并前会触发编译/测试验证。
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # 忽略破坏性大版本升级，留给季度升级计划人工执行（避免 CI 被破坏性变更淹没）
+    ignore:
+      - dependency-name: "com.squareup.retrofit2:*"
+        versions: ["3.x"]
+      - dependency-name: "com.squareup.okhttp3:*"
+        versions: ["5.x"]
+      - dependency-name: "com.google.devtools.ksp"
+        versions: ["3.x"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

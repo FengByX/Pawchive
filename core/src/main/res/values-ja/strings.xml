@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_network_unreachable">ネットワーク接続エラーです。接続を確認してください</string>
+    <string name="error_server_unreachable">サーバーにアクセスできません。しばらくしてから再度お試しください</string>
+    <string name="error_timeout">リクエストがタイムアウトしました。ネットワークを確認して再試行してください</string>
+    <string name="error_ssl">安全な接続に失敗しました。システム時刻を確認するか、しばらくしてからお試しください</string>
+    <string name="error_connection_reset">接続が中断されました。もう一度お試しください</string>
+    <string name="error_forbidden">アクセスが拒否されました。この操作を行う権限がない可能性があります</string>
+    <string name="error_not_found">要求されたコンテンツが見つかりません</string>
+    <string name="error_server_error">サーバーで問題が発生しました。しばらくしてからお試しください</string>
+    <string name="error_cloudflare">セキュリティ認証に失敗しました。しばらくしてからお試しください</string>
+    <string name="error_auth">ログインの有効期限が切れました。もう一度ログインしてください</string>
+    <string name="error_auth_expired">ログインが期限切れです。再度ログインしてください</string>
+    <string name="error_not_logged_in">未ログイン</string>
+    <string name="error_unknown">操作に失敗しました。しばらくしてからお試しください</string>
+    <string name="browser_not_available">ブラウザを開けません</string>
+    <string name="unsafe_link_blocked">安全でないリンクをブロックしました</string>
+</resources>

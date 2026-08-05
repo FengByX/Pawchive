@@ -1,0 +1,416 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_search">搜索</string>
+    <string name="nav_bookmarks">收藏</string>
+    <string name="nav_account">账户</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">帖子缩略图</string>
+    <string name="bookmark_description">收藏此帖子</string>
+    <string name="bookmark_creator_description">收藏此创作者</string>
+    <string name="sort_label">排序:</string>
+    <string name="no_posts_found">暂无帖子</string>
+    <string name="no_creators_found">暂无相关创作者</string>
+    <string name="load_more">加载更多</string>
+    <string name="back">返回</string>
+    <string name="home_subtitle">探索最新帖子</string>
+    <string name="search_hint">搜索帖子或创作者...</string>
+    <string name="search_initial_hint">输入内容开始搜索</string>
+    <string name="sort_default">默认</string>
+    <string name="tab_posts">帖子</string>
+    <string name="tab_creators">创作者</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">账号收藏</string>
+    <string name="please_login_to_view_favorites">请先登录以查看账号收藏</string>
+    <string name="no_favorites">暂无收藏</string>
+    <string name="no_favorites_hint">去首页发现喜欢的内容并收藏吧</string>
+    <string name="no_favorites_login_hint">登录后即可同步和查看你的收藏</string>
+    <string name="search_in_favorites">在收藏中搜索...</string>
+    <string name="no_search_results">未找到匹配的收藏</string>
+    <string name="search_creator_posts">搜索此作者的帖子...</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">未登录</string>
+    <string name="error_username_password_empty">用户名和密码不能为空</string>
+    <string name="error_auth_expired">登录已失效，请重新登录</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">已登出</string>
+
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="language">语言</string>
+    <string name="appearance">外观</string>
+    <string name="appearance_light">日间</string>
+    <string name="appearance_dark">夜间</string>
+    <string name="appearance_system">跟随系统</string>
+
+    <!-- Account -->
+    <string name="login">登录</string>
+    <string name="logout">登出</string>
+    <string name="logged_in">已登录</string>
+    <string name="not_logged_in">未登录</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="login_prompt">登录 Pawchive</string>
+    <string name="login_subtitle">登录以同步您的收藏</string>
+
+    <!-- Post -->
+    <string name="post_details">帖子详情</string>
+    <string name="published">发布于</string>
+    <string name="date_published">发布于 %1$s</string>
+    <string name="date_unknown">未知日期</string>
+    <string name="attachments">附件</string>
+    <string name="attachment_count_format">附件 %1$d</string>
+    <string name="revisions">修订历史</string>
+    <string name="comments">评论</string>
+    <string name="previous">上一篇</string>
+    <string name="next">下一篇</string>
+    <string name="other_files">其他文件</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">创作者主页</string>
+    <string name="posts">帖子</string>
+    <string name="announcements">公告</string>
+    <string name="linked_accounts">关联账号</string>
+    <string name="creator_last_updated">更新于 %1$s</string>
+    <string name="collapse">折叠</string>
+    <string name="expand">展开</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">帖子收藏</string>
+    <string name="favorite_creators">创作者收藏</string>
+    <string name="fav_sequence">收藏序号</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">最新添加</string>
+    <string name="sort_oldest_added">最早添加</string>
+    <string name="sort_newest_published">最新发布</string>
+    <string name="sort_oldest_published">最早发布</string>
+    <string name="sort_newest_edited">最新编辑</string>
+    <string name="sort_oldest_edited">最早编辑</string>
+    <string name="sort_newest_updated">最新更新</string>
+    <string name="sort_oldest_updated">最早更新</string>
+    <string name="sort_relevance">相关性</string>
+    <string name="sort_fav_newest">收藏时间倒序</string>
+    <string name="sort_fav_oldest">收藏时间升序</string>
+    <string name="sort_name_asc">名称 A-Z</string>
+    <string name="sort_name_desc">名称 Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">选择排序方式</string>
+
+    <!-- Errors -->
+    <string name="connection_error">连接错误</string>
+    <string name="fetch_error">获取数据失败</string>
+    <string name="login_failed">登录失败</string>
+    <string name="bookmark_added">已添加收藏</string>
+    <string name="bookmark_removed">已移除收藏</string>
+
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">网络连接异常，请检查您的网络设置</string>
+    <string name="error_server_unreachable">服务器暂时无法访问，请稍后重试</string>
+    <string name="error_timeout">网络请求超时，请检查网络后重试</string>
+    <string name="error_ssl">安全连接失败，请检查系统时间或稍后重试</string>
+    <string name="error_connection_reset">网络连接已中断，请重试</string>
+    <string name="error_forbidden">访问被拒绝，您可能没有权限执行此操作</string>
+    <string name="error_not_found">请求的内容不存在</string>
+    <string name="error_server_error">服务器暂时出现问题，请稍后重试</string>
+    <string name="error_cloudflare">安全验证未通过，请稍后重试</string>
+    <string name="error_auth">登录状态已失效，请重新登录</string>
+    <string name="error_unknown">操作失败，请稍后重试</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">保存图片</string>
+    <string name="save_image_confirm">是否保存这张图片到相册？</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="saving_image">正在保存...</string>
+    <string name="image_saved">图片已保存到相册</string>
+    <string name="save_failed">保存失败</string>
+    <string name="permission_denied">权限被拒绝</string>
+
+    <!-- Video -->
+    <string name="video_attachments">视频附件</string>
+    <string name="preview_images">预览图</string>
+    <string name="video_play_failed">视频播放失败</string>
+    <string name="play_video">播放视频</string>
+    <string name="play">播放</string>
+    <string name="pause">暂停</string>
+    <string name="close">关闭</string>
+    <string name="speed">倍速</string>
+    <string name="cast">投屏</string>
+    <string name="download">下载</string>
+    <string name="fullscreen">全屏</string>
+    <string name="video_downloaded">视频已保存到相册</string>
+    <string name="downloading">下载中...</string>
+    <string name="download_timeout">下载超时</string>
+    <string name="network_error">网络错误</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">发现新版本</string>
+    <string name="update_current_version">当前版本：%1$s</string>
+    <string name="update_latest_version">最新版本：%1$s</string>
+    <string name="update_go_download">前往下载</string>
+    <string name="update_later">稍后再说</string>
+    <string name="check_for_updates">检查更新</string>
+    <string name="update_already_latest">已是最新版本</string>
+    <string name="update_check_failed">检查更新失败</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">登录成功！正在同步收藏...</string>
+    <string name="logout_failed">登出失败</string>
+    <string name="bookmark_sync_failed">同步失败</string>
+    <string name="operation_failed">操作失败</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">下载中：%1$d%%</string>
+
+    <!-- Download Notification (WorkManager 前台任务) -->
+    <string name="download_channel_name">视频下载</string>
+    <string name="download_channel_desc">在通知栏显示视频下载进度</string>
+    <string name="download_notification_title">正在下载视频</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">下载已取消</string>
+    <string name="download_notification_failed">下载失败：%1$s</string>
+    <string name="download_notification_complete">视频已保存到相册</string>
+    <string name="download_no_permission">需要通知权限才能显示下载进度，已开始后台下载</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">下载</string>
+    <string name="download_location">下载位置</string>
+    <string name="download_location_desc">选择文件保存的默认位置</string>
+    <string name="download_location_change">更改</string>
+    <string name="download_location_default">Pawchive 文件夹</string>
+    <string name="download_location_pictures">图片库</string>
+    <string name="download_location_videos">视频库</string>
+    <string name="download_location_documents">文档</string>
+    <string name="download_location_custom">自定义...</string>
+    <string name="download_location_dialog_title">选择下载位置</string>
+    <string name="download_location_updated">下载位置已更新</string>
+    <string name="download_location_label">保存至：</string>
+    <string name="download_location_internal_storage">内部存储 / </string>
+    <string name="download_location_not_set">未设置，使用默认位置</string>
+    <string name="download_location_set_to">下载位置已设置为：%1$s</string>
+    <string name="file_picker_not_available">无法打开文件管理器</string>
+    <string name="unknown_folder">未知文件夹</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">缓存与存储</string>
+    <string name="auto_clean_cache">自动清理缓存</string>
+    <string name="auto_clean_cache_desc">在应用启动时自动清理临时缓存文件</string>
+    <string name="manual_clean_cache">立即清理缓存</string>
+    <string name="manual_clean_cache_desc">释放缓存占用的存储空间</string>
+    <string name="auto_check_update">自动检查更新</string>
+    <string name="auto_check_update_desc">应用启动时检查新版本</string>
+    <string name="cache_size">当前缓存大小：%1$s</string>
+    <string name="cache_cleaned">缓存已清理</string>
+    <string name="cache_cleaned_freed">已释放 %1$s 缓存</string>
+    <string name="cache_clean_failed">缓存清理失败</string>
+    <string name="cache_cleaning">正在清理缓存...</string>
+    <string name="cache_empty">无缓存</string>
+    <string name="clean">清理</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">关于</string>
+    <string name="version">版本</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">开源许可证</string>
+    <string name="app_description">Pawchive - 您的内容归档管理器</string>
+    <string name="join_telegram">加入官方频道</string>
+    <string name="telegram_channel_url">https://t.me/PawchiveX</string>
+    <string name="browser_not_available">无法打开浏览器</string>
+    <string name="unsafe_link_blocked">已拦截不安全的链接</string>
+
+    <!-- Register -->
+    <string name="register">注册</string>
+    <string name="register_prompt">创建新账户</string>
+    <string name="register_subtitle">注册后可同步收藏</string>
+    <string name="confirm_password">确认密码</string>
+    <string name="register_success">注册成功！请登录</string>
+    <string name="register_failed">注册失败：HTTP %1$d</string>
+    <string name="register_failed_duplicate">用户名已被注册，请更换</string>
+    <string name="register_failed_validation">注册信息无效，请检查用户名和密码</string>
+    <string name="register_failed_unknown">注册失败，请稍后重试</string>
+    <string name="error_passwords_not_match">两次输入的密码不一致</string>
+    <string name="register_have_account">已有账户？登录</string>
+
+    <!-- Search History -->
+    <string name="search_history_title">历史记录</string>
+    <string name="search_history_clear_all">全部删除</string>
+    <string name="done">完成</string>
+    <string name="delete">删除</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">屏蔽</string>
+    <string name="unblock_creator">取消屏蔽</string>
+    <string name="block_creator_confirm_title">屏蔽此创作者</string>
+    <string name="block_creator_confirm_message">屏蔽后，该创作者的全部帖子将不会在首页和搜索结果中显示。你可以在设置中管理屏蔽列表。</string>
+    <string name="creator_blocked">已屏蔽此创作者</string>
+    <string name="creator_unblocked">已取消屏蔽</string>
+    <string name="section_blocked">屏蔽</string>
+    <string name="blocked_creators">屏蔽创作者</string>
+    <string name="blocked_count_zero">暂无屏蔽</string>
+    <string name="blocked_count">已屏蔽 %1$d 位创作者</string>
+    <string name="no_blocked_creators">暂无屏蔽的创作者</string>
+    <string name="manage">管理</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">服务</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">下载中心</string>
+    <string name="nav_downloads">下载</string>
+    <string name="no_downloads">暂无下载记录</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_running">进行中</string>
+    <string name="filter_completed">已完成</string>
+    <string name="filter_failed">失败</string>
+    <string name="clear_history">清空历史</string>
+    <string name="download_type">下载类型</string>
+    <string name="retry">重试</string>
+    <string name="open">打开</string>
+    <string name="share">分享</string>
+    <string name="status_pending">等待中</string>
+    <string name="status_running">下载中 %1$d%%</string>
+    <string name="status_completed">已完成</string>
+    <string name="status_failed">下载失败</string>
+    <string name="status_cancelled">已取消</string>
+    <string name="download_cancelled">下载已取消</string>
+    <string name="download_retried">正在重试下载</string>
+    <string name="confirm_clear_history">确定清空所有下载历史吗？</string>
+    <!-- FEATURE-002 离线收藏与阅读 -->
+    <string name="offline_reading_hint">离线模式：正在查看本地缓存的收藏内容</string>
+    <string name="offline_not_cached">网络不可用且该帖子未收藏，无法离线查看</string>
+    <string name="search_in_local">在本地收藏中搜索</string>
+    <!-- FEATURE-003 账号与数据边界 -->
+    <string name="switch_account">切换账号</string>
+    <string name="current_account">当前账号</string>
+    <string name="no_account">未登录</string>
+    <string name="logout_clear_data">退出登录将清除该账号的本地数据（收藏、历史、下载）</string>
+    <string name="ok">确定</string>
+    <string name="no_other_accounts">没有其他已保存的账号</string>
+    <string name="switched_to_account">已切换到 %1$s</string>
+    <!-- FEATURE-004 搜索增强 -->
+    <string name="filter_service">来源</string>
+    <string name="filter_type">类型</string>
+    <string name="filter_has_attachment">仅含附件</string>
+    <string name="filter_bookmarked">仅看收藏</string>
+    <!-- ARCH-FEATURE-001：离线全文搜索入口 -->
+    <string name="filter_offline">离线搜索</string>
+    <string name="filter_reset">重置筛选</string>
+    <!-- FEATURE-005 内容阅读体验 -->
+    <string name="read_later">稍后读</string>
+    <string name="reading_progress">阅读进度</string>
+    <string name="external_link_warning">即将打开外部链接，是否继续？</string>
+    <string name="save_all_images">保存全部图片</string>
+    <string name="video_resume_position">已恢复至上次播放位置</string>
+    <string name="no_images_to_save">没有可保存的图片</string>
+    <string name="saving_images_count">正在保存 %1$d 张图片</string>
+    <!-- ARCH-FEATURE-002 下载规则 -->
+    <string name="download_by_rules">按规则下载</string>
+    <string name="rules_downloaded_count">已按规则加入 %1$d 个下载</string>
+    <string name="rules_download_none">无匹配规则或可下载附件</string>
+    <string name="download_rules">下载规则</string>
+    <string name="download_rules_desc">按创作者/服务/文件类型自动下载</string>
+    <string name="download_rules_add">添加规则</string>
+    <string name="download_rules_name">规则名称</string>
+    <string name="download_rules_creator">创作者（可选）</string>
+    <string name="download_rules_service">服务（可选）</string>
+    <string name="download_rules_file_type">文件类型</string>
+    <string name="download_rules_all_types">全部</string>
+    <string name="download_rules_image">图片</string>
+    <string name="download_rules_video">视频</string>
+    <string name="download_rules_attachment">附件</string>
+    <string name="download_rules_empty">暂无规则，点击右下角按钮添加</string>
+    <string name="download_rules_edit">编辑</string>
+    <string name="download_rules_delete">删除</string>
+    <string name="download_rules_delete_confirm">删除该规则？</string>
+    <string name="download_rules_saved">规则已保存</string>
+    <string name="download_rules_name_required">请输入规则名称</string>
+    <!-- ARCH-FEATURE-003 内容更新订阅 -->
+    <string name="subscription_section">订阅更新</string>
+    <string name="content_updates">内容更新</string>
+    <string name="content_updates_desc">订阅创作者，新帖自动提醒</string>
+    <string name="content_updates_empty">暂无更新，订阅创作者后自动检测新帖</string>
+    <string name="content_updates_mark_all_read">全部已读</string>
+    <string name="content_updates_unread_count">未读 %1$d</string>
+    <string name="subscription_added">已订阅更新</string>
+    <string name="subscription_removed">已取消订阅</string>
+    <string name="subscribe_to_updates">订阅更新</string>
+    <string name="unsubscribe_from_updates">取消订阅</string>
+    <string name="time_just_now">刚刚</string>
+    <string name="time_minutes_ago">%1$d 分钟前</string>
+    <string name="time_hours_ago">%1$d 小时前</string>
+    <string name="time_days_ago">%1$d 天前</string>
+    <!-- ARCH-FEATURE-003 订阅管理页 -->
+    <string name="subscriptions">订阅管理</string>
+    <string name="subscriptions_desc">管理已订阅的创作者</string>
+    <string name="subscriptions_empty">暂无订阅\n在创作者主页点击铃铛即可订阅</string>
+    <string name="subscriptions_subscribed_at">订阅于 %1$s</string>
+    <string name="subscriptions_unsubscribe">取消订阅</string>
+    <string name="subscriptions_unsubscribe_confirm">取消订阅 %1$s？将不再收到该创作者的新帖提醒</string>
+    <string name="subscriptions_unsubscribed">已取消订阅</string>
+    <!-- ARCH-FEATURE-005 备份与迁移 -->
+    <string name="section_data">数据</string>
+    <string name="backup_restore">备份与迁移</string>
+    <string name="backup_restore_desc">导出/导入本地数据</string>
+    <string name="backup_include_title">备份内容</string>
+    <string name="backup_include_desc">收藏帖子、收藏创作者、屏蔽名单、阅读进度、下载历史与设置</string>
+    <string name="backup_exclude_desc">备份不包含登录凭证与搜索历史。下载的文件本身请通过系统文件管理器另行备份。</string>
+    <string name="backup_export">导出备份</string>
+    <string name="backup_import">导入备份</string>
+    <string name="backup_exported">备份已导出</string>
+    <string name="backup_export_failed">备份导出失败</string>
+    <string name="backup_import_confirm">导入将覆盖当前收藏、屏蔽名单、阅读进度与下载历史。确定导入？</string>
+    <string name="backup_import_done">导入完成：收藏 %1$d 条、创作者 %2$d 位、屏蔽 %3$d 位、下载记录 %4$d 条</string>
+    <string name="backup_import_failed">备份导入失败：文件无效或版本不兼容</string>
+    <!-- ARCH-FEATURE-001 离线归档管理页 -->
+    <string name="offline_archives">离线归档</string>
+    <string name="offline_archives_desc">管理收藏帖子的离线副本</string>
+    <string name="offline_archives_search_hint">搜索离线归档</string>
+    <string name="offline_archives_delete">删除</string>
+    <string name="offline_archives_delete_confirm">删除离线副本「%1$s」？不影响收藏。</string>
+    <string name="offline_archives_clear_all">清空</string>
+    <string name="offline_archives_clear_all_confirm">确定清空全部离线归档？不影响收藏。</string>
+    <string name="offline_archives_cleared">已清空离线归档</string>
+    <string name="offline_archives_empty">暂无离线归档\n收藏帖子时会自动保存副本，供离线阅读</string>
+    <!-- ARCH-FEATURE-006 首页过滤已收藏作者 -->
+    <string name="feed_section">信息流</string>
+    <string name="hide_bookmarked_creators">隐藏已收藏作者的帖子</string>
+    <string name="hide_bookmarked_creators_desc">首页不再展示已收藏创作者的帖子，聚焦发现新内容</string>
+    <!-- ARCH-FEATURE-003/006 联动：收藏即订阅 -->
+    <string name="auto_subscribe_on_bookmark">收藏创作者时自动订阅</string>
+    <string name="auto_subscribe_on_bookmark_desc">收藏即关注，新帖自动进入内容更新提醒</string>
+    <string name="auto_subscribed">已自动订阅该创作者</string>
+    <!-- ARCH-FEATURE-004 缓存管理页 -->
+    <string name="cache_manager">缓存管理</string>
+    <string name="cache_manager_desc">按类别查看与清理缓存</string>
+    <string name="cache_image">图片缓存</string>
+    <string name="cache_image_desc">缩略图与原图缓存，可安全清理</string>
+    <string name="cache_other">其他缓存</string>
+    <string name="cache_other_desc">临时文件与外部缓存</string>
+    <string name="cache_archive">离线归档</string>
+    <string name="cache_archive_desc">已收藏内容的离线副本（%1$d 条）</string>
+    <string name="cache_downloads">下载文件</string>
+    <string name="cache_downloads_desc">已下载的图片与视频文件</string>
+    <string name="cache_total_clearable">可清理缓存</string>
+    <string name="cache_last_clean">上次清理：%1$s</string>
+    <string name="cache_never_cleaned">从未清理</string>
+    <string name="cache_threshold_warning">缓存已超过阈值（%1$s），建议清理</string>
+    <string name="cache_clear">清理</string>
+    <string name="cache_clear_archive_confirm">将删除离线归档副本，收藏内容需联网浏览。确定？</string>
+    <string name="cache_clear_downloads_confirm">将永久删除已下载的图片与视频文件。确定？</string>
+    <string name="cache_category_cleared">已清理</string>
+    <string name="cache_downloads_deleted">已删除 %1$d 个文件</string>
+    <!-- FEATURE-006 可观察的错误与反馈 -->
+    <string name="error_retry">重试</string>
+    <string name="error_load_failed">加载失败</string>
+    <string name="error_empty">暂无内容</string>
+    <string name="error_network">网络连接失败</string>
+</resources>

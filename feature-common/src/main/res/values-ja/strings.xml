@@ -1,0 +1,416 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">ホーム</string>
+    <string name="nav_search">検索</string>
+    <string name="nav_bookmarks">ブックマーク</string>
+    <string name="nav_account">アカウント</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">投稿サムネイル</string>
+    <string name="bookmark_description">この投稿をブックマーク</string>
+    <string name="bookmark_creator_description">このクリエイターをブックマーク</string>
+    <string name="sort_label">並び順:</string>
+    <string name="no_posts_found">投稿がありません</string>
+    <string name="no_creators_found">クリエイターが見つかりません</string>
+    <string name="load_more">もっと読み込む</string>
+    <string name="back">戻る</string>
+    <string name="home_subtitle">最新の投稿を探検</string>
+    <string name="search_hint">投稿またはクリエイターを検索...</string>
+    <string name="search_initial_hint">検索キーワードを入力してください</string>
+    <string name="sort_default">デフォルト</string>
+    <string name="tab_posts">投稿</string>
+    <string name="tab_creators">クリエイター</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">アカウントブックマーク</string>
+    <string name="please_login_to_view_favorites">ログインしてブックマークを表示</string>
+    <string name="no_favorites">ブックマークがありません</string>
+    <string name="no_favorites_hint">ホームでお気に入りを見つけてブックマークしましょう</string>
+    <string name="no_favorites_login_hint">ログインするとブックマークを同期・表示できます</string>
+    <string name="search_in_favorites">ブックマーク内を検索...</string>
+    <string name="no_search_results">一致するブックマークが見つかりません</string>
+    <string name="search_creator_posts">このクリエイターの投稿を検索...</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">未ログイン</string>
+    <string name="error_username_password_empty">ユーザー名とパスワードは空にできません</string>
+    <string name="error_auth_expired">ログインが期限切れです。再度ログインしてください</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">ログアウトしました</string>
+
+    <!-- Settings -->
+    <string name="settings">設定</string>
+    <string name="language">言語</string>
+    <string name="appearance">外観</string>
+    <string name="appearance_light">ライト</string>
+    <string name="appearance_dark">ダーク</string>
+    <string name="appearance_system">システム設定に従う</string>
+
+    <!-- Account -->
+    <string name="login">ログイン</string>
+    <string name="logout">ログアウト</string>
+    <string name="logged_in">ログイン済み</string>
+    <string name="not_logged_in">未ログイン</string>
+    <string name="username">ユーザー名</string>
+    <string name="password">パスワード</string>
+    <string name="login_prompt">Pawchiveにログイン</string>
+    <string name="login_subtitle">ブックマークを同期するためにログイン</string>
+
+    <!-- Post -->
+    <string name="post_details">投稿詳細</string>
+    <string name="published">公開日</string>
+    <string name="date_published">公開日 %1$s</string>
+    <string name="date_unknown">不明</string>
+    <string name="attachments">添付ファイル</string>
+    <string name="attachment_count_format">添付 %1$d</string>
+    <string name="revisions"> revision履歴</string>
+    <string name="comments">コメント</string>
+    <string name="previous">前の投稿</string>
+    <string name="next">次の投稿</string>
+    <string name="other_files">その他のファイル</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">クリエイター詳細</string>
+    <string name="posts">投稿</string>
+    <string name="announcements">お知らせ</string>
+    <string name="linked_accounts">連携アカウント</string>
+    <string name="creator_last_updated">更新日：%1$s</string>
+    <string name="collapse">折りたたむ</string>
+    <string name="expand">展開</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">投稿ブックマーク</string>
+    <string name="favorite_creators">クリエイターブックマーク</string>
+    <string name="fav_sequence">ブックマーク順序</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">追加日が新しい順</string>
+    <string name="sort_oldest_added">追加日が古い順</string>
+    <string name="sort_newest_published">公開日が新しい順</string>
+    <string name="sort_oldest_published">公開日が古い順</string>
+    <string name="sort_newest_edited">編集日が新しい順</string>
+    <string name="sort_oldest_edited">編集日が古い順</string>
+    <string name="sort_newest_updated">更新日が新しい順</string>
+    <string name="sort_oldest_updated">更新日が古い順</string>
+    <string name="sort_relevance">関連性</string>
+    <string name="sort_fav_newest">ブックマークが新しい順</string>
+    <string name="sort_fav_oldest">ブックマークが古い順</string>
+    <string name="sort_name_asc">名前 A-Z</string>
+    <string name="sort_name_desc">名前 Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">並び順を選択</string>
+
+    <!-- Errors -->
+    <string name="connection_error">接続エラー</string>
+    <string name="fetch_error">データの取得に失敗</string>
+    <string name="login_failed">ログイン失敗</string>
+    <string name="bookmark_added">ブックマーク追加</string>
+    <string name="bookmark_removed">ブックマーク削除</string>
+
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">ネットワーク接続エラーです。接続を確認してください</string>
+    <string name="error_server_unreachable">サーバーにアクセスできません。しばらくしてから再度お試しください</string>
+    <string name="error_timeout">リクエストがタイムアウトしました。ネットワークを確認して再試行してください</string>
+    <string name="error_ssl">安全な接続に失敗しました。システム時刻を確認するか、しばらくしてからお試しください</string>
+    <string name="error_connection_reset">接続が中断されました。もう一度お試しください</string>
+    <string name="error_forbidden">アクセスが拒否されました。この操作を行う権限がない可能性があります</string>
+    <string name="error_not_found">要求されたコンテンツが見つかりません</string>
+    <string name="error_server_error">サーバーで問題が発生しました。しばらくしてからお試しください</string>
+    <string name="error_cloudflare">セキュリティ認証に失敗しました。しばらくしてからお試しください</string>
+    <string name="error_auth">ログインの有効期限が切れました。もう一度ログインしてください</string>
+    <string name="error_unknown">操作に失敗しました。しばらくしてからお試しください</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">画像を保存</string>
+    <string name="save_image_confirm">この画像をギャラリーに保存しますか？</string>
+    <string name="save">保存</string>
+    <string name="cancel">キャンセル</string>
+    <string name="saving_image">保存中...</string>
+    <string name="image_saved">画像を保存しました</string>
+    <string name="save_failed">保存に失敗しました</string>
+    <string name="permission_denied">権限が拒否されました</string>
+
+    <!-- Video -->
+    <string name="video_attachments">動画添付ファイル</string>
+    <string name="preview_images">プレビュー画像</string>
+    <string name="video_play_failed">動画の再生に失敗しました</string>
+    <string name="play_video">動画を再生</string>
+    <string name="play">再生</string>
+    <string name="pause">一時停止</string>
+    <string name="close">閉じる</string>
+    <string name="speed">スピード</string>
+    <string name="cast">キャスト</string>
+    <string name="download">ダウンロード</string>
+    <string name="fullscreen">全画面</string>
+    <string name="video_downloaded">動画をアルバムに保存しました</string>
+    <string name="downloading">ダウンロード中...</string>
+    <string name="download_timeout">ダウンロードタイムアウト</string>
+    <string name="network_error">ネットワークエラー</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">新しいバージョンがあります</string>
+    <string name="update_current_version">現在のバージョン：%1$s</string>
+    <string name="update_latest_version">最新バージョン：%1$s</string>
+    <string name="update_go_download">ダウンロードへ</string>
+    <string name="update_later">後で</string>
+    <string name="check_for_updates">アップデート確認</string>
+    <string name="update_already_latest">最新バージョンです</string>
+    <string name="update_check_failed">アップデート確認に失敗しました</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">ログイン成功！ブックマークを同期中...</string>
+    <string name="logout_failed">ログアウト失敗</string>
+    <string name="bookmark_sync_failed">同期に失敗しました</string>
+    <string name="operation_failed">操作に失敗しました</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">ダウンロード中：%1$d%%</string>
+
+    <!-- Download Notification (WorkManager foreground task) -->
+    <string name="download_channel_name">動画ダウンロード</string>
+    <string name="download_channel_desc">通知バーに動画ダウンロードの進捗を表示</string>
+    <string name="download_notification_title">動画をダウンロード中</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">ダウンロードはキャンセルされました</string>
+    <string name="download_notification_failed">ダウンロード失敗：%1$s</string>
+    <string name="download_notification_complete">動画をアルバムに保存しました</string>
+    <string name="download_no_permission">進捗表示に通知権限が必要です。バックグラウンドダウンロードを開始しました</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">ダウンロード</string>
+    <string name="download_location">ダウンロード場所</string>
+    <string name="download_location_desc">ファイルのデフォルト保存場所を選択</string>
+    <string name="download_location_change">変更</string>
+    <string name="download_location_default">Pawchive フォルダ</string>
+    <string name="download_location_pictures">写真</string>
+    <string name="download_location_videos">動画</string>
+    <string name="download_location_documents">ドキュメント</string>
+    <string name="download_location_custom">カスタム...</string>
+    <string name="download_location_dialog_title">ダウンロード場所を選択</string>
+    <string name="download_location_updated">ダウンロード場所を更新しました</string>
+    <string name="download_location_label">保存先：</string>
+    <string name="download_location_internal_storage">内部ストレージ / </string>
+    <string name="download_location_not_set">未設定、デフォルトの場所を使用</string>
+    <string name="download_location_set_to">ダウンロード場所を設定しました：%1$s</string>
+    <string name="file_picker_not_available">ファイルマネージャーを開けません</string>
+    <string name="unknown_folder">不明なフォルダ</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">キャッシュとストレージ</string>
+    <string name="auto_clean_cache">自動キャッシュクリーン</string>
+    <string name="auto_clean_cache_desc">アプリ起動時に一時キャッシュファイルを自動的にクリーンアップ</string>
+    <string name="manual_clean_cache">キャッシュをクリーンアップ</string>
+    <string name="manual_clean_cache_desc">キャッシュデータが使用するストレージ容量を解放</string>
+    <string name="auto_check_update">アップデート自動確認</string>
+    <string name="auto_check_update_desc">アプリ起動時に新バージョンを確認</string>
+    <string name="cache_size">現在のキャッシュサイズ：%1$s</string>
+    <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
+    <string name="cache_cleaned_freed">%1$s のキャッシュを解放しました</string>
+    <string name="cache_clean_failed">キャッシュのクリーンアップに失敗しました</string>
+    <string name="cache_cleaning">キャッシュをクリーンアップ中...</string>
+    <string name="cache_empty">キャッシュなし</string>
+    <string name="clean">クリア</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">情報</string>
+    <string name="version">バージョン</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">オープンソースライセンス</string>
+    <string name="app_description">Pawchive - コンテンツアーカイブマネージャー</string>
+    <string name="join_telegram">公式チャンネルに参加</string>
+    <string name="telegram_channel_url">https://t.me/PawchiveX</string>
+    <string name="browser_not_available">ブラウザを開けません</string>
+    <string name="unsafe_link_blocked">安全でないリンクをブロックしました</string>
+
+    <!-- Register -->
+    <string name="register">登録</string>
+    <string name="register_prompt">アカウント作成</string>
+    <string name="register_subtitle">登録してお気に入りを同期</string>
+    <string name="confirm_password">パスワード確認</string>
+    <string name="register_success">登録成功！ログインしてください</string>
+    <string name="register_failed">登録失敗：HTTP %1$d</string>
+    <string name="register_failed_duplicate">このユーザー名は既に登録されています</string>
+    <string name="register_failed_validation">登録情報が無効です。ユーザー名とパスワードを確認してください</string>
+    <string name="register_failed_unknown">登録失敗。後でもう一度お試しください</string>
+    <string name="error_passwords_not_match">パスワードが一致しません</string>
+    <string name="register_have_account">アカウントをお持ちですか？ログイン</string>
+
+    <!-- Search History -->
+    <string name="search_history_title">検索履歴</string>
+    <string name="search_history_clear_all">すべて削除</string>
+    <string name="done">完了</string>
+    <string name="delete">削除</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">ブロック</string>
+    <string name="unblock_creator">ブロック解除</string>
+    <string name="block_creator_confirm_title">このクリエイターをブロック</string>
+    <string name="block_creator_confirm_message">ブロックすると、このクリエイターの全投稿がホームと検索結果に表示されなくなります。設定でブロックリストを管理できます。</string>
+    <string name="creator_blocked">クリエイターをブロックしました</string>
+    <string name="creator_unblocked">ブロックを解除しました</string>
+    <string name="section_blocked">ブロック</string>
+    <string name="blocked_creators">ブロック済みクリエイター</string>
+    <string name="blocked_count_zero">ブロックなし</string>
+    <string name="blocked_count">%1$d件のクリエイターをブロック中</string>
+    <string name="no_blocked_creators">ブロック済みクリエイターなし</string>
+    <string name="manage">管理</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">サービス</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">ダウンロードセンター</string>
+    <string name="nav_downloads">ダウンロード</string>
+    <string name="no_downloads">ダウンロード履歴なし</string>
+    <string name="filter_all">すべて</string>
+    <string name="filter_running">進行中</string>
+    <string name="filter_completed">完了</string>
+    <string name="filter_failed">失敗</string>
+    <string name="clear_history">履歴を消去</string>
+    <string name="download_type">ダウンロードの種類</string>
+    <string name="retry">再試行</string>
+    <string name="open">開く</string>
+    <string name="share">共有</string>
+    <string name="status_pending">待機中</string>
+    <string name="status_running">ダウンロード中 %1$d%%</string>
+    <string name="status_completed">完了</string>
+    <string name="status_failed">ダウンロード失敗</string>
+    <string name="status_cancelled">キャンセル済み</string>
+    <string name="download_cancelled">ダウンロードをキャンセルしました</string>
+    <string name="download_retried">ダウンロードを再試行中</string>
+    <string name="confirm_clear_history">すべてのダウンロード履歴を消去しますか？</string>
+    <!-- FEATURE-002 オフラインブックマーク -->
+    <string name="offline_reading_hint">オフラインモード：ローカルキャッシュのブックマークを表示中</string>
+    <string name="offline_not_cached">ネットワーク不可でブックマークされていないため表示できません</string>
+    <string name="search_in_local">ローカルブックマークを検索</string>
+    <!-- FEATURE-003 アカウントとデータ境界 -->
+    <string name="switch_account">アカウント切替</string>
+    <string name="current_account">現在のアカウント</string>
+    <string name="no_account">未ログイン</string>
+    <string name="logout_clear_data">ログアウトするとこのアカウントのローカルデータが消去されます</string>
+    <string name="ok">OK</string>
+    <string name="no_other_accounts">他に保存されたアカウントはありません</string>
+    <string name="switched_to_account">%1$s に切り替えました</string>
+    <!-- FEATURE-004 検索拡張 -->
+    <string name="filter_service">サービス</string>
+    <string name="filter_type">タイプ</string>
+    <string name="filter_has_attachment">添付付きのみ</string>
+    <string name="filter_bookmarked">ブックマークのみ</string>
+    <!-- ARCH-FEATURE-001：オフライン全文検索エントリ -->
+    <string name="filter_offline">オフライン検索</string>
+    <string name="filter_reset">フィルターリセット</string>
+    <!-- FEATURE-005 閲覧体験 -->
+    <string name="read_later">後で読む</string>
+    <string name="reading_progress">閲覧進捗</string>
+    <string name="external_link_warning">外部リンクを開こうとしています。続行しますか？</string>
+    <string name="save_all_images">すべての画像を保存</string>
+    <string name="video_resume_position">前回の再生位置から再開</string>
+    <string name="no_images_to_save">保存可能な画像はありません</string>
+    <string name="saving_images_count">%1$d 枚の画像を保存中</string>
+    <!-- ARCH-FEATURE-002 ダウンロードルール -->
+    <string name="download_by_rules">ルールでダウンロード</string>
+    <string name="rules_downloaded_count">ルールで %1$d 件のダウンロードを追加</string>
+    <string name="rules_download_none">一致するルールやファイルがありません</string>
+    <string name="download_rules">ダウンロードルール</string>
+    <string name="download_rules_desc">クリエイター・サービス・ファイルタイプ別に自動ダウンロード</string>
+    <string name="download_rules_add">ルールを追加</string>
+    <string name="download_rules_name">ルール名</string>
+    <string name="download_rules_creator">クリエイター（任意）</string>
+    <string name="download_rules_service">サービス（任意）</string>
+    <string name="download_rules_file_type">ファイルタイプ</string>
+    <string name="download_rules_all_types">すべて</string>
+    <string name="download_rules_image">画像</string>
+    <string name="download_rules_video">動画</string>
+    <string name="download_rules_attachment">添付ファイル</string>
+    <string name="download_rules_empty">ルールはありません。右下のボタンから追加してください</string>
+    <string name="download_rules_edit">編集</string>
+    <string name="download_rules_delete">削除</string>
+    <string name="download_rules_delete_confirm">このルールを削除しますか？</string>
+    <string name="download_rules_saved">ルールを保存しました</string>
+    <string name="download_rules_name_required">ルール名を入力してください</string>
+    <!-- ARCH-FEATURE-003 更新サブスクリプション -->
+    <string name="subscription_section">更新</string>
+    <string name="content_updates">更新</string>
+    <string name="content_updates_desc">クリエイターをフォローして新着を通知</string>
+    <string name="content_updates_empty">更新はありません。クリエイターをフォローすると新着を自動検出します</string>
+    <string name="content_updates_mark_all_read">すべて既読</string>
+    <string name="content_updates_unread_count">未読 %1$d</string>
+    <string name="subscription_added">更新を登録しました</string>
+    <string name="subscription_removed">更新登録を解除しました</string>
+    <string name="subscribe_to_updates">更新を購読</string>
+    <string name="unsubscribe_from_updates">購読解除</string>
+    <string name="time_just_now">たった今</string>
+    <string name="time_minutes_ago">%1$d 分前</string>
+    <string name="time_hours_ago">%1$d 時間前</string>
+    <string name="time_days_ago">%1$d 日前</string>
+    <!-- ARCH-FEATURE-003 登録管理 -->
+    <string name="subscriptions">登録管理</string>
+    <string name="subscriptions_desc">登録中のクリエイターを管理</string>
+    <string name="subscriptions_empty">登録はまだありません\nクリエイターページのベルから登録できます</string>
+    <string name="subscriptions_subscribed_at">登録日：%1$s</string>
+    <string name="subscriptions_unsubscribe">登録解除</string>
+    <string name="subscriptions_unsubscribe_confirm">%1$s の登録を解除しますか？新着通知が届かなくなります</string>
+    <string name="subscriptions_unsubscribed">登録を解除しました</string>
+    <!-- ARCH-FEATURE-005 バックアップと移行 -->
+    <string name="section_data">データ</string>
+    <string name="backup_restore">バックアップと移行</string>
+    <string name="backup_restore_desc">ローカルデータのエクスポート/インポート</string>
+    <string name="backup_include_title">バックアップ内容</string>
+    <string name="backup_include_desc">お気に入り投稿、お気に入りクリエイター、ブロックリスト、読書進捗、ダウンロード履歴、設定</string>
+    <string name="backup_exclude_desc">バックアップにログイン情報と検索履歴は含まれません。ダウンロードしたファイル自体は、システムのファイルマネージャーで別途バックアップしてください。</string>
+    <string name="backup_export">バックアップをエクスポート</string>
+    <string name="backup_import">バックアップをインポート</string>
+    <string name="backup_exported">バックアップをエクスポートしました</string>
+    <string name="backup_export_failed">バックアップのエクスポートに失敗しました</string>
+    <string name="backup_import_confirm">インポートすると現在のお気に入り、ブロックリスト、読書進捗、ダウンロード履歴が上書きされます。続行しますか？</string>
+    <string name="backup_import_done">インポート完了：お気に入り %1$d 件、クリエイター %2$d 件、ブロック %3$d 件、ダウンロード履歴 %4$d 件</string>
+    <string name="backup_import_failed">バックアップのインポートに失敗しました：ファイルが無効、またはバージョン非互換</string>
+    <!-- ARCH-FEATURE-001 オフラインアーカイブ管理 -->
+    <string name="offline_archives">オフラインアーカイブ</string>
+    <string name="offline_archives_desc">お気に入り投稿のオフラインコピーを管理</string>
+    <string name="offline_archives_search_hint">オフラインアーカイブを検索</string>
+    <string name="offline_archives_delete">削除</string>
+    <string name="offline_archives_delete_confirm">「%1$s」のオフラインコピーを削除しますか？お気に入りは保持されます。</string>
+    <string name="offline_archives_clear_all">すべて削除</string>
+    <string name="offline_archives_clear_all_confirm">すべてのオフラインアーカイブを削除しますか？お気に入りは保持されます。</string>
+    <string name="offline_archives_cleared">オフラインアーカイブを削除しました</string>
+    <string name="offline_archives_empty">オフラインアーカイブはありません\nお気に入り登録時にオフライン閲覧用のコピーが保存されます</string>
+    <!-- ARCH-FEATURE-006 フィードフィルター -->
+    <string name="feed_section">フィード</string>
+    <string name="hide_bookmarked_creators">お気に入りクリエイターの投稿を非表示</string>
+    <string name="hide_bookmarked_creators_desc">ホームでお気に入り登録したクリエイターの投稿を非表示にし、新しい発見に集中します</string>
+    <!-- ARCH-FEATURE-003/006 連携：お気に入りで自動購読 -->
+    <string name="auto_subscribe_on_bookmark">お気に入り登録時に自動購読</string>
+    <string name="auto_subscribe_on_bookmark_desc">お気に入り登録したクリエイターの新着を自動で通知</string>
+    <string name="auto_subscribed">このクリエイターを自動購読しました</string>
+    <!-- ARCH-FEATURE-004 キャッシュ管理 -->
+    <string name="cache_manager">キャッシュ管理</string>
+    <string name="cache_manager_desc">カテゴリごとにキャッシュを表示・クリア</string>
+    <string name="cache_image">画像キャッシュ</string>
+    <string name="cache_image_desc">サムネイルと画像キャッシュ（安全に削除可）</string>
+    <string name="cache_other">その他のキャッシュ</string>
+    <string name="cache_other_desc">一時ファイルと外部キャッシュ</string>
+    <string name="cache_archive">オフラインアーカイブ</string>
+    <string name="cache_archive_desc">お気に入り投稿のオフラインコピー（%1$d 件）</string>
+    <string name="cache_downloads">ダウンロードファイル</string>
+    <string name="cache_downloads_desc">ダウンロードした画像・動画</string>
+    <string name="cache_total_clearable">削除可能なキャッシュ</string>
+    <string name="cache_last_clean">前回のクリーン：%1$s</string>
+    <string name="cache_never_cleaned">未クリーン</string>
+    <string name="cache_threshold_warning">キャッシュがしきい値（%1$s）を超えています。クリーンを推奨</string>
+    <string name="cache_clear">クリア</string>
+    <string name="cache_clear_archive_confirm">オフラインアーカイブを削除します。お気に入り投稿はネットワーク接続が必要になります。続行しますか？</string>
+    <string name="cache_clear_downloads_confirm">ダウンロードした画像・動画を完全に削除します。続行しますか？</string>
+    <string name="cache_category_cleared">クリアしました</string>
+    <string name="cache_downloads_deleted">%1$d 個のファイルを削除しました</string>
+    <!-- FEATURE-006 エラーフィードバック -->
+    <string name="error_retry">再試行</string>
+    <string name="error_load_failed">読み込み失敗</string>
+    <string name="error_empty">コンテンツなし</string>
+    <string name="error_network">ネットワーク接続失敗</string>
+</resources>

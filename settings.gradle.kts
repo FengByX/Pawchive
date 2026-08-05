@@ -27,3 +27,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "Pawchive"
 include(":app")
+include(":core")
+include(":data")
+include(":feature-common")
+include(":feature-home")
+include(":feature-search")
+include(":feature-post")
+include(":feature-downloads")
+include(":feature-settings")
+include(":feature-account")

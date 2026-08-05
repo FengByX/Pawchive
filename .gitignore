@@ -6,6 +6,7 @@
 .kotlin/
 .DS_Store
 /build
+**/build
 /captures
 .externalNativeBuild
 .cxx
@@ -13,4 +14,3 @@ local.properties
 build_log.txt
 schema.json
 /app/release
-/app/build

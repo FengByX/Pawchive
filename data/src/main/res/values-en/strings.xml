@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Update check (UpdateChecker) -->
+    <string name="update_available_title">New version available</string>
+    <string name="update_current_version">Current: %1$s</string>
+    <string name="update_latest_version">Latest: %1$s</string>
+    <string name="update_go_download">Go to Download</string>
+    <string name="update_later">Later</string>
+
+    <!-- Download notification (DownloadWorker) -->
+    <string name="download_channel_name">Video Download</string>
+    <string name="download_channel_desc">Shows video download progress in the notification bar</string>
+    <string name="download_notification_title">Downloading video</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_failed">Download failed: %1$s</string>
+    <string name="download_notification_complete">Video saved to gallery</string>
+
+    <!-- Content update notification (ContentUpdateNotifier) -->
+    <string name="content_update_channel_name">Content updates</string>
+    <string name="content_update_channel_desc">Notifications for new posts from subscribed creators</string>
+    <string name="content_update_notification_title">New content update</string>
+    <string name="content_update_notification_multi">%1$d new content updates</string>
+
+    <!-- Registration/auth (AuthRepository) -->
+    <string name="register_failed">Registration failed: HTTP %1$d</string>
+    <string name="register_failed_validation">Invalid registration details, please check username and password</string>
+    <string name="register_failed_unknown">Registration failed, please try again later</string>
+    <string name="error_passwords_not_match">Passwords do not match</string>
+</resources>

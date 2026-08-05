@@ -1,0 +1,416 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Pawchive</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_bookmarks">Bookmarks</string>
+    <string name="nav_account">Account</string>
+
+    <!-- Common -->
+    <string name="thumbnail_description">Post thumbnail</string>
+    <string name="bookmark_description">Bookmark this post</string>
+    <string name="bookmark_creator_description">Bookmark this creator</string>
+    <string name="sort_label">Sort:</string>
+    <string name="no_posts_found">No posts found</string>
+    <string name="no_creators_found">No creators found</string>
+    <string name="load_more">Load More</string>
+    <string name="back">Back</string>
+    <string name="home_subtitle">Explore the latest posts</string>
+    <string name="search_hint">Search posts or creators...</string>
+    <string name="search_initial_hint">Type something to start searching</string>
+    <string name="sort_default">Default</string>
+    <string name="tab_posts">Posts</string>
+    <string name="tab_creators">Creators</string>
+
+    <!-- Favorites -->
+    <string name="account_favorites_title">Account Favorites</string>
+    <string name="please_login_to_view_favorites">Please login to view your favorites</string>
+    <string name="no_favorites">No favorites yet</string>
+    <string name="no_favorites_hint">Explore the home feed and save what you like</string>
+    <string name="no_favorites_login_hint">Log in to sync and view your favorites</string>
+    <string name="search_in_favorites">Search in favorites...</string>
+    <string name="no_search_results">No matching favorites found</string>
+    <string name="search_creator_posts">Search posts by this creator...</string>
+
+    <!-- Errors -->
+    <string name="error_not_logged_in">Not logged in</string>
+    <string name="error_username_password_empty">Username and password cannot be empty</string>
+    <string name="error_auth_expired">Login has expired, please log in again</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_logged_out">Logged out</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="language">Language</string>
+    <string name="appearance">Appearance</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_system">Follow System</string>
+
+    <!-- Account -->
+    <string name="login">Login</string>
+    <string name="logout">Logout</string>
+    <string name="logged_in">Logged In</string>
+    <string name="not_logged_in">Not Logged In</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login_prompt">Login to Pawchive</string>
+    <string name="login_subtitle">Login to sync your bookmarks</string>
+
+    <!-- Post -->
+    <string name="post_details">Post Details</string>
+    <string name="published">Published</string>
+    <string name="date_published">Published %1$s</string>
+    <string name="date_unknown">Unknown</string>
+    <string name="attachments">Attachments</string>
+    <string name="attachment_count_format">Attachments %1$d</string>
+    <string name="revisions">Revisions</string>
+    <string name="comments">Comments</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="other_files">Other Files</string>
+
+    <!-- Creator -->
+    <string name="creator_profile">Creator Profile</string>
+    <string name="posts">Posts</string>
+    <string name="announcements">Announcements</string>
+    <string name="linked_accounts">Linked Accounts</string>
+    <string name="creator_last_updated">Updated %1$s</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+
+    <!-- Favorites -->
+    <string name="favorite_posts">Favorite Posts</string>
+    <string name="favorite_creators">Favorite Creators</string>
+    <string name="fav_sequence">Favorite Sequence</string>
+
+    <!-- Sort Options -->
+    <string name="sort_newest_added">Newest Added</string>
+    <string name="sort_oldest_added">Oldest Added</string>
+    <string name="sort_newest_published">Newest Published</string>
+    <string name="sort_oldest_published">Oldest Published</string>
+    <string name="sort_newest_edited">Newest Edited</string>
+    <string name="sort_oldest_edited">Oldest Edited</string>
+    <string name="sort_newest_updated">Newest Updated</string>
+    <string name="sort_oldest_updated">Oldest Updated</string>
+    <string name="sort_relevance">Relevance</string>
+    <string name="sort_fav_newest">Newest Favorite</string>
+    <string name="sort_fav_oldest">Oldest Favorite</string>
+    <string name="sort_name_asc">Name A-Z</string>
+    <string name="sort_name_desc">Name Z-A</string>
+
+    <!-- Dialogs -->
+    <string name="select_sort">Select Sort Method</string>
+
+    <!-- Errors -->
+    <string name="connection_error">Connection Error</string>
+    <string name="fetch_error">Failed to fetch data</string>
+    <string name="login_failed">Login Failed</string>
+    <string name="bookmark_added">Bookmark Added</string>
+    <string name="bookmark_removed">Bookmark Removed</string>
+
+    <!-- Friendly Error Messages -->
+    <string name="error_network_unreachable">Network error, please check your connection</string>
+    <string name="error_server_unreachable">Server is temporarily unavailable, please try again later</string>
+    <string name="error_timeout">Request timed out, please check your network and retry</string>
+    <string name="error_ssl">Secure connection failed, please check your system time or try again later</string>
+    <string name="error_connection_reset">Connection was interrupted, please retry</string>
+    <string name="error_forbidden">Access denied, you may not have permission to perform this action</string>
+    <string name="error_not_found">The requested content was not found</string>
+    <string name="error_server_error">Server encountered an issue, please try again later</string>
+    <string name="error_cloudflare">Security verification failed, please try again later</string>
+    <string name="error_auth">Your login session has expired, please log in again</string>
+    <string name="error_unknown">Operation failed, please try again later</string>
+
+    <!-- Image Viewer -->
+    <string name="save_image">Save Image</string>
+    <string name="save_image_confirm">Save this image to gallery?</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="saving_image">Saving...</string>
+    <string name="image_saved">Image saved to gallery</string>
+    <string name="save_failed">Save failed</string>
+    <string name="permission_denied">Permission denied</string>
+
+    <!-- Video -->
+    <string name="video_attachments">Video Attachments</string>
+    <string name="preview_images">Preview Images</string>
+    <string name="video_play_failed">Video playback failed</string>
+    <string name="play_video">Play video</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="close">Close</string>
+    <string name="speed">Speed</string>
+    <string name="cast">Cast</string>
+    <string name="download">Download</string>
+    <string name="fullscreen">Fullscreen</string>
+    <string name="video_downloaded">Video saved to gallery</string>
+    <string name="downloading">Downloading...</string>
+    <string name="download_timeout">Download timeout</string>
+    <string name="network_error">Network error</string>
+
+    <!-- Update Checker -->
+    <string name="update_available_title">New version available</string>
+    <string name="update_current_version">Current: %1$s</string>
+    <string name="update_latest_version">Latest: %1$s</string>
+    <string name="update_go_download">Go to Download</string>
+    <string name="update_later">Later</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="update_already_latest">Already up to date</string>
+    <string name="update_check_failed">Update check failed</string>
+
+    <!-- Login / Sync -->
+    <string name="login_success_syncing">Login successful! Syncing bookmarks...</string>
+    <string name="logout_failed">Logout failed</string>
+    <string name="bookmark_sync_failed">Sync failed</string>
+    <string name="operation_failed">Operation failed</string>
+
+    <!-- Download Progress -->
+    <string name="download_progress">Downloading: %1$d%%</string>
+
+    <!-- Download Notification (WorkManager foreground task) -->
+    <string name="download_channel_name">Video Download</string>
+    <string name="download_channel_desc">Shows video download progress in the notification bar</string>
+    <string name="download_notification_title">Downloading video</string>
+    <string name="download_notification_progress">%1$s · %2$d%%</string>
+    <string name="download_notification_canceled">Download canceled</string>
+    <string name="download_notification_failed">Download failed: %1$s</string>
+    <string name="download_notification_complete">Video saved to gallery</string>
+    <string name="download_no_permission">Notification permission required to show progress; background download started</string>
+
+    <!-- Settings: Download -->
+    <string name="section_download">Download</string>
+    <string name="download_location">Download Location</string>
+    <string name="download_location_desc">Choose where files are saved by default</string>
+    <string name="download_location_change">Change</string>
+    <string name="download_location_default">Pawchive Folder</string>
+    <string name="download_location_pictures">Pictures</string>
+    <string name="download_location_videos">Videos</string>
+    <string name="download_location_documents">Documents</string>
+    <string name="download_location_custom">Custom...</string>
+    <string name="download_location_dialog_title">Select Download Location</string>
+    <string name="download_location_updated">Download location updated</string>
+    <string name="download_location_label">Save to:</string>
+    <string name="download_location_internal_storage">Internal Storage / </string>
+    <string name="download_location_not_set">Not set, using default location</string>
+    <string name="download_location_set_to">Download location set to: %1$s</string>
+    <string name="file_picker_not_available">Cannot open file manager</string>
+    <string name="unknown_folder">Unknown folder</string>
+
+    <!-- Settings: Cache -->
+    <string name="section_cache">Cache &amp; Storage</string>
+    <string name="auto_clean_cache">Auto Clean Cache</string>
+    <string name="auto_clean_cache_desc">Automatically clear temporary cache files on app launch</string>
+    <string name="manual_clean_cache">Clear Cache Now</string>
+    <string name="manual_clean_cache_desc">Free up storage used by cached data</string>
+    <string name="auto_check_update">Auto-check Updates</string>
+    <string name="auto_check_update_desc">Check for new versions on app startup</string>
+    <string name="cache_size">Current cache size: %1$s</string>
+    <string name="cache_cleaned">Cache cleared</string>
+    <string name="cache_cleaned_freed">Freed %1$s of cache</string>
+    <string name="cache_clean_failed">Failed to clear cache</string>
+    <string name="cache_cleaning">Clearing cache...</string>
+    <string name="cache_empty">No cache</string>
+    <string name="clean">Clear</string>
+
+    <!-- Settings: About -->
+    <string name="section_about">About</string>
+    <string name="version">Version</string>
+    <string name="version_format">%1$s (%2$d)</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
+    <string name="app_description">Pawchive - Your Content Archive Manager</string>
+    <string name="join_telegram">Join Official Channel</string>
+    <string name="telegram_channel_url">https://t.me/PawchiveX</string>
+    <string name="browser_not_available">Cannot open browser</string>
+    <string name="unsafe_link_blocked">Unsafe link blocked</string>
+
+    <!-- Register -->
+    <string name="register">Register</string>
+    <string name="register_prompt">Create Account</string>
+    <string name="register_subtitle">Register to sync your favorites</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="register_success">Registration successful! Please login</string>
+    <string name="register_failed">Registration failed: HTTP %1$d</string>
+    <string name="register_failed_duplicate">Username already taken, please choose another</string>
+    <string name="register_failed_validation">Invalid registration details, please check username and password</string>
+    <string name="register_failed_unknown">Registration failed, please try again later</string>
+    <string name="error_passwords_not_match">Passwords do not match</string>
+    <string name="register_have_account">Already have an account? Login</string>
+
+    <!-- Search History -->
+    <string name="search_history_title">Search History</string>
+    <string name="search_history_clear_all">Clear All</string>
+    <string name="done">Done</string>
+    <string name="delete">Delete</string>
+
+    <!-- Block Creator -->
+    <string name="block_creator">Block</string>
+    <string name="unblock_creator">Unblock</string>
+    <string name="block_creator_confirm_title">Block this creator</string>
+    <string name="block_creator_confirm_message">After blocking, all posts from this creator will be hidden from home and search results. You can manage the block list in Settings.</string>
+    <string name="creator_blocked">Creator blocked</string>
+    <string name="creator_unblocked">Creator unblocked</string>
+    <string name="section_blocked">Block</string>
+    <string name="blocked_creators">Blocked Creators</string>
+    <string name="blocked_count_zero">No blocked creators</string>
+    <string name="blocked_count">%1$d creator(s) blocked</string>
+    <string name="no_blocked_creators">No blocked creators</string>
+    <string name="manage">Manage</string>
+
+    <!-- Creator: placeholder shown only in layout preview; runtime value set from data -->
+    <string name="creator_service_placeholder">Service</string>
+
+    <!-- Download Center (FEATURE-001) -->
+    <string name="download_center">Download Center</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="no_downloads">No downloads yet</string>
+    <string name="filter_all">All</string>
+    <string name="filter_running">Running</string>
+    <string name="filter_completed">Completed</string>
+    <string name="filter_failed">Failed</string>
+    <string name="clear_history">Clear History</string>
+    <string name="download_type">Download type</string>
+    <string name="retry">Retry</string>
+    <string name="open">Open</string>
+    <string name="share">Share</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_running">Downloading %1$d%%</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_failed">Download failed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="download_cancelled">Download cancelled</string>
+    <string name="download_retried">Retrying download</string>
+    <string name="confirm_clear_history">Clear all download history?</string>
+    <!-- FEATURE-002 Offline bookmarks -->
+    <string name="offline_reading_hint">Offline mode: viewing locally cached bookmarks</string>
+    <string name="offline_not_cached">No network and this post is not bookmarked for offline viewing</string>
+    <string name="search_in_local">Search in local bookmarks</string>
+    <!-- FEATURE-003 Account & data boundary -->
+    <string name="switch_account">Switch Account</string>
+    <string name="current_account">Current Account</string>
+    <string name="no_account">Not logged in</string>
+    <string name="logout_clear_data">Logging out will clear this account\'s local data (bookmarks, history, downloads)</string>
+    <string name="ok">OK</string>
+    <string name="no_other_accounts">No other saved accounts</string>
+    <string name="switched_to_account">Switched to %1$s</string>
+    <!-- FEATURE-004 Search enhancements -->
+    <string name="filter_service">Service</string>
+    <string name="filter_type">Type</string>
+    <string name="filter_has_attachment">Has attachments only</string>
+    <string name="filter_bookmarked">Bookmarked only</string>
+    <!-- ARCH-FEATURE-001: offline full-text search entry -->
+    <string name="filter_offline">Offline search</string>
+    <string name="filter_reset">Reset filters</string>
+    <!-- FEATURE-005 Reading experience -->
+    <string name="read_later">Read later</string>
+    <string name="reading_progress">Reading progress</string>
+    <string name="external_link_warning">You are about to open an external link. Continue?</string>
+    <string name="save_all_images">Save all images</string>
+    <string name="video_resume_position">Resumed to last playback position</string>
+    <string name="no_images_to_save">No images to save</string>
+    <string name="saving_images_count">Saving %1$d images</string>
+    <!-- ARCH-FEATURE-002 download rules -->
+    <string name="download_by_rules">Download by rules</string>
+    <string name="rules_downloaded_count">Added %1$d downloads by rules</string>
+    <string name="rules_download_none">No matching rules or downloadable files</string>
+    <string name="download_rules">Download rules</string>
+    <string name="download_rules_desc">Auto-download by creator, service or file type</string>
+    <string name="download_rules_add">Add rule</string>
+    <string name="download_rules_name">Rule name</string>
+    <string name="download_rules_creator">Creator (optional)</string>
+    <string name="download_rules_service">Service (optional)</string>
+    <string name="download_rules_file_type">File type</string>
+    <string name="download_rules_all_types">All</string>
+    <string name="download_rules_image">Image</string>
+    <string name="download_rules_video">Video</string>
+    <string name="download_rules_attachment">Attachment</string>
+    <string name="download_rules_empty">No rules yet. Tap the button below to add one</string>
+    <string name="download_rules_edit">Edit</string>
+    <string name="download_rules_delete">Delete</string>
+    <string name="download_rules_delete_confirm">Delete this rule?</string>
+    <string name="download_rules_saved">Rule saved</string>
+    <string name="download_rules_name_required">Please enter a rule name</string>
+    <!-- ARCH-FEATURE-003 Content update subscriptions -->
+    <string name="subscription_section">Updates</string>
+    <string name="content_updates">Updates</string>
+    <string name="content_updates_desc">Follow creators and get notified of new posts</string>
+    <string name="content_updates_empty">No updates yet. Subscribe to creators to auto-detect new posts</string>
+    <string name="content_updates_mark_all_read">Mark all read</string>
+    <string name="content_updates_unread_count">%1$d unread</string>
+    <string name="subscription_added">Subscribed to updates</string>
+    <string name="subscription_removed">Subscription removed</string>
+    <string name="subscribe_to_updates">Subscribe to updates</string>
+    <string name="unsubscribe_from_updates">Unsubscribe</string>
+    <string name="time_just_now">Just now</string>
+    <string name="time_minutes_ago">%1$d min ago</string>
+    <string name="time_hours_ago">%1$d hr ago</string>
+    <string name="time_days_ago">%1$d days ago</string>
+    <!-- ARCH-FEATURE-003 Subscriptions manager -->
+    <string name="subscriptions">Subscriptions</string>
+    <string name="subscriptions_desc">Manage subscribed creators</string>
+    <string name="subscriptions_empty">No subscriptions yet\nTap the bell on a creator page to subscribe</string>
+    <string name="subscriptions_subscribed_at">Subscribed %1$s</string>
+    <string name="subscriptions_unsubscribe">Unsubscribe</string>
+    <string name="subscriptions_unsubscribe_confirm">Unsubscribe from %1$s? You will no longer receive updates from them</string>
+    <string name="subscriptions_unsubscribed">Unsubscribed</string>
+    <!-- ARCH-FEATURE-005 Backup & restore -->
+    <string name="section_data">Data</string>
+    <string name="backup_restore">Backup &amp; restore</string>
+    <string name="backup_restore_desc">Export/import local data</string>
+    <string name="backup_include_title">Backup contents</string>
+    <string name="backup_include_desc">Bookmarked posts, bookmarked creators, blocked creators, reading progress, download history and settings</string>
+    <string name="backup_exclude_desc">Login credentials and search history are not included in backups. Back up downloaded files separately via your system file manager.</string>
+    <string name="backup_export">Export backup</string>
+    <string name="backup_import">Import backup</string>
+    <string name="backup_exported">Backup exported</string>
+    <string name="backup_export_failed">Backup export failed</string>
+    <string name="backup_import_confirm">Importing will overwrite current bookmarks, blocked creators, reading progress and download history. Continue?</string>
+    <string name="backup_import_done">Imported: %1$d bookmarks, %2$d creators, %3$d blocked, %4$d download records</string>
+    <string name="backup_import_failed">Backup import failed: invalid file or incompatible version</string>
+    <!-- ARCH-FEATURE-001 Offline archives -->
+    <string name="offline_archives">Offline archives</string>
+    <string name="offline_archives_desc">Manage offline copies of bookmarked posts</string>
+    <string name="offline_archives_search_hint">Search offline archives</string>
+    <string name="offline_archives_delete">Delete</string>
+    <string name="offline_archives_delete_confirm">Delete the offline copy of "%1$s"? Your bookmark is kept.</string>
+    <string name="offline_archives_clear_all">Clear all</string>
+    <string name="offline_archives_clear_all_confirm">Clear all offline archives? Your bookmarks are kept.</string>
+    <string name="offline_archives_cleared">Offline archives cleared</string>
+    <string name="offline_archives_empty">No offline archives\nBookmarking a post saves a copy for offline reading</string>
+    <!-- ARCH-FEATURE-006 Feed filter -->
+    <string name="feed_section">Feed</string>
+    <string name="hide_bookmarked_creators">Hide posts from bookmarked creators</string>
+    <string name="hide_bookmarked_creators_desc">Hide posts from creators you\'ve bookmarked to keep the feed focused on new discoveries</string>
+    <!-- ARCH-FEATURE-003/006 Linkage: auto-subscribe -->
+    <string name="auto_subscribe_on_bookmark">Auto-subscribe on bookmark</string>
+    <string name="auto_subscribe_on_bookmark_desc">Bookmarking a creator subscribes to their new posts</string>
+    <string name="auto_subscribed">Auto-subscribed to this creator</string>
+    <!-- ARCH-FEATURE-004 Cache manager -->
+    <string name="cache_manager">Cache manager</string>
+    <string name="cache_manager_desc">View and clean cache by category</string>
+    <string name="cache_image">Image cache</string>
+    <string name="cache_image_desc">Thumbnails and images, safe to clear</string>
+    <string name="cache_other">Other cache</string>
+    <string name="cache_other_desc">Temporary files and external cache</string>
+    <string name="cache_archive">Offline archives</string>
+    <string name="cache_archive_desc">Offline copies of bookmarked posts (%1$d)</string>
+    <string name="cache_downloads">Download files</string>
+    <string name="cache_downloads_desc">Downloaded images and videos</string>
+    <string name="cache_total_clearable">Clearable cache</string>
+    <string name="cache_last_clean">Last cleaned: %1$s</string>
+    <string name="cache_never_cleaned">Never cleaned</string>
+    <string name="cache_threshold_warning">Cache exceeds the threshold (%1$s), consider cleaning</string>
+    <string name="cache_clear">Clear</string>
+    <string name="cache_clear_archive_confirm">Offline archive copies will be deleted; bookmarked posts will require network. Continue?</string>
+    <string name="cache_clear_downloads_confirm">Downloaded images and videos will be permanently deleted. Continue?</string>
+    <string name="cache_category_cleared">Cleaned</string>
+    <string name="cache_downloads_deleted">Deleted %1$d files</string>
+    <!-- FEATURE-006 Observable errors -->
+    <string name="error_retry">Retry</string>
+    <string name="error_load_failed">Load failed</string>
+    <string name="error_empty">No content</string>
+    <string name="error_network">Network connection failed</string>
+</resources>
