@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/Target_API-36-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Target API" />
   <img src="https://img.shields.io/badge/AGP-9.2.1-00878F?style=for-the-badge&logo=androidstudio&logoColor=white" alt="AGP" />
-  <img src="https://img.shields.io/badge/Release-v1.5.3-blue?style=for-the-badge&logo=android" alt="Release" />
+  <img src="https://img.shields.io/badge/Release-v1.5.4-blue?style=for-the-badge&logo=android" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
@@ -181,7 +181,7 @@ cd Pawchive
 ./gradlew assembleRelease
 ```
 
-> APK 输出路径：`app/build/outputs/apk/release/Pawchive-v1.5.3.apk`
+> APK 输出路径：`app/build/outputs/apk/release/Pawchive-v1.5.4.apk`
 
 ### 测试与质量门禁（ARCH-014）
 
