@@ -17,8 +17,10 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        versionCode = 55
-        versionName = "1.5.5"
+        // 版本号单一来源：gradle.properties（VERSION_NAME / VERSION_CODE），
+        // 与 feature-common 模块的 BuildConfig.VERSION_NAME 保持一致
+        versionCode = project.findProperty("VERSION_CODE")?.toString()?.toIntOrNull() ?: 55
+        versionName = project.findProperty("VERSION_NAME")?.toString() ?: "1.5.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
