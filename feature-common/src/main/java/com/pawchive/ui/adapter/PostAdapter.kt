@@ -41,6 +41,8 @@ class PostAdapter(
         private const val TAG = "PostAdapter"
         // 缩略图 View 为 80dp，解码到 160px 在高密度屏也足够清晰，同时大幅降低内存占用
         private const val THUMBNAIL_SIZE_PX = 160
+        // PERF-010：创作者名称局部更新 payload，仅刷新名称文本，避免全量 rebind 重载图片
+        private const val PAYLOAD_CREATOR_NAME = "payload_creator_name"
     }
 
     fun updatePosts(newPosts: List<Post>) {
@@ -72,12 +74,12 @@ class PostAdapter(
 
     /**
      * 创作者名称预取完成后调用：名称来自外部缓存（不在 Post 字段内），
-     * DiffUtil 无法感知其变化，因此用 notifyItemRangeChanged 仅刷新数据区条目，
-     * 避免整表重绘。
+     * DiffUtil 无法感知其变化，因此用 payload 局部刷新（仅更新名称文本），
+     * 避免整表重绘导致可见项图片重新加载（PERF-010）。
      */
     fun refreshCreatorNames() {
         if (posts.isNotEmpty()) {
-            notifyItemRangeChanged(0, posts.size)
+            notifyItemRangeChanged(0, posts.size, PAYLOAD_CREATOR_NAME)
         }
     }
 
@@ -109,6 +111,20 @@ class PostAdapter(
         } else if (holder is FooterViewHolder) {
             holder.bind(onLoadMore)
         }
+    }
+
+    /**
+     * PERF-010：payload 局部更新。创作者名称预取完成时仅刷新名称文本，
+     * 跳过完整 bind（图片、书签、HTML 解析等重逻辑不重复执行）。
+     */
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: List<Any>) {
+        if (payloads.isNotEmpty()) {
+            if (holder is PostViewHolder && payloads.contains(PAYLOAD_CREATOR_NAME)) {
+                holder.updateCreatorName(posts[position])
+            }
+            return
+        }
+        super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun getItemCount(): Int = posts.size + if (showFooter) 1 else 0
@@ -235,6 +251,14 @@ class PostAdapter(
             binding.root.setOnClickListener {
                 onPostClicked(post)
             }
+        }
+
+        /**
+         * PERF-010：仅更新创作者名称文本（预取完成后的局部刷新），
+         * 与 [bind] 中的名称解析逻辑保持一致。
+         */
+        fun updateCreatorName(post: Post) {
+            binding.tvCreatorName.text = CreatorNameCache.getCachedName(post.service, post.user) ?: post.user
         }
 
         private fun setServiceBadgeColor(binding: ItemPostBinding, service: String, context: Context) {
