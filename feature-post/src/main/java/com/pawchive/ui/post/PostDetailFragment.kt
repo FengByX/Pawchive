@@ -31,7 +31,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import coil.load
 import com.pawchive.common.R
 import com.pawchive.core.api.ApiClient
-import com.pawchive.core.api.CloudflareManager
 import com.pawchive.core.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
@@ -263,10 +262,8 @@ class PostDetailFragment : Fragment() {
         if (CreatorNameCache.getCachedName(post.service, post.user) == null) {
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
-                    // ARCH-009：预取创作者名，先确保过盾（403 自动重试一次）
-                    val profile = CloudflareManager.withClearance {
-                        ApiClient.publicApi.getCreatorProfile(post.service, post.user)
-                    }
+                    // 回退 v1.4.9：直接请求，403 由 ClearanceRetryInterceptor 自动过盾重试
+                    val profile = ApiClient.publicApi.getCreatorProfile(post.service, post.user)
                     CreatorNameCache.cacheCreatorName(post.service, post.user, profile.name)
                     if (_binding != null) {
                         binding.tvPostCreator.text = profile.name

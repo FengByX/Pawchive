@@ -8,8 +8,7 @@ object ApiCallHandler {
 
     suspend fun <T> safeApiCall(call: suspend () -> Response<T>): ApiResult<T> {
         return try {
-            // ARCH-009：请求前确保已过盾（已有凭据时秒回），避免首次请求 403
-            ClearanceCoordinator.ensureClearance()
+            // 回退 v1.4.9：请求直接发出，403 由 ClearanceRetryInterceptor 自动过盾重试
             val response = call()
             if (response.isSuccessful) {
                 val body = response.body()
@@ -38,9 +37,8 @@ object ApiCallHandler {
 
     suspend fun <T> safeApiCallDirect(call: suspend () -> T): ApiResult<T> {
         return try {
-            // ARCH-009：直接调用（Retrofit suspend 接口）用 withClearance 包裹，
-            // 请求前过盾 + 遇 403 强制刷新重试一次
-            val result = CloudflareManager.withClearance { call() }
+            // 回退 v1.4.9：直接调用（403 由拦截器过盾重试，调用层不再预等待）
+            val result = call()
             ApiResult.Success(result)
         } catch (e: IOException) {
             ApiResult.Error.NetworkError(
@@ -61,8 +59,7 @@ object ApiCallHandler {
 
     suspend fun safeApiCallUnit(call: suspend () -> Response<Void>): ApiResult<Unit> {
         return try {
-            // ARCH-009：请求前确保已过盾
-            ClearanceCoordinator.ensureClearance()
+            // 回退 v1.4.9：请求直接发出，403 由 ClearanceRetryInterceptor 自动过盾重试
             val response = call()
             if (response.isSuccessful) {
                 ApiResult.Success(Unit)
@@ -94,8 +91,7 @@ object ApiCallHandler {
      */
     suspend fun <T> runCatchingApi(call: suspend () -> Response<T>): Result<T> {
         return try {
-            // ARCH-009：请求前确保已过盾
-            ClearanceCoordinator.ensureClearance()
+            // 回退 v1.4.9：请求直接发出，403 由 ClearanceRetryInterceptor 自动过盾重试
             val response = call()
             if (response.isSuccessful) {
                 val body = response.body()
@@ -127,8 +123,8 @@ object ApiCallHandler {
      */
     suspend fun <T> runCatchingDirect(call: suspend () -> T): Result<T> {
         return try {
-            // ARCH-009：直接调用用 withClearance 包裹（请求前过盾 + 403 自动重试一次）
-            Result.success(CloudflareManager.withClearance { call() })
+            // 回退 v1.4.9：直接调用，403 由 ClearanceRetryInterceptor 自动过盾重试
+            Result.success(call())
         } catch (e: AppError) {
             Result.failure(e)
         } catch (e: Exception) {

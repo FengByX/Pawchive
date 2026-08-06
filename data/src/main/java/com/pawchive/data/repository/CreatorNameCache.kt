@@ -1,7 +1,6 @@
 package com.pawchive.data.repository
 
 import com.pawchive.core.api.ApiClient
-import com.pawchive.core.api.CloudflareManager
 import com.pawchive.core.model.Post
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -61,10 +60,8 @@ object CreatorNameCache {
                         if (cache.containsKey(cacheKey)) return@launch
                         semaphore.withPermit {
                             try {
-                                // ARCH-009：先确保过盾再拉取创作者资料（403 自动重试一次）
-                                val profile = CloudflareManager.withClearance {
-                                    api.getCreatorProfile(service, userId)
-                                }
+                                // 回退 v1.4.9：直接请求，403 由 ClearanceRetryInterceptor 自动过盾重试
+                                val profile = api.getCreatorProfile(service, userId)
                                 cache[cacheKey] = profile.name
                                 onNameResolved?.invoke()
                             } catch (e: Exception) {
