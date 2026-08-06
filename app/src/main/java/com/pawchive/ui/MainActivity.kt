@@ -21,6 +21,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.pawchive.BuildConfig
 import com.pawchive.PawchiveApplication
 import com.pawchive.R
+import com.pawchive.core.api.ClearanceCoordinator
 import com.pawchive.core.store.SettingsManager
 import com.pawchive.core.util.ContentUpdateConstants
 import com.pawchive.data.github.UpdateChecker
@@ -154,6 +155,9 @@ class MainActivity : AppCompatActivity(), AppNavigator {
     override fun onResume() {
         super.onResume()
         updateBottomNavVisibility()
+        // 回到前台时预热 Cloudflare 过盾（已有有效凭据时零开销）：
+        // 避免后台停留超过 TTL 后，用户首次进入页面才同步等待 WebView 过盾导致加载慢
+        ClearanceCoordinator.preheat()
     }
 
     private fun setupHighRefreshRate() {

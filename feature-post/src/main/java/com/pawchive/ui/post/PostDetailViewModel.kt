@@ -13,6 +13,8 @@ import com.pawchive.core.store.AppMemoryCache
 import com.pawchive.data.repository.BookmarkManager
 import com.pawchive.core.util.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -134,23 +136,32 @@ class PostDetailViewModel @Inject constructor(
             val videoList = extractVideoUrls(post)
             memoryCache.put(cacheKeyPost, post)
 
-            val comments = runCatching { api.getPostComments(service, creatorId, postId) }
-                .getOrDefault(emptyList())
-            memoryCache.put(cacheKeyComments, comments)
-
-            val revisions = runCatching { api.getPostRevisions(service, creatorId, postId) }
-                .getOrDefault(emptyList())
-            memoryCache.put(cacheKeyRevisions, revisions)
-
+            // 主帖数据优先渲染，评论/修订并发拉取后填充，缩短首屏等待（感知优化）
             _uiState.value = _uiState.value.copy(
                 post = post,
-                comments = comments,
-                revisions = revisions,
+                comments = emptyList(),
+                revisions = emptyList(),
                 videoList = videoList,
                 isLoading = false,
                 errorMessage = null,
                 isOfflineMode = false
             )
+
+            coroutineScope {
+                val commentsDeferred = async {
+                    runCatching { api.getPostComments(service, creatorId, postId) }
+                        .getOrDefault(emptyList())
+                }
+                val revisionsDeferred = async {
+                    runCatching { api.getPostRevisions(service, creatorId, postId) }
+                        .getOrDefault(emptyList())
+                }
+                val comments = commentsDeferred.await()
+                val revisions = revisionsDeferred.await()
+                memoryCache.put(cacheKeyComments, comments)
+                memoryCache.put(cacheKeyRevisions, revisions)
+                _uiState.value = _uiState.value.copy(comments = comments, revisions = revisions)
+            }
         }
     }
 

@@ -46,8 +46,9 @@ object CloudflareManager {
     private const val KEY_COOKIE = "cf_cookie"
     private const val KEY_USER_AGENT = "cf_user_agent"
     private const val KEY_SAVED_AT = "cf_saved_at"
-    // cf_clearance 通常有效期约 30 分钟，这里保守设为 20 分钟，过期后主动重新过盾
-    private const val CLEARANCE_TTL_MS = 20 * 60 * 1000L
+    // cf_clearance 通常有效期约 30 分钟，这里保守设为 25 分钟（预留约 5 分钟余量），
+    // 过期后主动重新过盾；前台恢复时 preheat 会提前刷新，避免页面加载等待
+    private const val CLEARANCE_TTL_MS = 25 * 60 * 1000L
 
     @Volatile
     private var appContext: Context? = null
