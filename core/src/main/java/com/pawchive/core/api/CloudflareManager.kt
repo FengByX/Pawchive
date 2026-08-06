@@ -15,6 +15,7 @@ import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -74,10 +75,16 @@ object CloudflareManager {
     private val flightLock = Any()
     private val cfScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // PERF-011：持久化凭据恢复任务（后台执行）。
+    // ensureClearance() 会先 join 该任务，避免"磁盘上有有效凭据但内存尚未恢复"时
+    // 被误判为无凭据而重复启动 WebView 过盾——这是冷启动首屏白等 5-15s 的根因。
+    @Volatile
+    private var restoreJob: Job? = null
+
     fun init(context: Context) {
         appContext = context.applicationContext
         // PERF-002：移至后台协程，避免 EncryptedSharedPreferences 阻塞主线程冷启动
-        cfScope.launch { loadPersisted() }
+        restoreJob = cfScope.launch { loadPersisted() }
     }
 
     /**
@@ -157,6 +164,8 @@ object CloudflareManager {
      * 该方法为挂起函数，需在协程中调用。
      */
     suspend fun ensureClearance(forceRefresh: Boolean = false): Boolean {
+        // PERF-011：先等待磁盘凭据恢复完成，避免恢复竞态导致"有凭据却重新过盾"
+        restoreJob?.join()
         if (!forceRefresh && hasClearance()) return true
         // 单飞：临界区内只做状态判断（不调用挂起函数），创建/复用结果在区外 await
         val (deferred, isNew) = synchronized(flightLock) {
