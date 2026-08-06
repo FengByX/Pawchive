@@ -5,7 +5,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
-import java.util.concurrent.ConcurrentHashMap
+
 
 /**
  * API 响应内存缓存（ARCH-009：从 ApiClient 拆出的 ResponseCache 职责）。
@@ -22,7 +22,15 @@ object ApiMemoryCache {
 
     private data class CacheEntry(val timestamp: Long, val body: ByteArray, val contentType: String?)
 
-    private val cache = ConcurrentHashMap<String, CacheEntry>()
+    // PERF-008：使用 LRU LinkedHashMap + 同步锁替代 ConcurrentHashMap + O(N) 遍历
+    private val cache = object : LinkedHashMap<String, CacheEntry>(
+        CACHE_MAX_ENTRIES, 0.75f, true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, CacheEntry>?): Boolean {
+            return size > CACHE_MAX_ENTRIES
+        }
+    }
+    private val cacheLock = Any()
 
     // 当前登录会话 hash（缓存命名空间隔离，避免明文 cookie 驻留内存键 / P2）
     @Volatile
@@ -50,7 +58,7 @@ object ApiMemoryCache {
         val now = System.currentTimeMillis()
 
         // 命中缓存
-        val cached = cache[key]
+        val cached = synchronized(cacheLock) { cache[key] }
         if (cached != null && now - cached.timestamp < CACHE_MAX_AGE_MILLIS) {
             return@Interceptor Response.Builder()
                 .request(request)
@@ -83,22 +91,15 @@ object ApiMemoryCache {
      * 写入缓存，并回收过期条目、淘汰最旧条目以维持容量上限。
      */
     private fun put(key: String, entry: CacheEntry) {
-        val now = System.currentTimeMillis()
-        // 回收过期条目
-        cache.entries
-            .filter { now - it.value.timestamp >= CACHE_MAX_AGE_MILLIS }
-            .forEach { cache.remove(it.key) }
-        // 超出容量上限则淘汰最旧的一条
-        if (cache.size >= CACHE_MAX_ENTRIES) {
-            cache.minByOrNull { it.value.timestamp }?.key?.let { cache.remove(it) }
+        synchronized(cacheLock) {
+            cache[key] = entry
         }
-        cache[key] = entry
     }
 
     /**
      * 清空缓存（登出 / 切换账号 / 手动清理时调用）。
      */
     fun clear() {
-        cache.clear()
+        synchronized(cacheLock) { cache.clear() }
     }
 }

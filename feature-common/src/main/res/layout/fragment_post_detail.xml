@@ -111,10 +111,14 @@
 
             <ProgressBar
                 android:id="@+id/video_loading_progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:indeterminateTint="@android:color/white" />
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_loading_circle_dark"
+                android:elevation="0dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@android:color/white"
+                android:padding="6dp"
+                android:layout_gravity="center" />
 
             <ImageButton
                 android:id="@+id/video_play_button"

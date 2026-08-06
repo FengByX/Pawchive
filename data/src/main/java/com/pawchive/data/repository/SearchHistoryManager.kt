@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,20 +39,25 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
     private val dataStore = context.searchHistoryDataStore
     private val writeMutex = Mutex()
     private val loaded = AtomicBoolean(false)
+    private val loadDeferred = CompletableDeferred<Unit>()
 
     // 内存缓存快照：初始为空，构造后在 IO 线程异步加载，避免主线程阻塞（P1）
     @Volatile
     private var cache: Preferences = preferencesOf()
 
     init {
-        ioScope.launch { runCatching { loadCache() }.onFailure { it.printStackTrace() } }
+        ioScope.launch {
+            runCatching { loadCache() }.onFailure { it.printStackTrace() }
+            loadDeferred.complete(Unit)
+        }
     }
 
     // 确保缓存已从磁盘加载；仅在未加载时短暂阻塞（IO 线程），
     // 避免基于空缓存计算并写入导致旧数据丢失。
+    // PERF-004：等待已在执行中的异步加载，而非重新发起 IO 操作
     private fun ensureLoaded() {
         if (!loaded.get()) {
-            runBlocking(Dispatchers.IO) { loadCache() }
+            runBlocking(Dispatchers.IO) { loadDeferred.await() }
         }
     }
 

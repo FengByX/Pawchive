@@ -25,6 +25,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -111,16 +112,23 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
      * - 缓存大小超过阈值（默认 200MB）或从未清理过时触发
      * - 使用 WorkManager OneTimeWorkRequest，延迟 10s 避免与启动期文件访问竞争
      */
+    /**
+     * PERF-001：将缓存阈值检测移至后台协程。
+     * 原问题：shouldCleanByThreshold() → getCacheSize() 递归遍历 cacheDir，
+     * 在主线程上执行导致冷启动延迟（文件数千时可达数百毫秒）。
+     */
     private fun scheduleAutoCacheCleanIfNeeded() {
-        if (!cacheRepository.isAutoCleanEnabled()) return
+        applicationScope.launch {
+            if (!cacheRepository.isAutoCleanEnabled()) return@launch
 
-        if (!CacheCleanWorker.shouldCleanByThreshold(cacheRepository)) return
+            if (!CacheCleanWorker.shouldCleanByThreshold(cacheRepository)) return@launch
 
-        val request = OneTimeWorkRequestBuilder<CacheCleanWorker>()
-            .setInitialDelay(10L, TimeUnit.SECONDS)
-            .build()
+            val request = OneTimeWorkRequestBuilder<CacheCleanWorker>()
+                .setInitialDelay(10L, TimeUnit.SECONDS)
+                .build()
 
-        WorkManager.getInstance(this).enqueue(request)
+            WorkManager.getInstance(this@PawchiveApplication).enqueue(request)
+        }
     }
 
     /**

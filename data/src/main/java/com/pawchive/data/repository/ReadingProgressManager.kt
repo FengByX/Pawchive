@@ -13,8 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,19 +47,18 @@ class ReadingProgressManager @Inject constructor(@ApplicationContext context: Co
     private val dataStore = context.readingProgressDataStore
 
     @Volatile
-    private var cache: Preferences = loadInitialCache()
+    private var cache: Preferences = androidx.datastore.preferences.core.emptyPreferences()
 
     /** URL → 播放位置内存镜像（视频进度键不可逆，导出时据此还原 URL）。 */
     @Volatile
     private var videoPositions: Map<String, Long> = emptyMap()
 
-    private fun loadInitialCache(): Preferences {
-        return try {
-            runBlocking {
-                withTimeoutOrNull(500L) { dataStore.data.first() } ?: androidx.datastore.preferences.core.emptyPreferences()
+    // PERF-006：移除构造时 runBlocking(500ms)，改为后台异步加载
+    init {
+        progressIoScope.launch {
+            runCatching {
+                cache = dataStore.data.first()
             }
-        } catch (_: Exception) {
-            androidx.datastore.preferences.core.emptyPreferences()
         }
     }
 

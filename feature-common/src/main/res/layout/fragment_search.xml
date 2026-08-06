@@ -287,9 +287,14 @@
         <!-- Progress Indicator (shared) -->
         <ProgressBar
             android:id="@+id/progress_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_loading_circle"
+            android:elevation="6dp"
+            android:indeterminate="true"
+            android:indeterminateTint="?attr/colorPrimary"
             android:layout_gravity="center"
+            android:padding="8dp"
             android:visibility="gone" />
 
     </FrameLayout>

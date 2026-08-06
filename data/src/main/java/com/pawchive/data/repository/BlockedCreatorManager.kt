@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,18 +41,23 @@ class BlockedCreatorManager @Inject constructor(@ApplicationContext private val 
     private val dataStore = context.blockedCreatorsDataStore
     private val writeMutex = Mutex()
     private val loaded = AtomicBoolean(false)
+    private val loadDeferred = CompletableDeferred<Unit>()
 
     // 内存缓存快照：初始为空，构造后在 IO 线程异步加载，避免主线程阻塞（P1）
     @Volatile
     private var cache: Preferences = preferencesOf()
 
     init {
-        ioScope.launch { runCatching { loadCache() }.onFailure { it.printStackTrace() } }
+        ioScope.launch {
+            runCatching { loadCache() }.onFailure { it.printStackTrace() }
+            loadDeferred.complete(Unit)
+        }
     }
 
+    // PERF-005：等待已在执行中的异步加载，而非重新发起 IO 操作
     private fun ensureLoaded() {
         if (!loaded.get()) {
-            runBlocking(Dispatchers.IO) { loadCache() }
+            runBlocking(Dispatchers.IO) { loadDeferred.await() }
         }
     }
 

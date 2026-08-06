@@ -76,7 +76,8 @@ object CloudflareManager {
 
     fun init(context: Context) {
         appContext = context.applicationContext
-        loadPersisted()
+        // PERF-002：移至后台协程，避免 EncryptedSharedPreferences 阻塞主线程冷启动
+        cfScope.launch { loadPersisted() }
     }
 
     /**

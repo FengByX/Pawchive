@@ -65,9 +65,10 @@ object ApiClient {
         // 设定当前会话 hash，使内存缓存归入该账号命名空间（P2：用 hash 替代明文 cookie）
         ApiMemoryCache.currentSessionHash = hashSession(sessionCookie)
 
-        val client = httpClientFactory.createApiClient(
-            extraInterceptors = listOf(SessionInterceptor.forCookie(sessionCookie))
-        )
+        // PERF-007：复用 sharedOkHttpClient 连接池与线程池，避免每次新建完整 OkHttpClient
+        val client = sharedOkHttpClient.newBuilder()
+            .addInterceptor(SessionInterceptor.forCookie(sessionCookie))
+            .build()
 
         val api = Retrofit.Builder()
             .baseUrl(API_BASE_URL)
