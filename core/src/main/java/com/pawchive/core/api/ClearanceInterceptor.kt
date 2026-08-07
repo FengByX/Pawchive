@@ -27,6 +27,8 @@ object ClearanceInterceptor {
             builder.header("Referer", LOGIN_BASE_URL)
 
             val cfCookie = CloudflareManager.currentCookie()
+                ?.let { CloudflareManager.stripSessionTokens(it) }
+                ?.takeIf { it.isNotBlank() }
             if (!cfCookie.isNullOrEmpty()) {
                 val existing = original.header("Cookie")
                 val merged = if (existing.isNullOrEmpty()) cfCookie else "$existing; $cfCookie"

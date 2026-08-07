@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.webkit.CookieManager
+import com.pawchive.core.BuildConfig
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -93,6 +94,7 @@ object CloudflareManager {
      */
     private fun loadPersisted() {
         val ctx = appContext ?: return
+        val t0 = if (BuildConfig.DEBUG) System.currentTimeMillis() else 0L
         try {
             val sp = prefs ?: run {
                 val masterKey = MasterKey.Builder(ctx)
@@ -112,24 +114,31 @@ object CloudflareManager {
             if (!cookie.isNullOrEmpty() && !ua.isNullOrEmpty() &&
                 System.currentTimeMillis() - savedAt < CLEARANCE_TTL_MS
             ) {
-                cachedCookie = cookie
+                cachedCookie = stripSessionTokens(cookie)
                 cachedUserAgent = ua
                 cachedSavedAt = savedAt
             }
         } catch (_: Exception) {
             // 加密存储不可用时降级为仅内存缓存，不影响功能
    }
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                "CloudflareManager",
+                "loadPersisted cost=${System.currentTimeMillis() - t0}ms, hasClearance=${hasClearance()}"
+            )
+        }
     }
 
     /**
      * 将过盾凭据持久化到加密存储。
      */
     private fun persist(cookie: String, userAgent: String) {
+        val clean = stripSessionTokens(cookie)
         val now = System.currentTimeMillis()
         cachedSavedAt = now
         try {
             prefs?.edit()
-                ?.putString(KEY_COOKIE, cookie)
+                ?.putString(KEY_COOKIE, clean)
                 ?.putString(KEY_USER_AGENT, userAgent)
                 ?.putLong(KEY_SAVED_AT, now)
                 ?.apply()
@@ -137,6 +146,22 @@ object CloudflareManager {
             // ARCH-008：凭据持久化失败会导致下次冷启动重新过盾，记录日志
             Log.w("CloudflareManager", "persist clearance failed", e)
         }
+    }
+
+    /**
+     * 剔除 cookie 字符串中的 `session=` 段（登录失效循环的根因防护）。
+     *
+     * WebView 过盾加载的页面（Flask 首页等）会写入匿名 session cookie，
+     * 若原样注入 OkHttp 请求，会与 SessionInterceptor 注入的真实登录 session
+     * 形成重复 session cookie（服务端取到匿名会话 → 401 → 误判登录失效 → 登录循环）。
+     * 注入请求的 cookie 一律不允许携带 session 段，真实会话只由 SessionInterceptor 提供。
+     */
+    fun stripSessionTokens(cookie: String): String {
+        return cookie.split(";")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("session=", ignoreCase = true) }
+            .joinToString("; ")
+            .trim()
     }
 
     /**
@@ -164,7 +189,10 @@ object CloudflareManager {
      * 该方法为挂起函数，需在协程中调用。
      */
     suspend fun ensureClearance(forceRefresh: Boolean = false): Boolean {
-        // PERF-011：先等待磁盘凭据恢复完成，避免恢复竞态导致"有凭据却重新过盾"
+        // PERF-011：内存已有有效凭据时直接返回，跳过磁盘恢复等待
+        // （EncryptedSharedPreferences 的 MasterKey 首次创建在某些设备上很慢，
+        //  仅在内存无凭据时才 join 磁盘恢复任务，避免每次请求都付出该开销）
+        if (!forceRefresh && hasClearance()) return true
         restoreJob?.join()
         if (!forceRefresh && hasClearance()) return true
         // 单飞：临界区内只做状态判断（不调用挂起函数），创建/复用结果在区外 await
@@ -176,15 +204,28 @@ object CloudflareManager {
         }
         // 仅当本次新建任务时才启动 WebView；并发调用复用同一 deferred，不再另起过盾
         if (isNew) {
+            val startTime = if (BuildConfig.DEBUG) System.currentTimeMillis() else 0L
             cfScope.launch {
                 try {
-                    deferred.complete(solveChallenge())
+                    val ok = solveChallenge()
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            "CloudflareManager",
+                            "solveChallenge result=$ok, cost=${System.currentTimeMillis() - startTime}ms"
+                        )
+                    }
+                    deferred.complete(ok)
                 } catch (e: Throwable) {
                     if (!deferred.isCompleted) deferred.completeExceptionally(e)
                 } finally {
                     synchronized(flightLock) { inFlight = null }
                 }
             }
+        } else if (BuildConfig.DEBUG) {
+            Log.d("CloudflareManager", "ensureClearance reused in-flight solve (concurrent caller)")
+        }
+        if (BuildConfig.DEBUG && !hasClearance()) {
+            Log.d("CloudflareManager", "ensureClearance: no valid memory clearance, awaiting WebView challenge")
         }
         return runCatching { deferred.await() }.getOrDefault(false)
     }
@@ -232,10 +273,11 @@ object CloudflareManager {
                         if (finished) return
                         val cookie = cookieManager.getCookie(BASE_URL)
                         if (!cookie.isNullOrEmpty() && cookie.contains(CF_CLEARANCE)) {
-                            cachedCookie = cookie
+                            val clean = stripSessionTokens(cookie)
+                            cachedCookie = clean
                             cachedUserAgent = userAgent
                             cookieManager.flush()
-                            persist(cookie, userAgent)
+                            persist(clean, userAgent)
                             finish(true)
                         } else {
                             mainHandler.postDelayed(this, POLL_INTERVAL_MS)
@@ -258,10 +300,11 @@ object CloudflareManager {
                     // 超时前再尝试取一次 cookie
                     val cookie = cookieManager.getCookie(BASE_URL)
                     if (!cookie.isNullOrEmpty() && cookie.contains(CF_CLEARANCE)) {
-                        cachedCookie = cookie
+                        val clean = stripSessionTokens(cookie)
+                        cachedCookie = clean
                         cachedUserAgent = userAgent
                         cookieManager.flush()
-                        persist(cookie, userAgent)
+                        persist(clean, userAgent)
                         finish(true)
                     } else {
                         finish(false)

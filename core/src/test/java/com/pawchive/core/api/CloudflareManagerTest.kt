@@ -2,6 +2,7 @@ package com.pawchive.core.api
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -109,5 +110,41 @@ class CloudflareManagerTest {
         val exception = IOException()
         // message 为 null 时不应崩溃，且不应被识别为 403
         assertFalse(CloudflareManager.isForbidden(exception))
+    }
+
+    // ===== stripSessionTokens：登录失效循环防护 =====
+
+    @Test
+    fun `stripSessionTokens removes session token`() {
+        val cookie = "cf_clearance=abc; __cf_bm=xyz; session=.eJwAAA; HttpOnly"
+        val result = CloudflareManager.stripSessionTokens(cookie)
+        assertFalse(result.contains("session=", ignoreCase = true))
+        assertTrue(result.contains("cf_clearance=abc"))
+        assertTrue(result.contains("__cf_bm=xyz"))
+    }
+
+    @Test
+    fun `stripSessionTokens removes session token case-insensitively`() {
+        val cookie = "cf_clearance=abc; Session=ANON; __cf_bm=xyz"
+        val result = CloudflareManager.stripSessionTokens(cookie)
+        assertFalse(result.contains("session=", ignoreCase = true))
+        assertTrue(result.contains("cf_clearance=abc"))
+    }
+
+    @Test
+    fun `stripSessionTokens keeps pure cf cookie unchanged`() {
+        val cookie = "cf_clearance=abc; __cf_bm=xyz"
+        assertEquals(cookie, CloudflareManager.stripSessionTokens(cookie))
+    }
+
+    @Test
+    fun `stripSessionTokens returns empty for session-only cookie`() {
+        val result = CloudflareManager.stripSessionTokens("session=ANON")
+        assertTrue(result.isBlank())
+    }
+
+    @Test
+    fun `stripSessionTokens handles blank input`() {
+        assertEquals("", CloudflareManager.stripSessionTokens(""))
     }
 }

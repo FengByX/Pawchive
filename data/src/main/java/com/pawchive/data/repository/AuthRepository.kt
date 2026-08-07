@@ -27,6 +27,13 @@ class AuthRepository @Inject constructor(
     private val localDataCleaner: LocalDataCleaner
 ) {
 
+    /** 登录成功后的宽限期（毫秒）：期间单个 401 不立即清除会话，防止"登录失效"误判导致登录循环 */
+    private val LOGIN_GRACE_MS = 60_000L
+
+    /** 最近一次登录成功的时间戳（进程内），用于宽限期判断 */
+    @Volatile
+    private var lastLoginAt = 0L
+
     /**
      * 登录并提取 session cookie
      * Pawchive 使用 Flask session，无论登录成功或失败都会返回 302 + Set-Cookie
@@ -67,6 +74,7 @@ class AuthRepository @Inject constructor(
                     sessionManager.saveUsername(username)
                     // 保存到账号列表供后续切换（FEATURE-003）
                     sessionManager.saveAccountToList(username, sessionCookie)
+                    lastLoginAt = System.currentTimeMillis()
                     Result.success(username)
                 } else {
                     Result.failure(AppError.Business("登录失败，服务器未返回 session cookie"))
@@ -315,13 +323,23 @@ class AuthRepository @Inject constructor(
                 AppError.from(apiResult.cause ?: Exception(apiResult.message))
             )
             is ApiResult.Error.AuthError -> {
-                sessionManager.clearSession()
-                Result.failure(AppError.Auth(AppError.Auth.Reason.SESSION_EXPIRED))
+                if (withinLoginGrace()) {
+                    // 登录宽限期内的单个 401 不立即清除会话：WebView 匿名 session 污染等
+                    // 误判会触发"登录即失效"循环；宽限期后仍 401 才判定会话真正失效
+                    Result.failure(AppError.Unknown(IllegalStateException("HTTP 401 during login grace")))
+                } else {
+                    sessionManager.clearSession()
+                    Result.failure(AppError.Auth(AppError.Auth.Reason.SESSION_EXPIRED))
+                }
             }
             is ApiResult.Error.ServerError -> {
                 if (apiResult.code == 401) {
-                    sessionManager.clearSession()
-                    Result.failure(AppError.Auth(AppError.Auth.Reason.SESSION_EXPIRED))
+                    if (withinLoginGrace()) {
+                        Result.failure(AppError.Unknown(IllegalStateException("HTTP 401 during login grace")))
+                    } else {
+                        sessionManager.clearSession()
+                        Result.failure(AppError.Auth(AppError.Auth.Reason.SESSION_EXPIRED))
+                    }
                 } else {
                     Result.failure(AppError.Server(apiResult.code, apiResult.message))
                 }
@@ -331,4 +349,8 @@ class AuthRepository @Inject constructor(
             )
         }
     }
+
+    /** 是否处于登录成功后的宽限期内（此期间单次 401 不判定为会话失效） */
+    private fun withinLoginGrace(): Boolean =
+        lastLoginAt > 0L && System.currentTimeMillis() - lastLoginAt < LOGIN_GRACE_MS
 }
