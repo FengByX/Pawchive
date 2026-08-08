@@ -120,7 +120,11 @@ sealed class AppError : RuntimeException() {
                 is retrofit2.HttpException -> {
                     val code = throwable.code()
                     when {
-                        code == 401 -> Auth(Auth.Reason.SESSION_EXPIRED, throwable)
+                        // 401 不再无差别映射为 SESSION_EXPIRED：
+                        // 公开接口（首页/搜索/帖子详情）的 401 与登录状态无关，
+                        // 映射为 Server(401) 显示通用错误文案，避免误导用户"登录已失效"。
+                        // 真正的会话失效由 AuthRepository.apiResultToResult() 处理。
+                        code == 401 -> Server(401, throwable.message(), throwable)
                         code == 403 -> Server(403, throwable.message(), throwable)
                         else -> Server(code, throwable.message(), throwable)
                     }

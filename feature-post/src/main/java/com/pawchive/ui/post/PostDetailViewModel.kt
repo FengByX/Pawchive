@@ -1,6 +1,7 @@
 package com.pawchive.ui.post
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawchive.core.error.AppError
@@ -188,7 +189,7 @@ class PostDetailViewModel @Inject constructor(
         val filePath = post.file?.path
         val fileName = post.file?.name
         if (isVideo(filePath, fileName)) {
-            val fullUrl = "https://file.pawchive.pw/data${filePath.orEmpty()}"
+            val fullUrl = buildFileUrl(filePath)
             videoList.add(Pair(fullUrl, fileName ?: "video.mp4"))
         }
 
@@ -196,12 +197,19 @@ class PostDetailViewModel @Inject constructor(
         if (!attachments.isNullOrEmpty()) {
             for (attachment in attachments) {
                 if (isVideo(attachment.path, attachment.name)) {
-                    val fullUrl = "https://file.pawchive.pw/data${attachment.path.orEmpty()}"
+                    val fullUrl = buildFileUrl(attachment.path)
                     videoList.add(Pair(fullUrl, attachment.name ?: "video.mp4"))
                 }
             }
         }
 
         return videoList
+    }
+
+    /**
+     * 构造 file.pawchive.pw 直链：对 path 做 URL 编码（保留斜杠），避免空格/特殊字符导致请求失败。
+     */
+    private fun buildFileUrl(path: String?): String {
+        return "https://file.pawchive.pw/data${Uri.encode(path.orEmpty(), "/")}"
     }
 }

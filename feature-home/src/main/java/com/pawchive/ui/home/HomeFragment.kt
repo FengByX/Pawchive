@@ -46,6 +46,9 @@ class HomeFragment : Fragment() {
     // 当前排序（用于按钮文字与对话框索引，ViewModel 持有实际排序状态）
     private var currentSort = HomePostSortOption.NEWEST_PUBLISHED
 
+    // 已预取的帖子集合签名，避免 uiState 每次刷新都重新发起创作者名预取风暴
+    private var lastPrefetchSignature: String? = null
+
     // 内嵌错误页（FEATURE-006）
     private lateinit var errorStateView: ErrorStateViewHelper.Bound
 
@@ -119,18 +122,21 @@ class HomeFragment : Fragment() {
                 binding.tvEmpty.visibility = View.GONE
             }
 
-            // 创作者名字预取（UI 渲染优化，限流 300ms）
+            // 创作者名字预取（UI 渲染优化）
+            // 仅在帖子集合真正变化时才预取（避免 uiState 每次刷新都重发请求），
+            // 且只取前 20 条，避免一次性发起数十个 getCreatorProfile 请求打满连接池、
+            // 拖慢主请求与图片加载。已缓存的创作者名不会重复请求。
             if (state.posts.isNotEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    var lastRefreshAt = 0L
-                    CreatorNameCache.prefetchCreatorNames(state.posts) {
-                        val now = System.currentTimeMillis()
-                        if (now - lastRefreshAt >= 300L) {
-                            lastRefreshAt = now
+                val signature = state.posts.joinToString(",") { "${it.service}:${it.user}:${it.id}" }
+                if (signature != lastPrefetchSignature) {
+                    lastPrefetchSignature = signature
+                    val prefetchPosts = state.posts.take(20)
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        CreatorNameCache.prefetchCreatorNames(prefetchPosts) {
                             _binding?.rvPosts?.post { postAdapter.refreshCreatorNames() }
                         }
+                        postAdapter.refreshCreatorNames()
                     }
-                    postAdapter.refreshCreatorNames()
                 }
             }
                 }

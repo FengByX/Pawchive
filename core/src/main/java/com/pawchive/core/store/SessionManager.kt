@@ -63,11 +63,18 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
         sp.edit()
             .putString(KEY_SESSION_COOKIE, cookie)
             .putBoolean(KEY_IS_LOGGED_IN, true)
+            .putLong(KEY_LOGIN_AT, System.currentTimeMillis())
             .apply()
         return true
     }
 
     fun getSessionCookie(): String? = prefs?.getString(KEY_SESSION_COOKIE, null)
+
+    /**
+     * 返回最近一次登录成功的时间戳（持久化），冷启动后仍可恢复。
+     * 用于 AuthRepository 的宽限期判断，避免恢复会话后首个 401 误清会话。
+     */
+    fun getLoginAt(): Long = prefs?.getLong(KEY_LOGIN_AT, 0L) ?: 0L
 
     fun isLoggedIn(): Boolean {
         val sp = prefs ?: return false
@@ -87,6 +94,7 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
             ?.remove(KEY_SESSION_COOKIE)
             ?.remove(KEY_IS_LOGGED_IN)
             ?.remove(KEY_USERNAME)
+            ?.remove(KEY_LOGIN_AT)
             ?.apply()
     }
 
@@ -127,6 +135,7 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
             .putString(KEY_SESSION_COOKIE, cookie)
             .putBoolean(KEY_IS_LOGGED_IN, true)
             .putString(KEY_USERNAME, username)
+            .putLong(KEY_LOGIN_AT, System.currentTimeMillis())
             .apply()
         return true
     }
@@ -162,5 +171,6 @@ class SessionManager @Inject constructor(@ApplicationContext context: Context) {
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USERNAME = "username"
         private const val KEY_ACCOUNT_LIST = "account_list"
+        private const val KEY_LOGIN_AT = "login_at"
     }
 }

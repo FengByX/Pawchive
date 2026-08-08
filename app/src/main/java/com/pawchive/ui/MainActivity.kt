@@ -81,8 +81,9 @@ class MainActivity : AppCompatActivity(), AppNavigator {
         // 初始化 ViewPager2 + Adapter
         pagerAdapter = MainPagerAdapter(this)
         binding.viewPager.adapter = pagerAdapter
-        // 保留所有 page，避免远距离切换时重建 Fragment
-        binding.viewPager.offscreenPageLimit = 3
+        // 仅保留相邻 1 个 page，避免首页与收藏页同时预加载、同时发起过盾请求
+        // 而竞争同一个 Cloudflare 单飞任务，导致两个界面一起转圈
+        binding.viewPager.offscreenPageLimit = 1
 
         // 更新可见 page 列表
         updateVisiblePages()

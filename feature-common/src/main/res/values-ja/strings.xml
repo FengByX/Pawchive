@@ -413,4 +413,8 @@
     <string name="error_load_failed">読み込み失敗</string>
     <string name="error_empty">コンテンツなし</string>
     <string name="error_network">ネットワーク接続失敗</string>
+    <!-- 添付ダウンロード（Cloudflare 修正）：ファイルは外部ブラウザではなくアプリ内ダウンロードセンター経由 -->
+    <string name="download_queued">ダウンロードキューに追加しました：%1$s</string>
+    <string name="download_file_title">ファイルをダウンロードしますか？</string>
+    <string name="invalid_file_link">無効なファイルリンク</string>
 </resources>

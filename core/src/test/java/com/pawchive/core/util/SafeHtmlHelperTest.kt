@@ -5,6 +5,7 @@ import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -55,10 +56,10 @@ class SafeHtmlHelperTest {
     fun `render https link preserves clickable span`() {
         val html = "<a href=\"https://example.com\">safe link</a>"
         val result = SafeHtmlHelper.render(html)
-        // https 链接应被替换为 SafeLinkSpan（ClickableSpan 子类）
+        // https 链接应被替换为 SafeLinkSpan（URLSpan 子类，仍可被 ClickableSpan 检索到）
         assertEquals(1, clickSpanCount(result))
-        // 不应残留原始 URLSpan
-        assertEquals(0, urlSpanCount(result))
+        // SafeLinkSpan 继承 URLSpan，所以 urlSpanCount 也为 1
+        assertEquals(1, urlSpanCount(result))
     }
 
     @Test
@@ -125,5 +126,62 @@ class SafeHtmlHelperTest {
         // 文本内容应保留
         assertTrue(result.toString().contains("bold"))
         assertTrue(result.toString().contains("italic"))
+    }
+
+    @Test
+    fun `render block-level link is flattened to clickable link`() {
+        // Patreon/Fanbox 常见模式：<a> 包裹 <div>/<h3> 等块级元素
+        val html = """<a href="https://drive.google.com/file/d/abc/view" target="_blank">
+            <div class="embed-view">
+              <h3 class="">ALMOST FINISHED ANIMATION.mp4</h3>
+            </div>
+          </a>"""
+        val result = SafeHtmlHelper.render(html)
+        // 链接文本应保留
+        assertTrue(result.toString().contains("ALMOST FINISHED ANIMATION.mp4"))
+        // 应有一个可点击的链接 span
+        assertEquals(1, clickSpanCount(result))
+    }
+
+    @Test
+    fun `render block-level link with https preserves url`() {
+        val html = """<a href="https://example.com/download"><div><h3>File.zip</h3></div></a>"""
+        val result = SafeHtmlHelper.render(html)
+        assertTrue(result.toString().contains("File.zip"))
+        assertEquals(1, clickSpanCount(result))
+    }
+
+    @Test
+    fun `render simple link without block elements is not affected`() {
+        val html = "<a href=\"https://example.com\">simple link</a>"
+        val result = SafeHtmlHelper.render(html)
+        assertEquals(1, clickSpanCount(result))
+        assertTrue(result.toString().contains("simple link"))
+    }
+
+    @Test
+    fun `render real world patreon embed link`() {
+        // 用户实际遇到的 HTML：Patreon 帖子中嵌入的 Google Drive 链接
+        val html = """
+            <a href="https://drive.google.com/file/d/1c0gZMmzT46YFXPg0zHVmLZVHP3lnLIGv/view?usp=sharing" target="_blank">
+            <div class="embed-view">
+              <h3 class="">
+                ALMOST FINISHED ANIMATION.mp4
+              </h3>
+              
+            </div>
+          </a>
+        """.trimIndent()
+        val result = SafeHtmlHelper.render(html)
+        val resultStr = result.toString()
+        // 文本必须保留
+        if (!resultStr.contains("ALMOST FINISHED ANIMATION.mp4")) {
+            fail("Text 'ALMOST FINISHED ANIMATION.mp4' not found in result: $resultStr")
+        }
+        // 必须有且仅有一个可点击的 span
+        val clickCount = clickSpanCount(result)
+        if (clickCount != 1) {
+            fail("Expected 1 clickable span, got $clickCount. Result: $resultStr")
+        }
     }
 }

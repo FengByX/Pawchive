@@ -413,4 +413,8 @@
     <string name="error_load_failed">加载失败</string>
     <string name="error_empty">暂无内容</string>
     <string name="error_network">网络连接失败</string>
+    <!-- 附件下载（Cloudflare 过盾修复）：文件走应用内下载中心而非外部浏览器 -->
+    <string name="download_queued">已加入下载队列：%1$s</string>
+    <string name="download_file_title">下载附件？</string>
+    <string name="invalid_file_link">文件链接无效</string>
 </resources>

@@ -14,3 +14,15 @@ local.properties
 build_log.txt
 schema.json
 /app/release
+.gradle-local/
+_gradle_dir.txt
+_icacls.txt
+_icacls2.txt
+_java.txt
+_lck3.txt
+_lck_acl.txt
+_lck_diag.txt
+_lck_fix.txt
+_native.txt
+_proc_diag.txt
+.workbuddy/

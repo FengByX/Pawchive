@@ -30,9 +30,12 @@ class AuthRepository @Inject constructor(
     /** 登录成功后的宽限期（毫秒）：期间单个 401 不立即清除会话，防止"登录失效"误判导致登录循环 */
     private val LOGIN_GRACE_MS = 60_000L
 
-    /** 最近一次登录成功的时间戳（进程内），用于宽限期判断 */
+    /**
+     * 最近一次登录成功的时间戳，用于宽限期判断。
+     * 从 SessionManager 持久化恢复，冷启动后仍有效。
+     */
     @Volatile
-    private var lastLoginAt = 0L
+    private var lastLoginAt = sessionManager.getLoginAt()
 
     /**
      * 登录并提取 session cookie
@@ -180,6 +183,7 @@ class AuthRepository @Inject constructor(
             localDataCleaner.clearAllLocalData()
             val success = sessionManager.switchToAccount(username)
             if (success) {
+                lastLoginAt = System.currentTimeMillis()
                 ApiClient.clearMemoryCache()
                 Result.success(Unit)
             } else {

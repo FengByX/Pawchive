@@ -104,7 +104,10 @@ object ApiCallHandler {
                 val code = response.code()
                 val serverMessage = parseErrorBody(response)
                 val error: AppError = when (code) {
-                    401 -> AppError.Auth(AppError.Auth.Reason.SESSION_EXPIRED)
+                    // 401 映射为 Server(401) 而非 Auth(SESSION_EXPIRED)，
+                    // 避免公开接口偶发 401 误导用户"登录已失效"。
+                    // 真正的会话失效由 AuthRepository.apiResultToResult() 统一处理。
+                    401 -> AppError.Server(401, serverMessage)
                     403 -> AppError.Server(403, serverMessage)
                     else -> AppError.Server(code, serverMessage)
                 }

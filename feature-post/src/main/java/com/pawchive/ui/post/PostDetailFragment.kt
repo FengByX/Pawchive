@@ -279,12 +279,14 @@ class PostDetailFragment : Fragment() {
 
         val content = post.content ?: ""
         // 安全渲染：仅保留白名单标签与 https 链接，危险 scheme 链接被剥离为纯文本（P1）
-        binding.tvPostContent.text = com.pawchive.core.util.SafeHtmlHelper.render(content)
+        val rendered = com.pawchive.core.util.SafeHtmlHelper.render(content)
+
         // 外链提示：拦截链接点击，弹出确认对话框（FEATURE-005）
-        binding.tvPostContent.movementMethod = LinkMovementMethod.getInstance()
-        // 通过 URLSpan 拦截点击
-        val spannable = binding.tvPostContent.text as? android.text.Spannable
-        if (spannable != null) {
+        // 关键：必须在设置到 TextView 之前完成 span 替换，否则 TextView 的 BUFFER_NORMAL
+        // 会丢弃 Spannable 中的 span 信息
+        var finalText = rendered
+        if (rendered is android.text.Spannable) {
+            val spannable = android.text.SpannableString(rendered)
             val urlSpans = spannable.getSpans(0, spannable.length, android.text.style.URLSpan::class.java)
             for (span in urlSpans) {
                 val start = spannable.getSpanStart(span)
@@ -300,12 +302,16 @@ class PostDetailFragment : Fragment() {
                     start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
+            finalText = spannable
         }
+
+        binding.tvPostContent.setText(finalText, android.widget.TextView.BufferType.SPANNABLE)
+        binding.tvPostContent.movementMethod = LinkMovementMethod.getInstance()
 
         val filePath = post.file?.path
         val fileName = post.file?.name
         if (!filePath.isNullOrEmpty() || !fileName.isNullOrEmpty()) {
-            val fullUrl = "https://file.pawchive.pw/data${filePath.orEmpty()}"
+            val fullUrl = buildFileUrl(filePath)
             if (isVideoFile(filePath, fileName)) {
                 binding.imageCard.visibility = View.VISIBLE
                 (binding.imageCard as ViewGroup).removeAllViews()
@@ -419,15 +425,24 @@ class PostDetailFragment : Fragment() {
                 binding.layoutAttachments.addView(otherHeader)
 
                 for (attachment in otherAttachments) {
+                    val hasPath = !attachment.path.isNullOrEmpty()
+                    val url = buildFileUrl(attachment.path)
                     val textView = TextView(requireContext()).apply {
                         text = attachment.name ?: "file"
-                        setTextColor(resources.getColor(R.color.accent_light, null))
                         textSize = 14f
-                     setPadding(0, 8, 0, 8)
-                        setOnClickListener {
-                            val url = "https://file.pawchive.pw/data${attachment.path ?: ""}"
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            startActivity(intent)
+                        setPadding(0, 8, 0, 8)
+                        if (hasPath) {
+                            // 走应用内下载中心（携带 Cloudflare 凭据/UA/Referer），避免外部浏览器过盾失败
+                            setTextColor(resources.getColor(R.color.accent_light, null))
+                            setOnClickListener {
+                                downloadFileByUrl(url, attachment.name ?: "file")
+                            }
+                        } else {
+                            // path 缺失：无法构造有效下载链接，置灰并提示
+                            setTextColor(resources.getColor(R.color.text_muted, null))
+                            setOnClickListener {
+                                Toast.makeText(context, R.string.invalid_file_link, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                     binding.layoutAttachments.addView(textView)
@@ -448,7 +463,7 @@ class PostDetailFragment : Fragment() {
                 var videoIndexOffset = if (isVideoFile(post.file?.path, post.file?.name)) 1 else 0
 
                 for ((index, attachment) in videoAttachments.withIndex()) {
-                    val fullUrl = "https://file.pawchive.pw/data${attachment.path ?: ""}"
+                    val fullUrl = buildFileUrl(attachment.path)
                     val videoItemView = createVideoAttachmentItem(
                         fullUrl,
                         attachment.name ?: "video.mp4",
@@ -480,7 +495,7 @@ class PostDetailFragment : Fragment() {
                         }
                         adjustViewBounds = true
                         scaleType = ImageView.ScaleType.FIT_CENTER
-                        val fullUrl = "https://file.pawchive.pw/data${attachment.path}"
+                        val fullUrl = buildFileUrl(attachment.path)
                         load(fullUrl) {
                             crossfade(true)
                             placeholder(R.drawable.ic_image)
@@ -621,7 +636,19 @@ class PostDetailFragment : Fragment() {
      * 点击帖子内容中的链接时弹出确认，避免误触跳转外部站点。
      */
     private fun showExternalLinkDialog(url: String) {
-        MaterialAlertDialogBuilder(requireContext())
+        val ctx = requireContext()
+        // 文件域链接走应用内下载（携带 Cloudflare 凭据），不走外部浏览器
+        if (isFileDomain(url)) {
+            val fileName = url.substringAfterLast('/').takeIf { it.isNotEmpty() } ?: "file"
+            MaterialAlertDialogBuilder(ctx)
+                .setTitle(R.string.download_file_title)
+                .setMessage(url)
+                .setPositiveButton(R.string.download) { _, _ -> downloadFileByUrl(url, fileName) }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.external_link_warning)
             .setMessage(url)
             .setPositiveButton(R.string.ok) { _, _ ->
@@ -1106,6 +1133,59 @@ class PostDetailFragment : Fragment() {
         val lowerName = name?.lowercase().orEmpty()
         return imageExtensions.any { ext ->
             lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+        }
+    }
+
+    /**
+     * 构造 file.pawchive.pw 直链：对 path 做 URL 编码（保留斜杠），避免空格/特殊字符导致请求失败。
+     */
+    private fun buildFileUrl(path: String?): String {
+        return "https://file.pawchive.pw/data${Uri.encode(path.orEmpty(), "/")}"
+    }
+
+    /**
+     * 通过下载中心下载文件（携带 Cloudflare 凭据/UA/Referer），而非用外部浏览器打开导致过盾失败。
+     */
+    private fun downloadFileByUrl(url: String, fileName: String) {
+        val ctx = context ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                downloadCenter.enqueueAttachmentDownload(url, fileName, guessMimeType(fileName))
+                Toast.makeText(ctx, getString(R.string.download_queued, fileName), Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.w("PostDetailFragment", "enqueue attachment download failed: $url", e)
+                Toast.makeText(ctx, R.string.error_load_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /**
+     * 按扩展名推断 MIME（与 DownloadWorker.inferMimeType 对齐，附件类型更全）。
+     */
+    private fun guessMimeType(fileName: String): String = when {
+        fileName.endsWith(".mp4", true) -> "video/mp4"
+        fileName.endsWith(".webm", true) -> "video/webm"
+        fileName.endsWith(".mov", true) -> "video/quicktime"
+        fileName.endsWith(".mkv", true) -> "video/x-matroska"
+        fileName.endsWith(".avi", true) -> "video/x-msvideo"
+        fileName.endsWith(".zip", true) -> "application/zip"
+        fileName.endsWith(".pdf", true) -> "application/pdf"
+        fileName.endsWith(".txt", true) -> "text/plain"
+        fileName.endsWith(".jpg", true) || fileName.endsWith(".jpeg", true) -> "image/jpeg"
+        fileName.endsWith(".png", true) -> "image/png"
+        fileName.endsWith(".gif", true) -> "image/gif"
+        fileName.endsWith(".webp", true) -> "image/webp"
+        else -> "application/octet-stream"
+    }
+
+    /**
+     * 判断链接是否指向应用自有文件域（需走应用内下载以携带 Cloudflare 凭据）。
+     */
+    private fun isFileDomain(url: String): Boolean {
+        return try {
+            Uri.parse(url).host?.equals("file.pawchive.pw", ignoreCase = true) == true
+        } catch (_: Exception) {
+            false
         }
     }
 

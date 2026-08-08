@@ -413,4 +413,8 @@
     <string name="error_load_failed">Load failed</string>
     <string name="error_empty">No content</string>
     <string name="error_network">Network connection failed</string>
+    <!-- Attachment download (Cloudflare fix): files go through in-app download center instead of external browser -->
+    <string name="download_queued">Added to download queue: %1$s</string>
+    <string name="download_file_title">Download attachment?</string>
+    <string name="invalid_file_link">Invalid file link</string>
 </resources>
