@@ -56,7 +56,7 @@ coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 
 # Testing - Robolectric（本地 JVM 运行 Android API）
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
-androidx-test-core = { group = "androidx.test", name = "core", version = "1.6.1" }
+androidx-test-core = { group = "androidx.test", name = "core", version = "1.7.0" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.6.2" }
 
 # Hilt - 依赖注入（ARCH-003）
