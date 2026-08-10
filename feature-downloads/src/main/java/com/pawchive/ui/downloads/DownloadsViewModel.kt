@@ -47,6 +47,18 @@ class DownloadsViewModel @Inject constructor(
                 )
             }
         }
+        // 自愈：修复"永远等待中"（PENDING 但 Work 已消失）的卡死记录
+        reenqueueStuckPending()
+    }
+
+    /**
+     * 重新入队卡死的等待中任务（PENDING 但对应 Work 已消失）。
+     * 下载页打开与下拉刷新时调用。
+     */
+    fun reenqueueStuckPending() {
+        viewModelScope.launch {
+            runCatching { downloadCenter.selfHealPending() }
+        }
     }
 
     private fun applyFilter(records: List<DownloadRecord>, status: DownloadStatus?): List<DownloadRecord> {

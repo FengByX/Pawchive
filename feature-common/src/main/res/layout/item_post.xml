@@ -34,6 +34,22 @@
             app:layout_constraintBottom_toBottomOf="parent"
             tools:src="@tools:sample/backgrounds/scenic" />
 
+        <!-- 多选模式选中指示器（FEATURE 首页批量屏蔽）：覆盖在缩略图左上角 -->
+        <ImageView
+            android:id="@+id/iv_selection"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_check"
+            android:visibility="gone"
+            android:background="@drawable/bg_selection_circle"
+            app:tint="?attr/colorOnPrimary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="-4dp"
+            android:layout_marginStart="-4dp"
+            tools:visibility="visible" />
+
         <!-- Content container: adapts margin when thumbnail is gone -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/content_container"

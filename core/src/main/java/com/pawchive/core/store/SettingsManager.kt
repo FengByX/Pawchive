@@ -52,6 +52,23 @@ class SettingsManager @Inject constructor(@ApplicationContext context: Context) 
         FOLLOW_SYSTEM("跟随系统", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
     }
 
+    /**
+     * 启动主界面 Tab（FEATURE：启动页可配置）。
+     * 用户进入 App 后默认停留的主 Tab，可在设置页修改。
+     */
+    enum class StartupTab(val key: String) {
+        HOME("home"),
+        SEARCH("search"),
+        BOOKMARKS("bookmarks"),
+        ACCOUNT("account"),
+        DOWNLOADS("downloads");
+
+        companion object {
+            fun fromKey(key: String?): StartupTab =
+                entries.find { it.key == key } ?: BOOKMARKS
+        }
+    }
+
     private val dataStore = context.appSettingsDataStore
 
     // 轻量同步启动缓存（SharedPreferences，ARCH-007）：
@@ -119,6 +136,29 @@ class SettingsManager @Inject constructor(@ApplicationContext context: Context) 
     fun getAppearance(): Appearance {
         val name = read { it[KEY_APPEARANCE] } ?: Appearance.FOLLOW_SYSTEM.name
         return try { Appearance.valueOf(name) } catch (_: Exception) { Appearance.FOLLOW_SYSTEM }
+    }
+
+    /**
+     * 启动主界面 Tab（默认收藏）。启动期读取走 [getStartupTabStartup] 轻量缓存。
+     */
+    fun getStartupTab(): StartupTab {
+        val key = read { it[KEY_STARTUP_TAB] } ?: StartupTab.BOOKMARKS.key
+        return StartupTab.fromKey(key)
+    }
+
+    fun setStartupTab(tab: StartupTab) {
+        write { it[KEY_STARTUP_TAB] = tab.key }
+        startupPrefs.edit().putString(KEY_STARTUP_TAB_STARTUP, tab.key).apply()
+    }
+
+    /**
+     * 启动期启动 Tab 读取（ARCH-007）：仅读轻量 SharedPreferences，无阻塞。
+     */
+    fun getStartupTabStartup(): StartupTab {
+        val key = startupPrefs.getString(KEY_STARTUP_TAB_STARTUP, null)
+            ?: read { it[KEY_STARTUP_TAB] }
+            ?: StartupTab.BOOKMARKS.key
+        return StartupTab.fromKey(key)
     }
 
     fun setAppearance(appearance: Appearance) {
@@ -190,6 +230,18 @@ class SettingsManager @Inject constructor(@ApplicationContext context: Context) 
 
     fun setHideBookmarkedCreatorsEnabled(enabled: Boolean) {
         write { it[KEY_HIDE_BOOKMARKED_CREATORS] = enabled }
+    }
+
+    /**
+     * 首页同作者仅显示一条（FEATURE）。
+     * 默认开启；开启后首页信息流中同一创作者只展示最新的一条作品。
+     */
+    fun isDedupeByCreatorEnabled(): Boolean {
+        return read { it[KEY_DEDUPE_BY_CREATOR] } ?: true
+    }
+
+    fun setDedupeByCreatorEnabled(enabled: Boolean) {
+        write { it[KEY_DEDUPE_BY_CREATOR] = enabled }
     }
 
     /**
@@ -284,6 +336,12 @@ class SettingsManager @Inject constructor(@ApplicationContext context: Context) 
                 dirty = true
             }
         }
+        if (startupPrefs.getString(KEY_STARTUP_TAB_STARTUP, null) == null) {
+            loaded[KEY_STARTUP_TAB]?.let {
+                editor.putString(KEY_STARTUP_TAB_STARTUP, it)
+                dirty = true
+            }
+        }
         if (dirty) editor.apply()
     }
 
@@ -295,13 +353,16 @@ class SettingsManager @Inject constructor(@ApplicationContext context: Context) 
         private val KEY_AUTO_CLEAN_CACHE = booleanPreferencesKey("auto_clean_cache")
         private val KEY_AUTO_CHECK_UPDATE = booleanPreferencesKey("auto_check_update")
         private val KEY_HIDE_BOOKMARKED_CREATORS = booleanPreferencesKey("hide_bookmarked_creators")
+        private val KEY_DEDUPE_BY_CREATOR = booleanPreferencesKey("dedupe_by_creator")
         private val KEY_AUTO_SUBSCRIBE_ON_BOOKMARK = booleanPreferencesKey("auto_subscribe_on_bookmark")
         private val KEY_LAST_CACHE_CLEAN_TIME = longPreferencesKey("last_cache_clean_time")
         private val KEY_CACHE_THRESHOLD_BYTES = longPreferencesKey("cache_threshold_bytes")
+        private val KEY_STARTUP_TAB = stringPreferencesKey("startup_tab")
 
         // 启动缓存（SharedPreferences）key（ARCH-007）
         private const val KEY_STARTUP_LANGUAGE = "startup_language"
         private const val KEY_STARTUP_APPEARANCE = "startup_appearance"
+        private const val KEY_STARTUP_TAB_STARTUP = "startup_tab"
 
         // 默认缓存阈值：200MB（FRONTEND-003）
         private const val DEFAULT_CACHE_THRESHOLD_BYTES = 200L * 1024 * 1024

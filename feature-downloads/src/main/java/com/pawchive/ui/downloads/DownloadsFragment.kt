@@ -87,8 +87,9 @@ class DownloadsFragment : Fragment() {
     }
 
     private fun setupSwipeRefresh() {
-        // 历史记录通过 Flow 自动刷新，下拉刷新仅做视觉反馈
+        // 历史记录通过 Flow 自动刷新；下拉刷新同时自愈卡死的等待中任务
         binding.swipeRefresh.setOnRefreshListener {
+            viewModel.reenqueueStuckPending()
             binding.swipeRefresh.isRefreshing = false
         }
         binding.swipeRefresh.setColorSchemeColors(

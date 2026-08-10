@@ -15,6 +15,7 @@ import com.pawchive.work.DownloadWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
@@ -109,8 +110,14 @@ class DownloadCenter @Inject constructor(
     ): String {
         val key = dedupFingerprint(url, fileName, mimeType, type)
 
-        // 去重：相同指纹且未完成的下载不重复入队（复用已有记录）
-        historyManager.findActiveByDedupKey(key)?.let { return it.id }
+        // 去重：相同指纹且存在活跃 Work 的下载不重复入队（复用已有记录）。
+        // 若记录仍为 PENDING/RUNNING 但对应 Work 已消失（被系统丢弃/唯一任务被吞），
+        // 直接复用记录并重新入队（REPLACE），避免任务永远停留在"等待中"（PENDING）。
+        historyManager.findActiveByDedupKey(key)?.let { record ->
+            if (hasActiveWork(key)) return record.id
+            enqueueWork(record, ExistingWorkPolicy.REPLACE)
+            return record.id
+        }
 
         // 创建下载记录（UUID 主键，ARCH-005）
         val record = DownloadRecord(
@@ -125,8 +132,39 @@ class DownloadCenter @Inject constructor(
         )
         historyManager.upsert(record)
 
-        enqueueWork(record, ExistingWorkPolicy.KEEP)
+        enqueueWork(record, ExistingWorkPolicy.REPLACE)
         return record.id
+    }
+
+    /**
+     * 校验指定去重指纹下是否存在活跃（ENQUEUED/RUNNING）的 Work。
+     * 用于去重短路判断：仅有数据库记录但任务已消失时，需重新入队而非复用旧 id。
+     */
+    private suspend fun hasActiveWork(dedupKey: String): Boolean {
+        return try {
+            WorkManager.getInstance(context)
+                .getWorkInfosForUniqueWorkFlow(workName(dedupKey))
+                .first()
+                .any {
+                    it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING
+                }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 自愈：修复"永远等待中"（PENDING 但 Work 已消失）的卡死记录。
+     * 下载中心页面打开/下拉刷新时调用；对每个 PENDING 且无活跃 Work 的记录重新入队。
+     */
+    suspend fun selfHealPending() {
+        val pending = historyManager.getAllRecords().filter { it.status == DownloadStatus.PENDING }
+        for (record in pending) {
+            val key = record.dedupKey ?: continue
+            if (!hasActiveWork(key)) {
+                enqueueWork(record, ExistingWorkPolicy.REPLACE)
+            }
+        }
     }
 
     private fun enqueueWork(record: DownloadRecord, policy: ExistingWorkPolicy) {

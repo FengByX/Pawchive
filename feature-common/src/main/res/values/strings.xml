@@ -388,6 +388,24 @@
     <string name="auto_subscribe_on_bookmark">收藏创作者时自动订阅</string>
     <string name="auto_subscribe_on_bookmark_desc">收藏即关注，新帖自动进入内容更新提醒</string>
     <string name="auto_subscribed">已自动订阅该创作者</string>
+    <!-- FEATURE 首页批量屏蔽 -->
+    <string name="batch_manage">批量管理</string>
+    <string name="batch_hint">选择要屏蔽的帖子</string>
+    <string name="select_all">全选</string>
+    <string name="block_selected">屏蔽选中</string>
+    <string name="batch_selected_count">已选 %1$d 条</string>
+    <string name="batch_none_selected">请先选择帖子</string>
+    <string name="batch_blocked_count">已屏蔽 %1$d 个创作者</string>
+    <!-- FEATURE 首页同作者去重 / 启动界面 -->
+    <string name="dedupe_by_creator">同作者仅显示一条</string>
+    <string name="dedupe_by_creator_desc">首页同一创作者只展示最新的一条作品</string>
+    <string name="startup_tab">启动界面</string>
+    <string name="startup_tab_desc">进入应用后默认停留的主界面</string>
+    <string name="tab_home">首页</string>
+    <string name="tab_search">搜索</string>
+    <string name="tab_bookmarks">收藏</string>
+    <string name="tab_account">我的</string>
+    <string name="tab_downloads">下载</string>
     <!-- ARCH-FEATURE-004 缓存管理页 -->
     <string name="cache_manager">缓存管理</string>
     <string name="cache_manager_desc">按类别查看与清理缓存</string>

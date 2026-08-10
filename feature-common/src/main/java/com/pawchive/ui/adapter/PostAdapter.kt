@@ -30,10 +30,62 @@ class PostAdapter(
     private val onCreatorClicked: (String, String) -> Unit,
     private val onBookmarkChanged: (Post, Boolean) -> Unit,
     private val onLoadMore: () -> Unit = {},
-    private val showCreatorInfo: Boolean = true
+    private val showCreatorInfo: Boolean = true,
+    // FEATURE 首页批量屏蔽：长按进入多选模式；选中数量变化回调
+    private val onPostLongClicked: (Post) -> Unit = {},
+    private val onSelectionCountChanged: (Int) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var showFooter = false
+
+    // 多选模式状态（FEATURE 首页批量屏蔽）
+    private var selectionMode = false
+    private val selectedKeys = LinkedHashSet<String>()
+
+    /** 是否处于多选模式 */
+    fun isSelectionMode(): Boolean = selectionMode
+
+    /** 当前选中帖子数 */
+    fun getSelectedCount(): Int = selectedKeys.size
+
+    /** 进入/退出多选模式；退出时清空选中 */
+    fun setSelectionMode(mode: Boolean) {
+        if (selectionMode == mode) return
+        selectionMode = mode
+        selectedKeys.clear()
+        notifyDataSetChanged()
+        onSelectionCountChanged(0)
+    }
+
+    /** 切换某条帖子的选中状态 */
+    fun toggleSelection(position: Int) {
+        if (position >= posts.size) return
+        val key = postKey(posts[position])
+        if (!selectedKeys.remove(key)) selectedKeys.add(key)
+        notifyItemChanged(position)
+        onSelectionCountChanged(selectedKeys.size)
+    }
+
+    /** 全选当前列表 */
+    fun selectAll() {
+        selectedKeys.clear()
+        posts.forEach { selectedKeys.add(postKey(it)) }
+        notifyDataSetChanged()
+        onSelectionCountChanged(selectedKeys.size)
+    }
+
+    /** 获取当前选中的帖子列表 */
+    fun getSelectedPosts(): List<Post> =
+        posts.filter { postKey(it) in selectedKeys }
+
+    /** 清空选中（保留多选模式） */
+    fun clearSelection() {
+        selectedKeys.clear()
+        notifyDataSetChanged()
+        onSelectionCountChanged(0)
+    }
+
+    private fun postKey(post: Post): String = "${post.service}|${post.user}|${post.id}"
 
     companion object {
         private const val TYPE_POST = 0
@@ -245,11 +297,36 @@ class PostAdapter(
             }
 
             binding.tvCreatorName.setOnClickListener {
-                onCreatorClicked(post.service, post.user)
+                if (!selectionMode) onCreatorClicked(post.service, post.user)
             }
 
+            // FEATURE 首页批量屏蔽：多选模式下显示选中指示器，点击切换选中
+            val isSelected = postKey(post) in selectedKeys
+            binding.ivSelection.visibility =
+                if (selectionMode && isSelected) View.VISIBLE else View.GONE
+
             binding.root.setOnClickListener {
-                onPostClicked(post)
+                if (selectionMode) {
+                    val position = posts.indexOfFirst {
+                        it.service == post.service && it.user == post.user && it.id == post.id
+                    }
+                    if (position >= 0) toggleSelection(position)
+                } else {
+                    onPostClicked(post)
+                }
+            }
+            binding.root.setOnLongClickListener {
+                if (!selectionMode) {
+                    selectionMode = true
+                    val position = posts.indexOfFirst {
+                        it.service == post.service && it.user == post.user && it.id == post.id
+                    }
+                    if (position >= 0) selectedKeys.add(postKey(post))
+                    notifyDataSetChanged()
+                    onSelectionCountChanged(selectedKeys.size)
+                    onPostLongClicked(post)
+                }
+                true
             }
         }
 

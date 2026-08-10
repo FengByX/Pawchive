@@ -64,6 +64,8 @@ class SettingsFragment : Fragment() {
         setupCacheManagerEntry()
         setupAutoCheckUpdate()
         setupHideBookmarkedCreators()
+        setupDedupeByCreator()
+        setupStartupTab()
         setupAutoSubscribeOnBookmark()
         setupDownloadRules()
         setupContentUpdates()
@@ -306,6 +308,48 @@ class SettingsFragment : Fragment() {
             viewModel.uiState.value.hideBookmarkedCreatorsEnabled
         binding.switchHideBookmarkedCreators.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setHideBookmarkedCreatorsEnabled(isChecked)
+        }
+    }
+
+    /** 首页同作者仅显示一条开关（FEATURE）。 */
+    private fun setupDedupeByCreator() {
+        binding.switchDedupeByCreator.isChecked =
+            viewModel.uiState.value.dedupeByCreatorEnabled
+        binding.switchDedupeByCreator.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setDedupeByCreatorEnabled(isChecked)
+        }
+    }
+
+    /** 启动主界面选择（FEATURE）：点击弹出选项，选择后立即生效。 */
+    private fun setupStartupTab() {
+        refreshStartupTabValue()
+        binding.rowStartupTab.setOnClickListener {
+            val tabs = SettingsManager.StartupTab.entries
+            val labels = tabs.map { getStartupTabLabel(it) }.toTypedArray()
+            val currentIndex = tabs.indexOf(viewModel.uiState.value.startupTab)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.startup_tab)
+                .setSingleChoiceItems(labels, currentIndex) { dialog, which ->
+                    viewModel.setStartupTab(tabs[which])
+                    refreshStartupTabValue()
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun refreshStartupTabValue() {
+        binding.tvStartupTabValue.text =
+            getStartupTabLabel(viewModel.uiState.value.startupTab)
+    }
+
+    private fun getStartupTabLabel(tab: SettingsManager.StartupTab): String {
+        return when (tab) {
+            SettingsManager.StartupTab.HOME -> getString(R.string.tab_home)
+            SettingsManager.StartupTab.SEARCH -> getString(R.string.tab_search)
+            SettingsManager.StartupTab.BOOKMARKS -> getString(R.string.tab_bookmarks)
+            SettingsManager.StartupTab.ACCOUNT -> getString(R.string.tab_account)
+            SettingsManager.StartupTab.DOWNLOADS -> getString(R.string.tab_downloads)
         }
     }
 

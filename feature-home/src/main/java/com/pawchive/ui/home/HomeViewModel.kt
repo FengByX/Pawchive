@@ -183,6 +183,18 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * 批量屏蔽创作者（FEATURE 首页批量屏蔽）。
+     * 逐个写入屏蔽列表，随后重新过滤已加载数据，屏蔽的帖子立即从首页消失。
+     */
+    fun blockCreators(pairs: List<Pair<String, String>>) {
+        if (pairs.isEmpty()) return
+        pairs.forEach { (service, creatorId) ->
+            blockedCreatorManager.blockCreator(service, creatorId)
+        }
+        refreshBlockedFilter()
+    }
+
+    /**
      * 收藏状态变化（PostAdapter 回调）：收藏模式下重新加载本地收藏。
      */
     fun onBookmarkChanged() {
@@ -266,6 +278,7 @@ class HomeViewModel @Inject constructor(
      * - 屏蔽创作者过滤（既有行为）
      * - ARCH-FEATURE-006：开启"隐藏已收藏作者的帖子"时，过滤掉已收藏创作者
      *   （本地收藏 ∪ 云端收藏，覆盖其他设备收藏/本地未同步场景）
+     * - FEATURE：开启"同作者仅显示一条"时，同一创作者只保留最新的一条
      */
     private fun sortPosts(posts: List<Post>): List<Post> {
         val sorted = when (currentSort) {
@@ -280,9 +293,20 @@ class HomeViewModel @Inject constructor(
         val bookmarkedCreators =
             if (hideBookmarked) bookmarkManager.getBookmarkedCreators() + cloudFavoriteCreators
             else emptySet()
-        return sorted.filter { post ->
+
+        var filtered = sorted.filter { post ->
             !blockedCreatorManager.isCreatorBlocked(post.service, post.user) &&
                 (post.service to post.user) !in bookmarkedCreators
         }
+
+        // 同作者仅显示一条：按排序结果保留每个创作者最新的一条
+        if (settingsManager.isDedupeByCreatorEnabled()) {
+            val seen = HashSet<Pair<String, String>>()
+            filtered = filtered.filter { post ->
+                val key = post.service to post.user
+                if (key in seen) false else { seen.add(key); true }
+            }
+        }
+        return filtered
     }
 }

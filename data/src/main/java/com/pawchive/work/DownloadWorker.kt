@@ -76,18 +76,19 @@ class DownloadWorker @AssistedInject constructor(
         val recordId = inputData.getString(KEY_RECORD_ID) ?: return@withContext Result.failure()
         val context = applicationContext
 
-        // 标记为运行中
-        historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = 0)
-
-        // 1) 前台通知初始化（即便无通知权限，下载也会继续，只是无可见通知）
-        val hasNotifyPermission = hasNotificationPermission(context)
-        if (hasNotifyPermission) {
-            ensureChannel(context)
-            setForeground(buildForegroundInfo(context, fileName, 0))
-        }
-
         var outputStream: OutputStream? = null
+        // 通知权限在 try 外判断一次：catch 分支同样需要据此决定是否发失败通知
+        val hasNotifyPermission = hasNotificationPermission(context)
         try {
+            // 标记为运行中（移入 try：前台初始化抛异常时也能正确标记 FAILED，不留"永续下载中"）
+            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = 0)
+
+            // 1) 前台通知初始化（即便无通知权限，下载也会继续，只是无可见通知）
+            if (hasNotifyPermission) {
+                ensureChannel(context)
+                setForeground(buildForegroundInfo(context, fileName, 0))
+            }
+
             // ARCH-009：下载前确保已过盾（403 拦截器已非阻塞化，不再线程内等待过盾）
             ClearanceCoordinator.ensureClearance()
             // 2) 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，403 兜底

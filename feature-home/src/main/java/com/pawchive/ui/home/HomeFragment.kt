@@ -73,6 +73,7 @@ class HomeFragment : Fragment() {
         setupRecyclerView()
         setupSwipeRefresh()
         setupSortButton()
+        setupBatchActions()
         // 绑定内嵌错误页（FEATURE-006）
         errorStateView = ErrorStateViewHelper.bind(binding.root) {
             viewModel.refresh()
@@ -159,11 +160,60 @@ class HomeFragment : Fragment() {
             onBookmarkChanged = { _, _ ->
                 viewModel.onBookmarkChanged()
             },
-            onLoadMore = { viewModel.loadMore() }
+            onLoadMore = { viewModel.loadMore() },
+            // FEATURE 首页批量屏蔽
+            onPostLongClicked = { enterSelectionMode() },
+            onSelectionCountChanged = { updateBatchHint(it) }
         )
 
         binding.rvPosts.layoutManager = LinearLayoutManager(requireContext())
         binding.rvPosts.adapter = postAdapter
+    }
+
+    // ---------- FEATURE 首页批量屏蔽 ----------
+
+    private fun enterSelectionMode() {
+        if (!postAdapter.isSelectionMode()) {
+            postAdapter.setSelectionMode(true)
+        }
+        binding.batchBar.visibility = View.VISIBLE
+        updateBatchHint(postAdapter.getSelectedCount())
+    }
+
+    private fun exitSelectionMode() {
+        postAdapter.setSelectionMode(false)
+        binding.batchBar.visibility = View.GONE
+    }
+
+    private fun updateBatchHint(count: Int) {
+        binding.tvBatchHint.text = getString(R.string.batch_selected_count, count)
+    }
+
+    private fun setupBatchActions() {
+        binding.btnBatch.setOnClickListener { enterSelectionMode() }
+        binding.btnCancelSelect.setOnClickListener { exitSelectionMode() }
+        binding.btnSelectAll.setOnClickListener {
+            postAdapter.selectAll()
+            updateBatchHint(postAdapter.getSelectedCount())
+        }
+        binding.btnBlockSelected.setOnClickListener {
+            val selected = postAdapter.getSelectedPosts()
+            if (selected.isEmpty()) {
+                Toast.makeText(context, R.string.batch_none_selected, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            // 提取去重后的创作者列表并批量屏蔽
+            val creators = selected
+                .map { it.service to it.user }
+                .distinct()
+            viewModel.blockCreators(creators)
+            Toast.makeText(
+                context,
+                getString(R.string.batch_blocked_count, creators.size),
+                Toast.LENGTH_SHORT
+            ).show()
+            exitSelectionMode()
+        }
     }
 
     private fun setupSwipeRefresh() {

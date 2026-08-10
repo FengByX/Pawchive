@@ -388,6 +388,24 @@
     <string name="auto_subscribe_on_bookmark">お気に入り登録時に自動購読</string>
     <string name="auto_subscribe_on_bookmark_desc">お気に入り登録したクリエイターの新着を自動で通知</string>
     <string name="auto_subscribed">このクリエイターを自動購読しました</string>
+    <!-- FEATURE ホーム一括ブロック -->
+    <string name="batch_manage">一括管理</string>
+    <string name="batch_hint">ブロックする投稿を選択</string>
+    <string name="select_all">すべて選択</string>
+    <string name="block_selected">選択をブロック</string>
+    <string name="batch_selected_count">%1$d 件選択中</string>
+    <string name="batch_none_selected">先に投稿を選択してください</string>
+    <string name="batch_blocked_count">%1$d 人のクリエイターをブロックしました</string>
+    <!-- FEATURE ホーム重複抑制 / 起動画面 -->
+    <string name="dedupe_by_creator">同じ作者は1件のみ</string>
+    <string name="dedupe_by_creator_desc">ホームで同じ作者の最新の投稿を1件だけ表示します</string>
+    <string name="startup_tab">起動画面</string>
+    <string name="startup_tab_desc">アプリ起動後に表示されるメイン画面</string>
+    <string name="tab_home">ホーム</string>
+    <string name="tab_search">検索</string>
+    <string name="tab_bookmarks">お気に入り</string>
+    <string name="tab_account">マイページ</string>
+    <string name="tab_downloads">ダウンロード</string>
     <!-- ARCH-FEATURE-004 キャッシュ管理 -->
     <string name="cache_manager">キャッシュ管理</string>
     <string name="cache_manager_desc">カテゴリごとにキャッシュを表示・クリア</string>

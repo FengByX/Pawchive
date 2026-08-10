@@ -88,6 +88,9 @@ class MainActivity : AppCompatActivity(), AppNavigator {
         // 更新可见 page 列表
         updateVisiblePages()
 
+        // 启动页可配置（默认收藏）：进入 App 后停留用户设定的主 Tab
+        applyStartupTab()
+
         // ViewPager2 → BottomNavigationView 联动
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -303,6 +306,26 @@ class MainActivity : AppCompatActivity(), AppNavigator {
             if (binding.bottomNavigation.selectedItemId != currentTabId) {
                 binding.bottomNavigation.selectedItemId = currentTabId
             }
+        }
+    }
+
+    /**
+     * 根据设置切换到启动主 Tab（默认收藏）。
+     * 目标 Tab 未登录/不可见时回退首页，保证启动路径不崩。
+     */
+    private fun applyStartupTab() {
+        val startupTab = PawchiveApplication.getSettingsManager().getStartupTabStartup()
+        val tabId = when (startupTab) {
+            SettingsManager.StartupTab.HOME -> R.id.navigation_home
+            SettingsManager.StartupTab.SEARCH -> R.id.navigation_search
+            SettingsManager.StartupTab.BOOKMARKS -> R.id.navigation_bookmarks
+            SettingsManager.StartupTab.ACCOUNT -> R.id.navigation_account
+            SettingsManager.StartupTab.DOWNLOADS -> R.id.navigation_downloads
+        }
+        val position = pagerAdapter.getPositionOfTab(tabId)
+        val target = if (position != -1) position else 0
+        if (binding.viewPager.currentItem != target) {
+            binding.viewPager.setCurrentItem(target, false)
         }
     }
 

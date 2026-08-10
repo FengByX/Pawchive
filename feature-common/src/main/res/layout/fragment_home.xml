@@ -63,6 +63,75 @@
                 app:iconTint="?attr/colorPrimary"
                 android:textColor="?attr/colorPrimary"
                 app:cornerRadius="18dp" />
+
+            <!-- 批量屏蔽入口（FEATURE） -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_batch"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/batch_manage"
+                android:textSize="12sp"
+                app:icon="@drawable/ic_shield"
+                app:iconGravity="textStart"
+                app:iconPadding="4dp"
+                app:iconTint="?attr/colorPrimary"
+                android:textColor="?attr/colorPrimary"
+                app:cornerRadius="18dp" />
+        </LinearLayout>
+
+        <!-- 批量操作栏（FEATURE 首页批量屏蔽）：多选模式下显示 -->
+        <LinearLayout
+            android:id="@+id/batch_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:paddingTop="8dp">
+
+            <TextView
+                android:id="@+id/tv_batch_hint"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/batch_hint"
+                android:textSize="13sp"
+                android:textColor="?attr/colorTextSecondary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_select_all"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/select_all"
+                android:textSize="13sp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_block_selected"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="@string/block_selected"
+                android:textSize="13sp"
+                android:textColor="?attr/colorError"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancel_select"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="@string/cancel"
+                android:textSize="13sp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
         </LinearLayout>
 
         <!-- Thin divider below header -->

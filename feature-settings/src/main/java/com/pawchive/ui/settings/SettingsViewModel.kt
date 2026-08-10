@@ -39,11 +39,13 @@ import javax.inject.Inject
 data class SettingsUiState(
     val language: SettingsManager.Language = SettingsManager.Language.CHINESE,
     val appearance: SettingsManager.Appearance = SettingsManager.Appearance.FOLLOW_SYSTEM,
+    val startupTab: SettingsManager.StartupTab = SettingsManager.StartupTab.BOOKMARKS,
     val blockedCount: Int = 0,
     val downloadLocationText: String = "",
     val autoCleanCacheEnabled: Boolean = false,
     val autoCheckUpdateEnabled: Boolean = true,
     val hideBookmarkedCreatorsEnabled: Boolean = false,
+    val dedupeByCreatorEnabled: Boolean = true,
     val autoSubscribeOnBookmarkEnabled: Boolean = true,
     val cacheSizeText: String = "",
     val versionName: String = "",
@@ -84,9 +86,11 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             language = settingsManager.getLanguage(),
             appearance = settingsManager.getAppearance(),
+            startupTab = settingsManager.getStartupTab(),
             autoCleanCacheEnabled = settingsManager.isAutoCleanCacheEnabled(),
             autoCheckUpdateEnabled = settingsManager.isAutoCheckUpdateEnabled(),
             hideBookmarkedCreatorsEnabled = settingsManager.isHideBookmarkedCreatorsEnabled(),
+            dedupeByCreatorEnabled = settingsManager.isDedupeByCreatorEnabled(),
             autoSubscribeOnBookmarkEnabled = settingsManager.isAutoSubscribeOnBookmarkEnabled(),
             downloadLocationText = buildDownloadLocationText()
         )
@@ -139,6 +143,19 @@ class SettingsViewModel @Inject constructor(
     fun setHideBookmarkedCreatorsEnabled(enabled: Boolean) {
         settingsManager.setHideBookmarkedCreatorsEnabled(enabled)
         _uiState.value = _uiState.value.copy(hideBookmarkedCreatorsEnabled = enabled)
+    }
+
+    /** 首页同作者仅显示一条开关（FEATURE）。 */
+    fun setDedupeByCreatorEnabled(enabled: Boolean) {
+        settingsManager.setDedupeByCreatorEnabled(enabled)
+        _uiState.value = _uiState.value.copy(dedupeByCreatorEnabled = enabled)
+    }
+
+    /** 启动主界面 Tab（FEATURE）。 */
+    fun setStartupTab(tab: SettingsManager.StartupTab) {
+        if (tab == _uiState.value.startupTab) return
+        settingsManager.setStartupTab(tab)
+        _uiState.value = _uiState.value.copy(startupTab = tab)
     }
 
     /** 收藏创作者时自动订阅开关（ARCH-FEATURE-003 联动遗留项）。 */

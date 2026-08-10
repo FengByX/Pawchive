@@ -42,7 +42,7 @@ class AccountFavoritesFragment : Fragment() {
     private lateinit var postAdapter: FavoritePostAdapter
     private lateinit var creatorAdapter: FavoriteCreatorAdapter
 
-    private var currentTab = 0 // 0 = posts, 1 = creators
+    private var currentTab = 1 // 0 = posts, 1 = creators（默认展示"收藏作者"，FEATURE）
     // 当前排序（用于按钮文字与对话框索引，ViewModel 持有实际排序状态）
     private var currentPostSort = FavoritePostSortOption.NEWEST_EDITED
     private var currentCreatorSort = FavoriteCreatorSortOption.NEWEST_UPDATED
@@ -60,7 +60,7 @@ class AccountFavoritesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         savedInstanceState?.let {
-            currentTab = it.getInt(KEY_CURRENT_TAB, 0)
+            currentTab = it.getInt(KEY_CURRENT_TAB, 1)
         }
 
         setupAdapters()
