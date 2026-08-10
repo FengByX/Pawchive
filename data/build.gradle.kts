@@ -61,7 +61,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Gson - BookmarkManager/DownloadHistoryManager legacy 数据迁移
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.14.0")
 
     // Coil - AppCacheCleaner 清理图片缓存
     implementation(libs.coil)
