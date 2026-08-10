@@ -94,7 +94,7 @@ dependencies {
     implementation(libs.okhttp.logging)
 
     // Security - EncryptedSharedPreferences
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.1.0")
 
     // Jetpack DataStore - 高性能键值存储（替代 SharedPreferences）
     implementation("androidx.datastore:datastore-preferences:1.1.1")
