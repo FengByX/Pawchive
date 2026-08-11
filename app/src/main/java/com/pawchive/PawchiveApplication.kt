@@ -85,10 +85,6 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
         super.onCreate() // Hilt 在此完成字段注入
         instance = this
 
-        // WorkManager's manifest initializer is disabled so Hilt can provide the worker
-        // factory; it must therefore be initialized before repositories enqueue work.
-        WorkManager.initialize(this, workManagerConfiguration)
-
         // 初始化全局崩溃捕获（FEATURE-006 崩溃埋点）
         CrashHandler.init(this)
         // 初始化 Cloudflare 过盾管理器（object 单例，保留 init 调用；

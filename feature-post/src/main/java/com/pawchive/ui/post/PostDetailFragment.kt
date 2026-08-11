@@ -254,6 +254,17 @@ class PostDetailFragment : Fragment() {
     }
 
     private fun displayPost(post: Post) {
+        runCatching { displayPostInner(post) }.onFailure { err ->
+            Log.e("PostDetailFragment", "displayPost crashed post=${post.service}/${post.user}/${post.id}", err)
+            Toast.makeText(
+                requireContext(),
+                "displayPost: ${err.javaClass.simpleName} - ${err.message?.take(150)}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun displayPostInner(post: Post) {
         binding.tvPostTitle.text = post.title ?: ""
         binding.tvPostCreator.text = CreatorNameCache.getCachedName(post.service, post.user) ?: post.user
         binding.tvPostService.text = post.service.uppercase()

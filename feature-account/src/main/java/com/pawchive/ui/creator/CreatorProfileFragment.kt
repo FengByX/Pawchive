@@ -86,93 +86,124 @@ class CreatorProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        runCatching {
+            binding.btnBack.setOnClickListener {
+                hideKeyboard()
+                parentFragmentManager.popBackStack()
+            }
 
-        binding.btnBack.setOnClickListener {
-            hideKeyboard()
-            parentFragmentManager.popBackStack()
+            setupRecyclerView()
+            setupBookmarkButton()
+            setupSubscribeButton()
+            setupBlockButton()
+            setupLoadMoreButton()
+            setupSortButton()
+            setupSearchView()
+            setupAnnouncementsToggle()
+            observeCreatorState()
+
+            viewModel.loadCreator(service, creatorId)
+        }.onFailure { err ->
+            android.util.Log.e(
+                "CreatorProfileFragment",
+                "onViewCreated crashed service=$service creator=$creatorId",
+                err
+            )
+            Toast.makeText(
+                context,
+                "onViewCreated: ${err.javaClass.simpleName} - ${err.message?.take(120)}",
+                Toast.LENGTH_LONG
+            ).show()
         }
-
-        setupRecyclerView()
-        setupBookmarkButton()
-        setupSubscribeButton()
-        setupBlockButton()
-        setupLoadMoreButton()
-        setupSortButton()
-        setupSearchView()
-        setupAnnouncementsToggle()
-        observeCreatorState()
-
-        viewModel.loadCreator(service, creatorId)
     }
 
     private fun observeCreatorState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-
-                    if (state.errorMessage != null && state.posts.isEmpty()) {
-                        Toast.makeText(
-                            context,
-                            ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-
-                    // 更新创作者信�?
-                    binding.tvCreatorTitle.text = state.name.ifEmpty { creatorId }
-                    binding.tvCreatorService.text = service.uppercase()
-                    setServiceLabelColor(service)
-                    if (state.name.isNotEmpty()) {
-                        CreatorNameCache.cacheCreatorName(service, creatorId, state.name)
-                    }
-                    loadAvatar()
-
-                    // 更新公告
-                    binding.layoutAnnouncements.removeAllViews()
-                    if (state.announcements.isNotEmpty()) {
-                        binding.layoutAnnouncementsHeader.visibility = View.VISIBLE
-                        updateAnnouncementsVisibility()
-                        for (announcement in state.announcements) {
-                            val textView = TextView(requireContext()).apply {
-                                text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
-                                setTextColor(requireContext().getColor(R.color.text_secondary))
-                                textSize = 13f
-                                background = requireContext().getDrawable(R.drawable.comment_bg)
-                                setPadding(12, 12, 12, 12)
-                            }
-                            binding.layoutAnnouncements.addView(textView)
+                    runCatching { renderCreatorState(state) }
+                        .onFailure { err ->
+                            android.util.Log.e(
+                                "CreatorProfileFragment",
+                                "render crashed service=$service creator=$creatorId",
+                                err
+                            )
+                            Toast.makeText(
+                                context,
+                                "render: ${err.javaClass.simpleName} - ${err.message?.take(120)}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
-                    } else {
-                        binding.layoutAnnouncementsHeader.visibility = View.GONE
-                    }
-
-                    // 更新关联链接
-                    binding.layoutLinks.removeAllViews()
-                    if (state.links.isNotEmpty()) {
-                        binding.tvLinksHeader.visibility = View.VISIBLE
-                        for (link in state.links) {
-                            val textView = TextView(requireContext()).apply {
-                                text = "${link.name} (${link.service})"
-                                setTextColor(resources.getColor(R.color.primary_light, null))
-                                textSize = 14f
-                                setPadding(0, 8, 0, 8)
-                                setOnClickListener {
-                                    (activity as? AppNavigator)?.openCreatorProfile(link.service, link.id)
-                                }
-                            }
-                            binding.layoutLinks.addView(textView)
-                        }
-                    } else {
-                        binding.tvLinksHeader.visibility = View.GONE
-                    }
-
-                    // 更新帖子列表
-                    applySort(state.posts)
-                    updateLoadMoreButton(state.hasMore)
                 }
             }
         }
+    }
+
+    private fun renderCreatorState(state: CreatorProfileUiState) {
+        binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+
+        if (state.errorMessage != null && state.posts.isEmpty()) {
+            Toast.makeText(
+                context,
+                ErrorMessageHelper.getFriendlyMessage(context, state.errorMessage),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        binding.tvCreatorTitle.text = state.name.ifEmpty { creatorId }
+        binding.tvCreatorService.text = service.uppercase()
+        setServiceLabelColor(service)
+        if (state.name.isNotEmpty()) {
+            CreatorNameCache.cacheCreatorName(service, creatorId, state.name)
+        }
+        loadAvatar()
+
+        binding.layoutAnnouncements.removeAllViews()
+        if (state.announcements.isNotEmpty()) {
+            binding.layoutAnnouncementsHeader.visibility = View.VISIBLE
+            updateAnnouncementsVisibility()
+            for (announcement in state.announcements) {
+                val textView = TextView(requireContext()).apply {
+                    text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
+                    setTextColor(requireContext().getColor(R.color.text_secondary))
+                    textSize = 13f
+                    background = requireContext().getDrawable(R.drawable.comment_bg)
+                    setPadding(12, 12, 12, 12)
+                }
+                binding.layoutAnnouncements.addView(textView)
+            }
+        } else {
+            binding.layoutAnnouncementsHeader.visibility = View.GONE
+        }
+
+        binding.layoutLinks.removeAllViews()
+        if (state.links.isNotEmpty()) {
+            binding.tvLinksHeader.visibility = View.VISIBLE
+            for (link in state.links) {
+                val textView = TextView(requireContext()).apply {
+                    text = "${link.name} (${link.service})"
+                    setTextColor(resources.getColor(R.color.primary_light, null))
+                    textSize = 14f
+                    setPadding(0, 8, 0, 8)
+                    setOnClickListener {
+                        runCatching { (activity as? AppNavigator)?.openCreatorProfile(link.service, link.id) }
+                            .onFailure { err ->
+                                Toast.makeText(
+                                    context,
+                                    "open: ${err.javaClass.simpleName} - ${err.message?.take(100)}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                    }
+                }
+                binding.layoutLinks.addView(textView)
+            }
+        } else {
+            binding.tvLinksHeader.visibility = View.GONE
+        }
+
+        applySort(state.posts)
+        updateLoadMoreButton(state.hasMore)
     }
 
     private fun setupRecyclerView() {
@@ -304,12 +335,10 @@ class CreatorProfileFragment : Fragment() {
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            // 云端收藏确认成功 → 收藏即订阅联动
                             autoSubscribeIfEnabled()
                         }
                     }
                 } else {
-                    // 未登录：本地收藏即确认成功 → 收藏即订阅联动
                     autoSubscribeIfEnabled()
                 }
             } else {
@@ -338,25 +367,28 @@ class CreatorProfileFragment : Fragment() {
         }
     }
 
-    /**
-     * 收藏即订阅联动（ARCH-FEATURE-003 遗留项）。
-     * - 仅在"收藏创作者时自动订阅"开关开启且尚未订阅时触发
-     * - 以当前已加载的最新帖为基线（同铃铛订阅语义），避免历史帖当新帖通知
-     * - 取消收藏不会自动退订（退订是用户显式意图，可在订阅管理页操作）
-     */
     private fun autoSubscribeIfEnabled() {
         viewLifecycleOwner.lifecycleScope.launch {
-            if (!settingsManager.isAutoSubscribeOnBookmarkEnabled()) return@launch
-            if (subscriptionRepository.isSubscribed(service, creatorId)) return@launch
-            val newestPostId = viewModel.uiState.value.posts.firstOrNull()?.id
-            subscriptionRepository.subscribe(
-                service = service,
-                creatorId = creatorId,
-                name = viewModel.uiState.value.name.ifEmpty { creatorId },
-                lastPostId = newestPostId
-            )
-            updateSubscribeIcon(true)
-            Toast.makeText(context, R.string.auto_subscribed, Toast.LENGTH_SHORT).show()
+            runCatching {
+                if (!settingsManager.isAutoSubscribeOnBookmarkEnabled()) return@launch
+                if (subscriptionRepository.isSubscribed(service, creatorId)) return@launch
+                val newestPostId = viewModel.uiState.value.posts.firstOrNull()?.id
+                subscriptionRepository.subscribe(
+                    service = service,
+                    creatorId = creatorId,
+                    name = viewModel.uiState.value.name.ifEmpty { creatorId },
+                    lastPostId = newestPostId
+                )
+                updateSubscribeIcon(true)
+                Toast.makeText(context, R.string.auto_subscribed, Toast.LENGTH_SHORT).show()
+            }.onFailure { err ->
+                android.util.Log.e("CreatorProfileFragment", "autoSubscribe failed", err)
+                Toast.makeText(
+                    context,
+                    "autoSubscribe: ${err.javaClass.simpleName} - ${err.message?.take(100)}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
@@ -366,16 +398,11 @@ class CreatorProfileFragment : Fragment() {
         )
     }
 
-    /**
-     * 内容更新订阅按钮（ARCH-FEATURE-003）。
-     * - 订阅时以当前已加载的最新帖为基线（lastPostId），避免把历史帖当新帖通知
-     * - 订阅状态为本地存储，不依赖登录态
-     * - Android 13+ 首次订阅时请求通知权限：无论授权与否都继续订阅
-     *   （站内未读徽标不依赖通知权限，仅系统栏推送需要授权）
-     */
     private fun setupSubscribeButton() {
         viewLifecycleOwner.lifecycleScope.launch {
-            updateSubscribeIcon(subscriptionRepository.isSubscribed(service, creatorId))
+            runCatching {
+                updateSubscribeIcon(subscriptionRepository.isSubscribed(service, creatorId))
+            }
         }
 
         binding.btnCreatorSubscribe.setOnClickListener {
@@ -387,20 +414,28 @@ class CreatorProfileFragment : Fragment() {
             ) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
-                viewLifecycleOwner.lifecycleScope.launch { toggleSubscription() }
+                viewLifecycleOwner.lifecycleScope.launch { toggleSubscriptionSafe() }
             }
         }
     }
 
-    /** 通知权限请求（订阅新帖推送，ARCH-FEATURE-003 系统通知栏推送）。 */
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // 无论授权与否都继续订阅：拒绝权限仅影响系统栏推送，站内未读徽标不受影响
-        viewLifecycleOwner.lifecycleScope.launch { toggleSubscription() }
+        viewLifecycleOwner.lifecycleScope.launch { toggleSubscriptionSafe() }
     }
 
-    /** 订阅 / 退订切换（在 lifecycleScope 中调用）。 */
+    private suspend fun toggleSubscriptionSafe() {
+        runCatching { toggleSubscription() }.onFailure { err ->
+            android.util.Log.e("CreatorProfileFragment", "toggleSubscribe failed", err)
+            Toast.makeText(
+                context,
+                "subscribe: ${err.javaClass.simpleName} - ${err.message?.take(100)}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     private suspend fun toggleSubscription() {
         val subscribed = subscriptionRepository.isSubscribed(service, creatorId)
         if (subscribed) {
