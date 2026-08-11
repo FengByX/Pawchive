@@ -98,6 +98,7 @@ class PhotoViewerFragment : Fragment() {
         Toast.makeText(requireContext(), getString(R.string.saving_image), Toast.LENGTH_SHORT).show()
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            var response: okhttp3.Response? = null
             try {
                 // 使用 sharedOkHttpClient：img.pawchive.pw 也可能被 Cloudflare 拦截，
                 // sharedOkHttpClient 内置 CF 重试逻辑。
@@ -110,15 +111,16 @@ class PhotoViewerFragment : Fragment() {
                     .header("Accept", "*/*")
                     .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw Exception("HTTP ${response.code}")
+                val networkResponse = okHttpClient.newCall(request).execute()
+                response = networkResponse
+                if (!networkResponse.isSuccessful) {
+                    throw Exception("HTTP ${networkResponse.code}")
                 }
 
-                val inputStream = response.body?.byteStream()
+                val inputStream = networkResponse.body?.byteStream()
                     ?: throw Exception("Empty response body")
 
-                val contentType = response.header("Content-Type")
+                val contentType = networkResponse.header("Content-Type")
                 val mimeType = when {
                     imageName.endsWith(".png", true) -> "image/png"
                     imageName.endsWith(".webp", true) -> "image/webp"
@@ -138,6 +140,8 @@ class PhotoViewerFragment : Fragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+            } finally {
+                runCatching { response?.close() }
             }
         }
     }
@@ -152,12 +156,12 @@ class PhotoViewerFragment : Fragment() {
                 displayName = fileName,
                 mimeType = mimeType
             )
-            val (outputStream, mediaUri) = downloadRepository.openDownloadStream(target)
+            val (outputStream, mediaUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
 
             outputStream.use { out ->
                 inputStream.use { input -> input.copyTo(out) }
             }
-            downloadRepository.finalizeDownload(mediaUri)
+            if (requiresFinalize) downloadRepository.finalizeDownload(mediaUri)
 
             withContext(Dispatchers.Main) {
                 Toast.makeText(

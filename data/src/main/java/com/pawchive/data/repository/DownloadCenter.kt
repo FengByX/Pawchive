@@ -132,7 +132,17 @@ class DownloadCenter @Inject constructor(
         )
         historyManager.upsert(record)
 
-        enqueueWork(record, ExistingWorkPolicy.REPLACE)
+        try {
+            enqueueWork(record, ExistingWorkPolicy.REPLACE)
+        } catch (e: Exception) {
+            // A scheduling error must not leave a record permanently shown as pending.
+            historyManager.updateStatus(
+                record.id,
+                DownloadStatus.FAILED,
+                errorMessage = e.message ?: "Unable to schedule download"
+            )
+            throw e
+        }
         return record.id
     }
 
@@ -162,7 +172,15 @@ class DownloadCenter @Inject constructor(
         for (record in pending) {
             val key = record.dedupKey ?: continue
             if (!hasActiveWork(key)) {
-                enqueueWork(record, ExistingWorkPolicy.REPLACE)
+                try {
+                    enqueueWork(record, ExistingWorkPolicy.REPLACE)
+                } catch (e: Exception) {
+                    historyManager.updateStatus(
+                        record.id,
+                        DownloadStatus.FAILED,
+                        errorMessage = e.message ?: "Unable to schedule download"
+                    )
+                }
             }
         }
     }
@@ -210,7 +228,16 @@ class DownloadCenter @Inject constructor(
         historyManager.updateStatus(id, DownloadStatus.PENDING, progress = 0, errorMessage = null)
         // 取消旧任务并重新入队（REPLACE 确保新任务生效）
         WorkManager.getInstance(context).cancelUniqueWork(workName(record.dedupKey ?: return null))
-        enqueueWork(record, ExistingWorkPolicy.REPLACE)
+        try {
+            enqueueWork(record, ExistingWorkPolicy.REPLACE)
+        } catch (e: Exception) {
+            historyManager.updateStatus(
+                id,
+                DownloadStatus.FAILED,
+                errorMessage = e.message ?: "Unable to schedule download"
+            )
+            throw e
+        }
         return id
     }
 

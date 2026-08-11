@@ -15,6 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -44,6 +47,8 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
     // 内存缓存快照：初始为空，构造后在 IO 线程异步加载，避免主线程阻塞（P1）
     @Volatile
     private var cache: Preferences = preferencesOf()
+    private val _history = MutableStateFlow<List<String>>(emptyList())
+    val history: StateFlow<List<String>> = _history.asStateFlow()
 
     init {
         ioScope.launch {
@@ -66,13 +71,18 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
             if (!loaded.get()) {
                 migrateFromSharedPreferencesIfNeeded(context)
                 cache = dataStore.data.first()
+                _history.value = parseHistory(cache)
                 loaded.set(true)
             }
         }
     }
 
     fun getHistory(): List<String> {
-        val raw = cache[KEY_HISTORY] ?: return emptyList()
+        return parseHistory(cache)
+    }
+
+    private fun parseHistory(preferences: Preferences): List<String> {
+        val raw = preferences[KEY_HISTORY] ?: return emptyList()
         return try {
             val arr = JSONArray(raw)
             (0 until arr.length()).mapNotNull { arr.optString(it) }
@@ -123,12 +133,14 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
     private fun editSync(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         // 先更新内存缓存（保证后续同步读取立即可见）
         cache = cache.toMutablePreferences().apply { block(this) }
+        _history.value = parseHistory(cache)
         // 异步、串行、带异常处理的落盘
         ioScope.launch {
             runCatching {
                 val updated = writeMutex.withLock { dataStore.edit(block) }
                 // 以磁盘最新状态刷新内存快照，保持权威一致
                 cache = updated
+                _history.value = parseHistory(updated)
             }.onFailure { it.printStackTrace() }
         }
     }

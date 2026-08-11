@@ -396,8 +396,23 @@ class PostDetailFragment : Fragment() {
             binding.imageCard.visibility = View.GONE
         }
 
-        val attachments = post.attachments
-        if (!attachments.isNullOrEmpty()) {
+        val attachments = post.attachments.orEmpty()
+        // Merge external link candidates from two sources:
+        // 1) post.embed (API free-form object — often contains HTML snippets or raw URLs)
+        // 2) post.content HTML — providers sometimes drop <a class=embed-view> links inline
+        //    inside the content body even when the API also exposes them via embed.
+        val fromEmbed = extractExternalEmbedLinks(post.embed)
+        val fromContentHtml = extractExternalLinksFromHtml(post.content)
+        val externalEmbedLinks = buildList {
+            val seen = linkedSetOf<String>()
+            for (link in fromEmbed) {
+                if (seen.add(link.dedupKey)) add(link)
+            }
+            for (link in fromContentHtml) {
+                if (seen.add(link.dedupKey)) add(link)
+            }
+        }
+        if (attachments.isNotEmpty() || externalEmbedLinks.isNotEmpty()) {
             binding.tvAttachmentsHeader.visibility = View.VISIBLE
             binding.layoutAttachments.removeAllViews()
 
@@ -411,6 +426,20 @@ class PostDetailFragment : Fragment() {
 
             val otherAttachments = attachments.filterNot { att ->
                 isImageFile(att.path, att.name) || isVideoFile(att.path, att.name)
+            }
+
+            if (externalEmbedLinks.isNotEmpty()) {
+                val externalHeader = TextView(requireContext()).apply {
+                    text = getString(R.string.external_links)
+                    setTextColor(resources.getColor(R.color.text_secondary, null))
+                    textSize = 13f
+                    setPadding(0, 16, 0, 4)
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                }
+                binding.layoutAttachments.addView(externalHeader)
+                externalEmbedLinks.forEach { link ->
+                    binding.layoutAttachments.addView(buildExternalLinkCard(link))
+                }
             }
 
             // 先渲染可下载的文件(其他文件),置于顶部,避免大量预览图把下载入口挤到底部
@@ -1127,6 +1156,120 @@ class PostDetailFragment : Fragment() {
         }
     }
     
+    private fun buildExternalLinkCard(link: ExternalEmbedLink): View {
+        val ctx = requireContext()
+        val density = resources.displayMetrics.density
+        val isDarkMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+        val card = com.google.android.material.card.MaterialCardView(ctx).apply {
+            layoutParams = ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = (8 * density).toInt()
+                bottomMargin = (8 * density).toInt()
+            }
+            radius = 12 * density
+            strokeWidth = (1 * density).toInt()
+            setStrokeColor(
+                resources.getColor(
+                    if (isDarkMode) R.color.divider_dark else R.color.divider_light,
+                    null
+                )
+            )
+            setCardBackgroundColor(
+                resources.getColor(
+                    if (isDarkMode) R.color.card_dark else R.color.card_light,
+                    null
+                )
+            )
+        }
+
+        val root = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(
+                (14 * density).toInt(),
+                (14 * density).toInt(),
+                (14 * density).toInt(),
+                (14 * density).toInt()
+            )
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+
+        val icon = ImageView(ctx).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                (28 * density).toInt(),
+                (28 * density).toInt()
+            ).apply {
+                marginEnd = (12 * density).toInt()
+            }
+            setImageResource(R.drawable.ic_paperclip)
+            setColorFilter(resources.getColor(R.color.accent_light, null))
+        }
+
+        val textStack = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        }
+
+        val title = TextView(ctx).apply {
+            text = link.label
+            textSize = 14f
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setTextColor(
+                resources.getColor(
+                    if (isDarkMode) R.color.text_primary else R.color.text_primary_light,
+                    null
+                )
+            )
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+
+        val domain = runCatching { Uri.parse(link.url)?.host.orEmpty() }.getOrDefault("").ifBlank { link.url }
+        val subtitle = TextView(ctx).apply {
+            text = domain
+            textSize = 11f
+            setTextColor(
+                resources.getColor(
+                    if (isDarkMode) R.color.text_muted else R.color.text_muted_light,
+                    null
+                )
+            )
+            setPadding(0, (2 * density).toInt(), 0, 0)
+        }
+
+        textStack.addView(title)
+        textStack.addView(subtitle)
+
+        val openIndicator = ImageView(ctx).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                (20 * density).toInt(),
+                (20 * density).toInt()
+            ).apply {
+                marginStart = (8 * density).toInt()
+            }
+            setImageResource(R.drawable.ic_open)
+            setColorFilter(resources.getColor(R.color.text_muted, null))
+        }
+
+        root.addView(icon)
+        root.addView(textStack)
+        root.addView(openIndicator)
+        card.addView(root)
+
+        card.setOnClickListener { showExternalLinkDialog(link.url) }
+        return card
+    }
+
     private fun isImageFile(path: String?, name: String? = null): Boolean {
         val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")
         val lowerPath = path?.lowercase().orEmpty()
@@ -1134,6 +1277,115 @@ class PostDetailFragment : Fragment() {
         return imageExtensions.any { ext ->
             lowerPath.endsWith(ext) || lowerName.endsWith(ext)
         }
+    }
+
+    private data class ExternalEmbedLink(val label: String, val url: String) {
+        val dedupKey: String get() = url.trimEnd('/')
+    }
+
+    /**
+     * Extract `<a href="https://...">` links from an arbitrary HTML fragment (free-form embed
+     * payloads, rich post contents, etc.), ignoring internal file-domain links.
+     *
+     * The parser intentionally uses simple regex patterns rather than a full DOM library so
+     * the extraction stays safe for malformed provider HTML and requires no extra dependencies.
+     */
+    private fun extractExternalLinksFromHtml(html: String?): List<ExternalEmbedLink> {
+        if (html.isNullOrBlank()) return emptyList()
+        val result = arrayListOf<ExternalEmbedLink>()
+        val seen = linkedSetOf<String>()
+
+        // Match <a ... href="..." ...> inner </a>, DOT_MATCHES_ALL so inner content may span lines.
+        val linkPattern = Regex(
+            """<a\b([^>]*)>(.*?)</a>""",
+            setOf(kotlin.text.RegexOption.IGNORE_CASE, kotlin.text.RegexOption.DOT_MATCHES_ALL)
+        )
+        val hrefPattern = Regex("""href\s*=\s*["']([^"']+)["']""", kotlin.text.RegexOption.IGNORE_CASE)
+        // Heuristic to find a display name for the embed link (matches Pawchive's layout).
+        val embedHeadingPattern = Regex(
+            """<h[1-6][^>]*>(.*?)</h[1-6]>""",
+            setOf(kotlin.text.RegexOption.IGNORE_CASE, kotlin.text.RegexOption.DOT_MATCHES_ALL)
+        )
+        val embedViewClassPattern = Regex("""class\s*=\s*["'][^"']*embed-view[^"']*["']""", kotlin.text.RegexOption.IGNORE_CASE)
+
+        for (match in linkPattern.findAll(html)) {
+            val attrs = match.groupValues[1]
+            val inner = match.groupValues[2]
+            val href = hrefPattern.find(attrs)?.groupValues?.get(1)?.trim() ?: continue
+            if (!href.startsWith("https://", ignoreCase = true)) continue
+            val host = runCatching { Uri.parse(href)?.host.orEmpty() }.getOrDefault("")
+            if (host.isBlank()) continue
+            // Skip internal file CDN links: those already show up via attachments/file fields.
+            if (isFileDomain(host)) continue
+
+            val key = href.trimEnd('/')
+            if (!seen.add(key)) continue
+
+            // Prefer a human-friendly label when the inner layout matches the embed-view pattern
+            // (a h3/hN heading inside, e.g. "<div class='embed-view'><h3>name.mp4</h3></div>").
+            val hasEmbedView = embedViewClassPattern.containsMatchIn(inner)
+            val heading = embedHeadingPattern.find(inner)?.groupValues?.get(1)
+                ?.replace(Regex("<[^>]+>"), "")
+                ?.takeIf { it.isNotBlank() }
+            val plainText = inner
+                .replace(Regex("<[^>]+>"), "")
+                .replace("&nbsp;", " ")
+                .replace(Regex("\\s+"), " ")
+                .trim()
+            val label = when {
+                hasEmbedView && heading != null -> heading
+                plainText.isNotEmpty() -> plainText
+                else -> host
+            }
+            result.add(ExternalEmbedLink(label = label, url = href))
+        }
+        return result
+    }
+
+    /**
+     * The API documents `embed` as a free-form object. Extract HTTPS values defensively so
+     * providers can add external-file embeds without requiring an app release for each schema.
+     *
+     * This version supports two common real-world shapes:
+     * 1) A primitive string that is an https URL directly (original behavior), or
+     * 2) A primitive string that is an HTML snippet containing `<a href><div class=embed-view>…`
+     *    markers (the structure Pawchive renders into the post__files block on the web page).
+     */
+    private fun extractExternalEmbedLinks(embed: com.google.gson.JsonElement?): List<ExternalEmbedLink> {
+        if (embed == null || embed.isJsonNull) return emptyList()
+        val byUrl = linkedMapOf<String, ExternalEmbedLink>()
+        fun visit(value: com.google.gson.JsonElement) {
+            when {
+                value.isJsonPrimitive && value.asJsonPrimitive.isString -> {
+                    val text = value.asString
+                    // Case 1: direct https URL
+                    val directUri = runCatching { Uri.parse(text) }.getOrNull()
+                    if (directUri?.scheme.equals("https", ignoreCase = true) && !directUri?.host.isNullOrBlank()) {
+                        val host = directUri?.host.orEmpty()
+                        if (!isFileDomain(host)) {
+                            val key = text.trimEnd('/')
+                            if (!byUrl.containsKey(key)) {
+                                byUrl[key] = ExternalEmbedLink(
+                                    label = host.ifEmpty { text },
+                                    url = text
+                                )
+                            }
+                        }
+                    } else {
+                        // Case 2: HTML fragment string — parse <a href> tags from inside it.
+                        for (link in extractExternalLinksFromHtml(text)) {
+                            if (!byUrl.containsKey(link.dedupKey)) {
+                                byUrl[link.dedupKey] = link
+                            }
+                        }
+                    }
+                }
+                value.isJsonArray -> value.asJsonArray.forEach(::visit)
+                value.isJsonObject -> value.asJsonObject.entrySet().forEach { visit(it.value) }
+            }
+        }
+        visit(embed)
+        return byUrl.values.toList()
     }
 
     /**
@@ -1181,9 +1433,14 @@ class PostDetailFragment : Fragment() {
     /**
      * 判断链接是否指向应用自有文件域（需走应用内下载以携带 Cloudflare 凭据）。
      */
-    private fun isFileDomain(url: String): Boolean {
+    private fun isFileDomain(urlOrHost: String): Boolean {
+        // Fast path: direct host match (also handles "img.pawchive.pw" / "file.pawchive.pw")
+        if (urlOrHost.equals("file.pawchive.pw", ignoreCase = true) ||
+            urlOrHost.equals("img.pawchive.pw", ignoreCase = true)) return true
         return try {
-            Uri.parse(url).host?.equals("file.pawchive.pw", ignoreCase = true) == true
+            val host = Uri.parse(urlOrHost)?.host ?: urlOrHost
+            host.equals("file.pawchive.pw", ignoreCase = true) ||
+                host.equals("img.pawchive.pw", ignoreCase = true)
         } catch (_: Exception) {
             false
         }

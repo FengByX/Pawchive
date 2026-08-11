@@ -62,7 +62,6 @@ class DownloadHistoryManager @Inject constructor(
         downloadIoScope.launch {
             runCatching {
                 migrateFromDataStoreIfNeeded()
-                dao.markInterruptedAsFailed(DownloadStatus.FAILED, "Interrupted by app restart")
                 dao.observeAll().collect { _records.value = it }
             }.onFailure { it.printStackTrace() }
         }

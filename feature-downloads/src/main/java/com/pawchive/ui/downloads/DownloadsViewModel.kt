@@ -45,6 +45,9 @@ class DownloadsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     records = applyFilter(records, _uiState.value.filterStatus)
                 )
+                // The first Room emission may arrive after init{}; heal then as well so
+                // pending records restored from disk are not missed by a startup race.
+                downloadCenter.selfHealPending()
             }
         }
         // 自愈：修复"永远等待中"（PENDING 但 Work 已消失）的卡死记录
@@ -107,12 +110,12 @@ class DownloadsViewModel @Inject constructor(
         }
     }
 
-    fun openFile(filePath: String?) {
-        if (filePath.isNullOrEmpty()) return
+    fun openFile(record: DownloadRecord) {
+        val filePath = record.filePath ?: return
         val context = getApplication<Application>()
         try {
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(Uri.parse(filePath), "image/*")
+                setDataAndType(Uri.parse(filePath), record.mimeType.ifBlank { "*/*" })
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
@@ -124,12 +127,12 @@ class DownloadsViewModel @Inject constructor(
         }
     }
 
-    fun shareFile(filePath: String?) {
-        if (filePath.isNullOrEmpty()) return
+    fun shareFile(record: DownloadRecord) {
+        val filePath = record.filePath ?: return
         val context = getApplication<Application>()
         try {
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/*"
+                type = record.mimeType.ifBlank { "*/*" }
                 putExtra(Intent.EXTRA_STREAM, Uri.parse(filePath))
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             }

@@ -66,6 +66,7 @@
     <string name="date_published">公開日 %1$s</string>
     <string name="date_unknown">不明</string>
     <string name="attachments">添付ファイル</string>
+    <string name="external_links">外部リンク</string>
     <string name="attachment_count_format">添付 %1$d</string>
     <string name="revisions"> revision履歴</string>
     <string name="comments">コメント</string>

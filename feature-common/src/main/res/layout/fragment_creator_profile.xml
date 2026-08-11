@@ -35,7 +35,7 @@
                     app:tint="?attr/colorOnSurface"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    app:layout_constraintBottom_toBottomOf="@+id/iv_creator_avatar" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/iv_creator_avatar"
@@ -45,8 +45,7 @@
                     android:layout_marginStart="12dp"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Pawchive.Thumbnail"
                     app:layout_constraintStart_toEndOf="@+id/btn_back"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/tv_creator_title"
@@ -56,8 +55,10 @@
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="20sp"
                     android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end"
                     android:text="@string/creator_profile"
-                    app:layout_constraintEnd_toStartOf="@+id/btn_creator_bookmark"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/iv_creator_avatar"
                     app:layout_constraintTop_toTopOf="parent"
                     android:layout_marginTop="4dp" />
@@ -82,7 +83,8 @@
                     android:contentDescription="@string/bookmark_creator_description"
                     app:tint="?attr/colorOnSurface"
                     app:layout_constraintEnd_toStartOf="@+id/btn_creator_subscribe"
-                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/iv_creator_avatar"
+                    android:layout_marginTop="8dp"
                     app:layout_constraintBottom_toBottomOf="parent" />
 
                 <ImageButton
@@ -95,7 +97,8 @@
                     android:contentDescription="@string/subscribe_to_updates"
                     app:tint="?attr/colorOnSurface"
                     app:layout_constraintEnd_toStartOf="@+id/btn_block_creator"
-                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/iv_creator_avatar"
+                    android:layout_marginTop="8dp"
                     app:layout_constraintBottom_toBottomOf="parent" />
 
                 <com.google.android.material.button.MaterialButton
@@ -115,7 +118,8 @@
                     app:backgroundTint="?attr/colorErrorContainer"
                     android:textColor="?attr/colorOnErrorContainer"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/iv_creator_avatar"
+                    android:layout_marginTop="8dp"
                     app:layout_constraintBottom_toBottomOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>

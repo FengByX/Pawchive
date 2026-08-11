@@ -36,6 +36,10 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":feature-common"))
 
+    // Gson：解析 API 返回的 free-form embed 对象（在核心类 Post.kt 中用 Gson @SerializedName，
+    // 这里显式依赖以避免 core 的 implementation 传递失效时本模块类型可见性问题）。
+    implementation(libs.gson)
+
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)

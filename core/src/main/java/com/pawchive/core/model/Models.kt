@@ -1,6 +1,7 @@
 package com.pawchive.core.model
 
 import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonElement
 
 data class Creator(
     val id: String,
@@ -37,6 +38,8 @@ data class Post(
     val service: String,
     val title: String?,
     val content: String?,
+    /** Provider-specific external embeds; Swagger intentionally leaves this as a free-form object. */
+    val embed: JsonElement? = null,
     val added: String?,
     val published: String?,
     val edited: String?,

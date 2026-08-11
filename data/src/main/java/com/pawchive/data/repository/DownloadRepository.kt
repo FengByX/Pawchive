@@ -32,7 +32,9 @@ class DownloadRepository @Inject constructor(
 
     enum class DownloadType(val mediaCollection: Uri, val defaultRelativeDir: String) {
         IMAGE(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_PICTURES + "/Pawchive"),
-        VIDEO(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_MOVIES + "/Pawchive");
+        VIDEO(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_MOVIES + "/Pawchive"),
+        /** Non-media files must use Downloads, otherwise MediaStore rejects or hides them. */
+        ATTACHMENT(MediaStore.Downloads.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_DOWNLOADS + "/Pawchive");
 
         fun contentUriForVolume(): Uri {
             // API 29+ 使用 VOLUME_EXTERNAL_PRIMARY；以下回退到 EXTERNAL_CONTENT_URI
@@ -40,6 +42,8 @@ class DownloadRepository @Inject constructor(
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == VIDEO) {
                 MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == ATTACHMENT) {
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             } else {
                 mediaCollection
             }
@@ -52,6 +56,13 @@ class DownloadRepository @Inject constructor(
         val mimeType: String
     )
 
+    /** The saved URI is retained for both SAF and MediaStore so completed files can be opened. */
+    data class OpenedDownloadStream(
+        val outputStream: OutputStream,
+        val uri: Uri,
+        val requiresFinalize: Boolean
+    )
+
     /**
      * 打开一个输出流用于写入下载内容。
      * 返回 Pair<OutputStream, Uri?>：Uri 仅在 MediaStore 路径下非空（用于后续 IS_PENDING 更新）。
@@ -59,7 +70,7 @@ class DownloadRepository @Inject constructor(
      *
      * 失败时抛出 Exception，调用方负责提示用户。
      */
-    fun openDownloadStream(target: DownloadTarget): Pair<OutputStream, Uri?> {
+    fun openDownloadStream(target: DownloadTarget): OpenedDownloadStream {
         val treeUri = settingsManager.getDownloadTreeUri()
 
         // 1) 优先使用 SAF 树 URI
@@ -71,7 +82,7 @@ class DownloadRepository @Inject constructor(
                     ?: throw Exception("Failed to create file in SAF directory")
                 val os = context.contentResolver.openOutputStream(file.uri)
                     ?: throw Exception("Failed to open output stream")
-                return os to null
+                return OpenedDownloadStream(os, file.uri, requiresFinalize = false)
             } catch (e: Exception) {
                 // SAF 不可用时降级到 MediaStore（不中断下载流程）
                 e.printStackTrace()
@@ -90,8 +101,14 @@ class DownloadRepository @Inject constructor(
         }
         val collection = target.type.contentUriForVolume()
         val uri = resolver.insert(collection, contentValues) ?: throw Exception("Failed to create media entry")
-        val os = resolver.openOutputStream(uri) ?: throw Exception("Failed to open output stream")
-        return os to uri
+        try {
+            val os = resolver.openOutputStream(uri) ?: throw Exception("Failed to open output stream")
+            return OpenedDownloadStream(os, uri, requiresFinalize = true)
+        } catch (e: Exception) {
+            // The row is still hidden (IS_PENDING=1); delete it to avoid orphaned files.
+            runCatching { resolver.delete(uri, null, null) }
+            throw e
+        }
     }
 
     /**

@@ -77,6 +77,7 @@ class DownloadWorker @AssistedInject constructor(
         val context = applicationContext
 
         var outputStream: OutputStream? = null
+        var networkResponse: okhttp3.Response? = null
         // 通知权限在 try 外判断一次：catch 分支同样需要据此决定是否发失败通知
         val hasNotifyPermission = hasNotificationPermission(context)
         try {
@@ -102,10 +103,13 @@ class DownloadWorker @AssistedInject constructor(
                 .build()
 
             val response = okHttpClient.newCall(request).execute()
+            networkResponse = response
             if (!response.isSuccessful) {
                 throw Exception("HTTP ${response.code}: ${response.message}")
             }
-            val body = response.body ?: throw Exception("Empty response body")
+            val body = response.body ?: run {
+                throw Exception("Empty response body")
+            }
             val inputStream = body.byteStream()
             val contentLength = body.contentLength()
 
@@ -118,7 +122,7 @@ class DownloadWorker @AssistedInject constructor(
                 displayName = fileName,
                 mimeType = mimeType
             )
-            val (os, mediaUri) = downloadRepository.openDownloadStream(target)
+            val (os, fileUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
             outputStream = os
 
             // 4) 边写边更新进度
@@ -151,12 +155,12 @@ class DownloadWorker @AssistedInject constructor(
             }
 
             // 5) 完成：标记 MediaStore IS_PENDING=0，更新通知和历史
-            downloadRepository.finalizeDownload(mediaUri)
+            if (requiresFinalize) downloadRepository.finalizeDownload(fileUri)
             historyManager.updateStatus(
                 recordId,
                 DownloadStatus.COMPLETED,
                 progress = 100,
-                filePath = mediaUri?.toString(),
+                filePath = fileUri.toString(),
                 fileSize = if (contentLength > 0) contentLength else totalRead
             )
             if (hasNotifyPermission) {
@@ -179,6 +183,7 @@ class DownloadWorker @AssistedInject constructor(
             }
         } finally {
             runCatching { outputStream?.close() }
+            runCatching { networkResponse?.close() }
         }
     }
 
@@ -193,8 +198,13 @@ class DownloadWorker @AssistedInject constructor(
                     fileName.endsWith(".webp", true)
                 ) {
                     DownloadRepository.DownloadType.IMAGE
-                } else {
+                } else if (fileName.endsWith(".mp4", true) || fileName.endsWith(".webm", true) ||
+                    fileName.endsWith(".mov", true) || fileName.endsWith(".mkv", true) ||
+                    fileName.endsWith(".avi", true) || fileName.endsWith(".m4v", true)
+                ) {
                     DownloadRepository.DownloadType.VIDEO
+                } else {
+                    DownloadRepository.DownloadType.ATTACHMENT
                 }
             }
             else -> DownloadRepository.DownloadType.VIDEO

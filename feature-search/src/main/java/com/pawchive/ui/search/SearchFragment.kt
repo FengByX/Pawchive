@@ -86,6 +86,7 @@ class SearchFragment : Fragment() {
         setupSortButton()
         setupSwipeRefresh()
         setupSearchHistory()
+        observeSearchHistory()
         setupFilterChips()
         // 绑定内嵌错误页（FEATURE-006）
         errorStateView = ErrorStateViewHelper.bind(binding.root) {
@@ -428,6 +429,21 @@ class SearchFragment : Fragment() {
         binding.btnDone.setOnClickListener {
             hideKeyboard()
             hideHistoryView()
+        }
+    }
+
+    /** Refreshes history once asynchronous DataStore loading completes without blocking the UI. */
+    private fun observeSearchHistory() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                searchHistoryManager.history.collect { history ->
+                    searchHistoryAdapter.updateItems(history)
+                    // On a cold start, history arrives after the initial empty prompt was shown.
+                    if (lastQuery.isEmpty()) {
+                        if (history.isEmpty()) hideHistoryView() else showHistoryView()
+                    }
+                }
+            }
         }
     }
 

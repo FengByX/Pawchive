@@ -65,8 +65,8 @@ class DownloadsFragment : Fragment() {
                 viewModel.retryDownload(record.id)
                 Toast.makeText(context, R.string.download_retried, Toast.LENGTH_SHORT).show()
             },
-            onOpen = { record -> viewModel.openFile(record.filePath) },
-            onShare = { record -> viewModel.shareFile(record.filePath) },
+            onOpen = viewModel::openFile,
+            onShare = viewModel::shareFile,
             onDelete = { record -> viewModel.removeRecord(record.id) }
         )
         binding.rvDownloads.layoutManager = LinearLayoutManager(requireContext())

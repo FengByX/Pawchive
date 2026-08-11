@@ -66,6 +66,7 @@
     <string name="date_published">Published %1$s</string>
     <string name="date_unknown">Unknown</string>
     <string name="attachments">Attachments</string>
+    <string name="external_links">External links</string>
     <string name="attachment_count_format">Attachments %1$d</string>
     <string name="revisions">Revisions</string>
     <string name="comments">Comments</string>
