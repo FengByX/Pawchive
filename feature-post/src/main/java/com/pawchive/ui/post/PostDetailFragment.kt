@@ -718,7 +718,10 @@ class PostDetailFragment : Fragment() {
             if (imageExtensions.any { name.endsWith(it, true) }) {
                 val fullUrl = "https://file.pawchive.pw/data${file.path.orEmpty()}"
                 viewLifecycleOwner.lifecycleScope.launch {
-                    downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg")
+                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg") }
+                        .onFailure { e ->
+                            Log.w("PostDetailFragment", "enqueue image download failed: $fullUrl", e)
+                        }
                 }
                 count++
             }
@@ -730,7 +733,10 @@ class PostDetailFragment : Fragment() {
             if (imageExtensions.any { name.endsWith(it, true) }) {
                 val fullUrl = "https://file.pawchive.pw/data${attachment.path.orEmpty()}"
                 viewLifecycleOwner.lifecycleScope.launch {
-                    downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg")
+                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg") }
+                        .onFailure { e ->
+                            Log.w("PostDetailFragment", "enqueue attachment image download failed: $fullUrl", e)
+                        }
                 }
                 count++
             }
@@ -966,7 +972,16 @@ class PostDetailFragment : Fragment() {
      */
     private fun enqueueVideoDownload(url: String, fileName: String) {
         lifecycleScope.launch {
-            downloadCenter.enqueueVideoDownload(url, fileName, "video/mp4")
+            runCatching {
+                downloadCenter.enqueueVideoDownload(url, fileName, "video/mp4")
+            }.onFailure { e ->
+                Log.w("PostDetailFragment", "enqueue video download failed: $url", e)
+                Toast.makeText(
+                    context,
+                    getString(R.string.error_load_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

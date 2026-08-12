@@ -30,22 +30,25 @@ class DownloadRepository @Inject constructor(
     private val settingsManager: SettingsManager
 ) {
 
-    enum class DownloadType(val mediaCollection: Uri, val defaultRelativeDir: String) {
+    enum class DownloadType(val mediaCollection: Uri?, val defaultRelativeDir: String) {
         IMAGE(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_PICTURES + "/Pawchive"),
         VIDEO(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_MOVIES + "/Pawchive"),
         /** Non-media files must use Downloads, otherwise MediaStore rejects or hides them. */
-        ATTACHMENT(MediaStore.Downloads.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_DOWNLOADS + "/Pawchive");
+        ATTACHMENT(null, Environment.DIRECTORY_DOWNLOADS + "/Pawchive");
 
         fun contentUriForVolume(): Uri {
-            // API 29+ 使用 VOLUME_EXTERNAL_PRIMARY；以下回退到 EXTERNAL_CONTENT_URI
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == IMAGE) {
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == VIDEO) {
-                MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == ATTACHMENT) {
-                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            } else {
-                mediaCollection
+            return when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == IMAGE ->
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == VIDEO ->
+                    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                // MediaStore.Downloads 仅存在于 API 29+，必须在此守卫内访问，
+                // 否则枚举初始化会直接在低版本设备上 NoClassDefFoundError 闪退。
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && this == ATTACHMENT ->
+                    MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                // API < 29 无 MediaStore.Downloads；Files 集合自 API 1 即存在。
+                this == ATTACHMENT -> MediaStore.Files.getContentUri("external")
+                else -> mediaCollection!!
             }
         }
     }

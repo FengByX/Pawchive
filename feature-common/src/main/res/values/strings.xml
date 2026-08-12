@@ -209,6 +209,10 @@
     <string name="manual_clean_cache_desc">释放缓存占用的存储空间</string>
     <string name="auto_check_update">自动检查更新</string>
     <string name="auto_check_update_desc">应用启动时检查新版本</string>
+    <string name="crash_log">查看崩溃日志</string>
+    <string name="crash_log_desc">查看最近的崩溃记录，便于反馈问题</string>
+    <string name="crash_log_empty">暂无崩溃日志</string>
+    <string name="crash_log_select">选择要查看的崩溃记录</string>
     <string name="cache_size">当前缓存大小：%1$s</string>
     <string name="cache_cleaned">缓存已清理</string>
     <string name="cache_cleaned_freed">已释放 %1$s 缓存</string>

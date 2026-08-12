@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -63,6 +64,7 @@ class SettingsFragment : Fragment() {
         setupManualCleanCache()
         setupCacheManagerEntry()
         setupAutoCheckUpdate()
+        setupCrashLog()
         setupHideBookmarkedCreators()
         setupDedupeByCreator()
         setupStartupTab()
@@ -301,6 +303,50 @@ class SettingsFragment : Fragment() {
         binding.switchAutoCheckUpdate.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setAutoCheckUpdateEnabled(isChecked)
         }
+    }
+
+    /**
+     * 崩溃日志查看入口（FEATURE-006）：读取 CrashHandler 落盘的崩溃记录，
+     * 弹窗展示堆栈，便于用户反馈真实崩溃原因。
+     */
+    private fun setupCrashLog() {
+        binding.rowCrashLog.setOnClickListener {
+            val logs = com.pawchive.core.util.CrashHandler.getCrashLogs(requireContext())
+            if (logs.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.crash_log_empty, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val names = logs.map { file ->
+                file.name.removePrefix("crash_").removeSuffix(".txt")
+            }.toTypedArray()
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.crash_log_select)
+                .setItems(names) { dialog, which ->
+                    showCrashLogContent(logs[which])
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun showCrashLogContent(file: java.io.File) {
+        val content = runCatching { file.readText() }.getOrElse { it.message ?: "read failed" }
+        val scroll = android.widget.ScrollView(requireContext())
+        val textView = TextView(requireContext()).apply {
+            text = content
+            textSize = 11f
+            typeface = android.graphics.Typeface.MONOSPACE
+            setTextIsSelectable(true)
+            setPadding(24, 24, 24, 24)
+            setTextColor(resources.getColor(R.color.text_primary, null))
+        }
+        scroll.addView(textView)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(file.name)
+            .setView(scroll)
+            .setPositiveButton(R.string.ok, null)
+            .show()
     }
 
     private fun setupHideBookmarkedCreators() {

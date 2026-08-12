@@ -209,6 +209,10 @@
     <string name="manual_clean_cache_desc">Free up storage used by cached data</string>
     <string name="auto_check_update">Auto-check Updates</string>
     <string name="auto_check_update_desc">Check for new versions on app startup</string>
+    <string name="crash_log">View Crash Logs</string>
+    <string name="crash_log_desc">View recent crash reports to help troubleshoot issues</string>
+    <string name="crash_log_empty">No crash logs</string>
+    <string name="crash_log_select">Select a crash report to view</string>
     <string name="cache_size">Current cache size: %1$s</string>
     <string name="cache_cleaned">Cache cleared</string>
     <string name="cache_cleaned_freed">Freed %1$s of cache</string>

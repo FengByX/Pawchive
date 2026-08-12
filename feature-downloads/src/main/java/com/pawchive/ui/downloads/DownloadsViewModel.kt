@@ -94,7 +94,10 @@ class DownloadsViewModel @Inject constructor(
 
     fun retryDownload(id: String) {
         viewModelScope.launch {
-            downloadCenter.retry(id)
+            runCatching { downloadCenter.retry(id) }
+                .onFailure { e ->
+                    Log.w(TAG, "retryDownload failed: $id", e)
+                }
         }
     }
 

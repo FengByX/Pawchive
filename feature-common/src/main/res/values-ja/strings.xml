@@ -209,6 +209,10 @@
     <string name="manual_clean_cache_desc">キャッシュデータが使用するストレージ容量を解放</string>
     <string name="auto_check_update">アップデート自動確認</string>
     <string name="auto_check_update_desc">アプリ起動時に新バージョンを確認</string>
+    <string name="crash_log">クラッシュログを表示</string>
+    <string name="crash_log_desc">最近のクラッシュログを表示して問題を報告</string>
+    <string name="crash_log_empty">クラッシュログはありません</string>
+    <string name="crash_log_select">表示するクラッシュログを選択</string>
     <string name="cache_size">現在のキャッシュサイズ：%1$s</string>
     <string name="cache_cleaned">キャッシュをクリーンアップしました</string>
     <string name="cache_cleaned_freed">%1$s のキャッシュを解放しました</string>
