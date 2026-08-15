@@ -27,7 +27,7 @@ class OfflineArchiveRepository @Inject constructor(
     private val gson: Gson
 ) {
 
-    /** 收藏/更新时索引帖子（幂等：主键冲突覆盖，FTS 先删后插）。 */
+    /** 收藏/更新时索引帖子（幂等：主键冲突覆盖，FTS 先删后插）。事务保护防止实体与 FTS 不一致。 */
     suspend fun index(post: Post, favedAt: Long = System.currentTimeMillis()) {
         val id = archiveId(post.service, post.user, post.id)
         val plainTitle = post.title?.toPlainText()
@@ -50,10 +50,8 @@ class OfflineArchiveRepository @Inject constructor(
             favedAt = favedAt,
             updatedAt = System.currentTimeMillis()
         )
-        dao.upsert(entry)
-        dao.deleteFts(id)
-        dao.insertFts(
-            entryId = id,
+        dao.indexWithFts(
+            entry = entry,
             title = OfflineArchiveIndexer.tokenize(plainTitle),
             content = OfflineArchiveIndexer.tokenize(plainContent),
             userName = OfflineArchiveIndexer.tokenize(post.userName),
@@ -62,17 +60,15 @@ class OfflineArchiveRepository @Inject constructor(
         )
     }
 
-    /** 取消收藏时移除索引（实体行 + FTS 行）。 */
+    /** 取消收藏时移除索引（实体行 + FTS 行）。事务保护防止实体与 FTS 不一致。 */
     suspend fun remove(service: String, creatorId: String, postId: String) {
         val id = archiveId(service, creatorId, postId)
-        dao.delete(id)
-        dao.deleteFts(id)
+        dao.deleteWithFts(id)
     }
 
-    /** 账号切换/登出时清空全部离线索引。 */
+    /** 账号切换/登出时清空全部离线索引。事务保护防止实体与 FTS 不一致。 */
     suspend fun clearAll() {
-        dao.clearAll()
-        dao.clearFts()
+        dao.clearAllWithFts()
     }
 
     /** 离线归档总字节数（ARCH-FEATURE-004 缓存管理页展示）。 */

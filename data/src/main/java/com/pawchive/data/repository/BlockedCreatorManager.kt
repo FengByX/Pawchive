@@ -54,10 +54,11 @@ class BlockedCreatorManager @Inject constructor(@ApplicationContext private val 
         }
     }
 
-    // PERF-005：等待已在执行中的异步加载，而非重新发起 IO 操作
-    private fun ensureLoaded() {
+    // 确保缓存已从磁盘加载；挂起函数，不阻塞调用线程（P1）。
+    // 调用方应在协程中调用（如 blockCreator/unblockCreator），读取操作直接用缓存快照。
+    private suspend fun ensureLoaded() {
         if (!loaded.get()) {
-            runBlocking(Dispatchers.IO) { loadDeferred.await() }
+            loadDeferred.await()
         }
     }
 
@@ -84,30 +85,32 @@ class BlockedCreatorManager @Inject constructor(@ApplicationContext private val 
     }
 
     /**
-     * 判断指定创作者是否已被屏蔽
+     * 判断指定创作者是否已被屏蔽（同步读取内存缓存快照，不阻塞）。
+     * 冷启动瞬间可能返回 false（缓存尚未加载），UI 通过 blockedCreatorsFlow 自动刷新。
      */
     fun isCreatorBlocked(service: String, creatorId: String): Boolean {
         return cache[getBlockKey(service, creatorId)] ?: false
     }
 
     /**
-     * 屏蔽指定创作者
+     * 屏蔽指定创作者（挂起函数，需在协程中调用）。
      */
-    fun blockCreator(service: String, creatorId: String) {
+    suspend fun blockCreator(service: String, creatorId: String) {
         ensureLoaded()
         editSync { it[getBlockKey(service, creatorId)] = true }
     }
 
     /**
-     * 取消屏蔽指定创作者
+     * 取消屏蔽指定创作者（挂起函数，需在协程中调用）。
      */
-    fun unblockCreator(service: String, creatorId: String) {
+    suspend fun unblockCreator(service: String, creatorId: String) {
         ensureLoaded()
         editSync { it.remove(getBlockKey(service, creatorId)) }
     }
 
     /**
-     * 获取所有被屏蔽的创作者列表（service, creatorId）
+     * 获取所有被屏蔽的创作者列表（同步读取内存缓存快照，不阻塞）。
+     * 冷启动瞬间可能为空，UI 通过 blockedCreatorsFlow 自动刷新。
      */
     fun getBlockedCreators(): List<Pair<String, String>> {
         return cache.asMap().entries
@@ -119,7 +122,7 @@ class BlockedCreatorManager @Inject constructor(@ApplicationContext private val 
     }
 
     /**
-     * 被屏蔽的创作者数量
+     * 被屏蔽的创作者数量（同步读取内存缓存快照，不阻塞）。
      */
     fun getBlockedCount(): Int = getBlockedCreators().size
 
@@ -147,15 +150,18 @@ class BlockedCreatorManager @Inject constructor(@ApplicationContext private val 
     }
 
     /**
-     * 同步更新内存缓存（保证 UI 立即可见）+ 异步、串行、带异常处理地落盘（P1）。
+     * 同步更新内存缓存（保证 UI 立即可见）+ 串行、带异常处理地落盘（P1）。
+     * 使用 writeMutex 保护“缓存更新 + 磁盘写入”原子性，防止并发调用导致不一致。
+     * 在 Mutex 内以 runBlocking 同步等待 DataStore 写入完成（调用方已在协程/IO 线程）。
      */
-    private fun editSync(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
-        cache = cache.toMutablePreferences().apply { block(this) }
-        ioScope.launch {
-            runCatching {
-                val updated = writeMutex.withLock { dataStore.edit(block) }
-                cache = updated
-            }.onFailure { it.printStackTrace() }
+    private suspend fun editSync(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
+        writeMutex.withLock {
+            // 先更新内存缓存（保证后续同步读取立即可见）
+            cache = cache.toMutablePreferences().apply { block(this) }
+            // 同步落盘（由 Mutex 串行化并发写入）
+            val updated = runCatching { dataStore.edit(block) }.getOrDefault(cache)
+            // 以磁盘最新状态刷新内存快照，保持权威一致
+            cache = updated
         }
     }
 

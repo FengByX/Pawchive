@@ -1,6 +1,7 @@
 package com.pawchive
 
 import android.app.Application
+import android.content.ComponentCallbacks2
 import androidx.work.Configuration
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -25,6 +26,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -41,9 +43,11 @@ import androidx.hilt.work.HiltWorkerFactory
  * - `SettingsManager` 通过 Hilt 注入，并暴露静态访问器供 `MainActivity.attachBaseContext`
  *   在 Hilt 注入 Activity 之前读取语言设置（该路径在 Activity 注入之前执行，
  *   ARCH-007：已改读轻量启动缓存，不再同步读 DataStore、不阻塞主线程）。
+ * - 实现 `ComponentCallbacks2` 以在进程低内存/销毁时取消全局协程作用域，
+ *   避免 CoroutineScope 泄漏（ARCH-BUG-MINOR-16）。
  */
 @HiltAndroidApp
-class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Provider {
+class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Provider, ComponentCallbacks2 {
 
     companion object {
         private const val IMAGE_DISK_CACHE_DIR = "image_cache"
@@ -182,5 +186,26 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
     @OptIn(coil.annotation.ExperimentalCoilApi::class)
     fun clearCache() {
         cacheRepository.clearCache()
+    }
+
+    /**
+     * ComponentCallbacks2：在进程低内存或销毁时取消全局协程作用域，
+     * 避免 CoroutineScope 泄漏（ARCH-BUG-MINOR-16）。
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            // UI 隐藏时可选择性清理，但这里保留应用作用域直到进程销毁
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        // 取消应用级协程作用域，释放资源
+        applicationScope.coroutineContext.cancel()
+        // 取消 ClearanceCoordinator 内部作用域
+        ClearanceCoordinator.shutdown()
+        // 取消 CloudflareManager 内部作用域
+        CloudflareManager.shutdown()
     }
 }

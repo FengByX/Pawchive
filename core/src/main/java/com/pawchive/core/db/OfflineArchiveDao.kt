@@ -2,6 +2,7 @@ package com.pawchive.core.db
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import com.pawchive.core.model.OfflineArchiveEntity
 import kotlinx.coroutines.flow.Flow
@@ -74,4 +75,42 @@ interface OfflineArchiveDao {
     /** 归档内容总字节数（postJson 长度之和，ARCH-FEATURE-004 缓存管理页用）。 */
     @Query("SELECT COALESCE(SUM(LENGTH(postJson)), 0) FROM offline_archives")
     suspend fun getTotalBytes(): Long
+
+    /**
+     * 事务性索引：原子化执行 upsert + deleteFts + insertFts。
+     * 防止进程崩溃导致实体表与 FTS 表不一致（ARCH-BUG-CRITICAL-3）。
+     */
+    @Transaction
+    suspend fun indexWithFts(
+        entry: OfflineArchiveEntity,
+        title: String?,
+        content: String?,
+        userName: String?,
+        user: String?,
+        attachments: String?
+    ) {
+        upsert(entry)
+        deleteFts(entry.id)
+        insertFts(entry.id, title, content, userName, user, attachments)
+    }
+
+    /**
+     * 事务性删除：原子化执行 delete + deleteFts。
+     * 防止进程崩溃导致实体表与 FTS 表不一致（ARCH-BUG-CRITICAL-3）。
+     */
+    @Transaction
+    suspend fun deleteWithFts(id: String) {
+        delete(id)
+        deleteFts(id)
+    }
+
+    /**
+     * 事务性清空：原子化执行 clearAll + clearFts。
+     * 防止进程崩溃导致实体表与 FTS 表不一致（ARCH-BUG-CRITICAL-3）。
+     */
+    @Transaction
+    suspend fun clearAllWithFts() {
+        clearAll()
+        clearFts()
+    }
 }

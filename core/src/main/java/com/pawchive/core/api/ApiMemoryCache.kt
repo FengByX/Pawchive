@@ -5,6 +5,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
+import java.net.URL
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 /**
@@ -14,11 +17,15 @@ import okhttp3.ResponseBody.Companion.toResponseBody
  * - 下拉刷新通过 Header "Cache-Control: no-cache" 跳过缓存；
  * - 缓存键包含账号命名空间（session hash），杜绝跨用户缓存复用（P0）；
  * - 容量上限防止无限增长。
+ * - 缓存键规范化：URL 参数按字典序排序，去除追踪参数（ARCH-BUG-MINOR-19）。
  */
 object ApiMemoryCache {
 
     private const val CACHE_MAX_AGE_MILLIS = 5 * 60 * 1000L // 5 分钟
     private const val CACHE_MAX_ENTRIES = 200 // 容量上限
+
+    // 追踪/分析参数前缀，缓存键中去除以提高命中率
+    private val TRACKING_PARAM_PREFIXES = setOf("utm_", "fbclid", "gclid", "ref", "source")
 
     private data class CacheEntry(val timestamp: Long, val body: ByteArray, val contentType: String?)
 
@@ -54,7 +61,7 @@ object ApiMemoryCache {
 
         // 缓存键加入账号维度：用 session hash 替代明文 cookie，避免凭据驻留内存键（P2）
         val namespace = currentSessionHash?.let { "u:$it" } ?: "public"
-        val key = "$namespace|${request.url}"
+        val key = "$namespace|${normalizeUrl(request.url.toString())}"
         val now = System.currentTimeMillis()
 
         // 命中缓存
@@ -85,6 +92,37 @@ object ApiMemoryCache {
             }
         }
         response
+    }
+
+    /**
+     * 规范化 URL 用于缓存键：参数按字典序排序、去除追踪参数（ARCH-BUG-MINOR-19）。
+     */
+    private fun normalizeUrl(urlString: String): String {
+        return try {
+            val url = URL(urlString)
+            val path = url.path
+            val query = url.query ?: return urlString
+            if (query.isEmpty()) return urlString
+
+            // 解析参数，去除追踪参数，按 key 排序
+            val params = query.split("&")
+                .mapNotNull { pair ->
+                    val parts = pair.split("=", limit = 2)
+                    val key = parts[0].trim()
+                    if (key.isEmpty()) return@mapNotNull null
+                    if (TRACKING_PARAM_PREFIXES.any { key.startsWith(it) }) return@mapNotNull null
+                    val value = if (parts.size > 1) parts[1] else ""
+                    key to value
+                }
+                .sortedBy { it.first }
+                .map { (k, v) -> "$k=${URLEncoder.encode(v, StandardCharsets.UTF_8.name())}" }
+                .joinToString("&")
+
+            "$path?$params"
+        } catch (e: Exception) {
+            // 解析失败时回退原 URL
+            urlString
+        }
     }
 
     /**

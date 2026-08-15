@@ -293,18 +293,22 @@ class BookmarkManager @Inject constructor(
     }
 
     /**
-     * 同步更新内存缓存（保证 UI 立即可见）+ 异步、串行、带异常处理地落盘（P1）。
+     * 同步更新内存缓存（保证 UI 立即可见）+ 串行、带异常处理地落盘（P1）。
+     *
+     * 使用 writeMutex 保护“缓存更新 + 磁盘写入”原子性，防止并发调用导致内存缓存与磁盘不一致
+     * (ARCH-BUG-CRITICAL-4)。在 Mutex 内以 runBlocking 同步等待 DataStore 写入完成，
+     * 调用方通常已在 IO 线程（通过 ensureLoaded 的 runBlocking 或 ioScope），不阻塞主线程。
      */
     private fun editSync(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
-        // 先更新内存缓存（保证后续同步读取立即可见）
-        cache = cache.toMutablePreferences().apply { block(this) }
-        // 异步、串行、带异常处理的落盘
-        ioScope.launch {
-            runCatching {
-                val updated = writeMutex.withLock { dataStore.edit(block) }
+        runBlocking(Dispatchers.IO) {
+            writeMutex.withLock {
+                // 先更新内存缓存（保证后续同步读取立即可见）
+                cache = cache.toMutablePreferences().apply { block(this) }
+                // 同步落盘（在 IO 线程阻塞等待，由 Mutex 串行化并发写入）
+                val updated = runCatching { dataStore.edit(block) }.getOrDefault(cache)
                 // 以磁盘最新状态刷新内存快照，保持权威一致
                 cache = updated
-            }.onFailure { it.printStackTrace() }
+            }
         }
     }
 

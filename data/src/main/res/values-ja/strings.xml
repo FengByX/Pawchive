@@ -8,12 +8,16 @@
     <string name="update_later">後で</string>
 
     <!-- ダウンロード通知（DownloadWorker） -->
-    <string name="download_channel_name">動画ダウンロード</string>
-    <string name="download_channel_desc">通知バーに動画ダウンロードの進捗を表示</string>
-    <string name="download_notification_title">動画をダウンロード中</string>
+    <string name="download_channel_name">ダウンロード進捗</string>
+    <string name="download_channel_desc">通知バーにダウンロードの進捗を表示</string>
+    <string name="download_notification_title_image">画像をダウンロード中</string>
+    <string name="download_notification_title_video">動画をダウンロード中</string>
+    <string name="download_notification_title_attachment">添付ファイルをダウンロード中</string>
     <string name="download_notification_progress">%1$s · %2$d%%</string>
     <string name="download_notification_failed">ダウンロード失敗：%1$s</string>
-    <string name="download_notification_complete">動画をアルバムに保存しました</string>
+    <string name="download_notification_complete_image">画像をアルバムに保存しました</string>
+    <string name="download_notification_complete_video">動画をアルバムに保存しました</string>
+    <string name="download_notification_complete_attachment">添付ファイルをダウンロードフォルダに保存しました</string>
 
     <!-- コンテンツ更新通知（ContentUpdateNotifier） -->
     <string name="content_update_channel_name">コンテンツ更新</string>

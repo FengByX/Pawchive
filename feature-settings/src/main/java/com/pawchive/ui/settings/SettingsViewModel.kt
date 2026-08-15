@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -63,6 +64,8 @@ data class SettingsUiState(
  *
  * 屏蔽计数通过订阅 [BlockedCreatorManager.blockedCreatorsFlow] 自动刷新，
  * 解决首次进入页面因异步加载导致的空数据竞态（P1）。
+ *
+ * 状态更新使用 [_uiState.update] 原子操作，避免并发更新丢失（ARCH-BUG-CRITICAL-2）。
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -83,17 +86,19 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun loadInitialSettings() {
-        _uiState.value = _uiState.value.copy(
-            language = settingsManager.getLanguage(),
-            appearance = settingsManager.getAppearance(),
-            startupTab = settingsManager.getStartupTab(),
-            autoCleanCacheEnabled = settingsManager.isAutoCleanCacheEnabled(),
-            autoCheckUpdateEnabled = settingsManager.isAutoCheckUpdateEnabled(),
-            hideBookmarkedCreatorsEnabled = settingsManager.isHideBookmarkedCreatorsEnabled(),
-            dedupeByCreatorEnabled = settingsManager.isDedupeByCreatorEnabled(),
-            autoSubscribeOnBookmarkEnabled = settingsManager.isAutoSubscribeOnBookmarkEnabled(),
-            downloadLocationText = buildDownloadLocationText()
-        )
+        _uiState.update {
+            it.copy(
+                language = settingsManager.getLanguage(),
+                appearance = settingsManager.getAppearance(),
+                startupTab = settingsManager.getStartupTab(),
+                autoCleanCacheEnabled = settingsManager.isAutoCleanCacheEnabled(),
+                autoCheckUpdateEnabled = settingsManager.isAutoCheckUpdateEnabled(),
+                hideBookmarkedCreatorsEnabled = settingsManager.isHideBookmarkedCreatorsEnabled(),
+                dedupeByCreatorEnabled = settingsManager.isDedupeByCreatorEnabled(),
+                autoSubscribeOnBookmarkEnabled = settingsManager.isAutoSubscribeOnBookmarkEnabled(),
+                downloadLocationText = buildDownloadLocationText()
+            )
+        }
     }
 
     /**
@@ -102,7 +107,7 @@ class SettingsViewModel @Inject constructor(
     private fun observeBlockedCreators() {
         blockedCreatorManager.blockedCreatorsFlow
             .onEach { list ->
-                _uiState.value = _uiState.value.copy(blockedCount = list.size)
+                _uiState.update { it.copy(blockedCount = list.size) }
             }
             .launchIn(viewModelScope)
     }
@@ -111,7 +116,7 @@ class SettingsViewModel @Inject constructor(
     private fun observeContentUpdateUnread() {
         subscriptionRepository.observeUnreadCount()
             .onEach { count ->
-                _uiState.value = _uiState.value.copy(unreadCount = count)
+                _uiState.update { it.copy(unreadCount = count) }
             }
             .launchIn(viewModelScope)
     }
@@ -121,47 +126,47 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(language: SettingsManager.Language) {
         if (language == _uiState.value.language) return
         settingsManager.setLanguage(language)
-        _uiState.value = _uiState.value.copy(language = language)
+        _uiState.update { it.copy(language = language) }
     }
 
     fun setAppearance(appearance: SettingsManager.Appearance) {
         if (appearance == _uiState.value.appearance) return
         settingsManager.setAppearance(appearance)
-        _uiState.value = _uiState.value.copy(appearance = appearance)
+        _uiState.update { it.copy(appearance = appearance) }
     }
 
     fun setAutoCleanCacheEnabled(enabled: Boolean) {
         settingsManager.setAutoCleanCacheEnabled(enabled)
-        _uiState.value = _uiState.value.copy(autoCleanCacheEnabled = enabled)
+        _uiState.update { it.copy(autoCleanCacheEnabled = enabled) }
     }
 
     fun setAutoCheckUpdateEnabled(enabled: Boolean) {
         settingsManager.setAutoCheckUpdateEnabled(enabled)
-        _uiState.value = _uiState.value.copy(autoCheckUpdateEnabled = enabled)
+        _uiState.update { it.copy(autoCheckUpdateEnabled = enabled) }
     }
 
     fun setHideBookmarkedCreatorsEnabled(enabled: Boolean) {
         settingsManager.setHideBookmarkedCreatorsEnabled(enabled)
-        _uiState.value = _uiState.value.copy(hideBookmarkedCreatorsEnabled = enabled)
+        _uiState.update { it.copy(hideBookmarkedCreatorsEnabled = enabled) }
     }
 
     /** 首页同作者仅显示一条开关（FEATURE）。 */
     fun setDedupeByCreatorEnabled(enabled: Boolean) {
         settingsManager.setDedupeByCreatorEnabled(enabled)
-        _uiState.value = _uiState.value.copy(dedupeByCreatorEnabled = enabled)
+        _uiState.update { it.copy(dedupeByCreatorEnabled = enabled) }
     }
 
     /** 启动主界面 Tab（FEATURE）。 */
     fun setStartupTab(tab: SettingsManager.StartupTab) {
         if (tab == _uiState.value.startupTab) return
         settingsManager.setStartupTab(tab)
-        _uiState.value = _uiState.value.copy(startupTab = tab)
+        _uiState.update { it.copy(startupTab = tab) }
     }
 
     /** 收藏创作者时自动订阅开关（ARCH-FEATURE-003 联动遗留项）。 */
     fun setAutoSubscribeOnBookmarkEnabled(enabled: Boolean) {
         settingsManager.setAutoSubscribeOnBookmarkEnabled(enabled)
-        _uiState.value = _uiState.value.copy(autoSubscribeOnBookmarkEnabled = enabled)
+        _uiState.update { it.copy(autoSubscribeOnBookmarkEnabled = enabled) }
     }
 
     // ---------- 下载位置 ----------
@@ -184,14 +189,16 @@ class SettingsViewModel @Inject constructor(
             }
             val displayName = queryFolderDisplayName(uri)
             settingsManager.setDownloadTreeUri(uri, displayName)
-            _uiState.value = _uiState.value.copy(
-                downloadLocationText = buildDownloadLocationText(),
-                toastMessage = app.getString(R.string.download_location_set_to, displayName)
-            )
+            _uiState.update {
+                it.copy(
+                    downloadLocationText = buildDownloadLocationText(),
+                    toastMessage = app.getString(R.string.download_location_set_to, displayName)
+                )
+            }
         } catch (_: Exception) {
-            _uiState.value = _uiState.value.copy(
-                toastMessage = app.getString(R.string.file_picker_not_available)
-            )
+            _uiState.update {
+                it.copy(toastMessage = app.getString(R.string.file_picker_not_available))
+            }
         }
     }
 
@@ -233,7 +240,7 @@ class SettingsViewModel @Inject constructor(
      * 重新计算下载位置显示文本（onResume 时调用，处理外部修改）。
      */
     fun refreshDownloadLocationText() {
-        _uiState.value = _uiState.value.copy(downloadLocationText = buildDownloadLocationText())
+        _uiState.update { it.copy(downloadLocationText = buildDownloadLocationText()) }
     }
 
     // ---------- 缓存 ----------
@@ -247,13 +254,15 @@ class SettingsViewModel @Inject constructor(
                 cacheRepository.getCacheSize()
             }
             val app = getApplication<Application>()
-            _uiState.value = _uiState.value.copy(
-                cacheSizeText = if (size > 0) {
-                    app.getString(R.string.cache_size, SettingsManager.formatSize(size))
-                } else {
-                    app.getString(R.string.cache_empty)
-                }
-            )
+            _uiState.update {
+                it.copy(
+                    cacheSizeText = if (size > 0) {
+                        app.getString(R.string.cache_size, SettingsManager.formatSize(size))
+                    } else {
+                        app.getString(R.string.cache_empty)
+                    }
+                )
+            }
         }
     }
 
@@ -262,8 +271,7 @@ class SettingsViewModel @Inject constructor(
      * 完成后通过 [SettingsUiState.toastMessage] 返回结果，并刷新缓存大小。
      */
     fun cleanCache() {
-        if (_uiState.value.isCleaningCache) return
-        _uiState.value = _uiState.value.copy(isCleaningCache = true)
+        _uiState.update { it.copy(isCleaningCache = true) }
         viewModelScope.launch {
             val app = getApplication<Application>()
             val sizeBefore = withContext(Dispatchers.IO) { cacheRepository.getCacheSize() }
@@ -298,11 +306,13 @@ class SettingsViewModel @Inject constructor(
             } else {
                 app.getString(R.string.cache_empty)
             }
-            _uiState.value = _uiState.value.copy(
-                isCleaningCache = false,
-                toastMessage = message,
-                cacheSizeText = newSizeText
-            )
+            _uiState.update {
+                it.copy(
+                    isCleaningCache = false,
+                    toastMessage = message,
+                    cacheSizeText = newSizeText
+                )
+            }
         }
     }
 
@@ -317,8 +327,10 @@ class SettingsViewModel @Inject constructor(
      * 批量取消屏蔽。取消后屏蔽计数会通过 Flow 自动更新。
      */
     fun unblockCreators(items: List<Pair<String, String>>) {
-        items.forEach { (service, creatorId) ->
-            blockedCreatorManager.unblockCreator(service, creatorId)
+        viewModelScope.launch {
+            items.forEach { (service, creatorId) ->
+                blockedCreatorManager.unblockCreator(service, creatorId)
+            }
         }
     }
 
@@ -328,6 +340,6 @@ class SettingsViewModel @Inject constructor(
      * 清除一次性 Toast 文案（Fragment 展示后调用）。
      */
     fun clearToast() {
-        _uiState.value = _uiState.value.copy(toastMessage = null)
+        _uiState.update { it.copy(toastMessage = null) }
     }
 }

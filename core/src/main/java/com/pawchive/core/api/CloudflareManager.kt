@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -332,6 +333,14 @@ object CloudflareManager {
         } catch (e: Exception) {
             Log.w("CloudflareManager", "clear clearance prefs failed", e)
         }
+    }
+
+    /**
+     * 取消内部协程作用域，释放资源（ARCH-BUG-MINOR-16）。
+     * 应在 Application 销毁/低内存时调用。
+     */
+    fun shutdown() {
+        cfScope.coroutineContext.cancel()
     }
 
     /**

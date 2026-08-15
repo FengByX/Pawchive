@@ -482,16 +482,20 @@ class CreatorProfileFragment : Fragment() {
                     .setTitle(R.string.block_creator_confirm_title)
                     .setMessage(getString(R.string.block_creator_confirm_message))
                     .setPositiveButton(R.string.block_creator) { _, _ ->
-                        blockedCreatorManager.blockCreator(service, creatorId)
-                        updateBlockButtonState(true)
-                        Toast.makeText(context, R.string.creator_blocked, Toast.LENGTH_SHORT).show()
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            blockedCreatorManager.blockCreator(service, creatorId)
+                            updateBlockButtonState(true)
+                            Toast.makeText(context, R.string.creator_blocked, Toast.LENGTH_SHORT).show()
+                        }
                     }
                     .setNegativeButton(R.string.cancel, null)
                     .show()
             } else {
-                blockedCreatorManager.unblockCreator(service, creatorId)
-                updateBlockButtonState(false)
-                Toast.makeText(context, R.string.creator_unblocked, Toast.LENGTH_SHORT).show()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    blockedCreatorManager.unblockCreator(service, creatorId)
+                    updateBlockButtonState(false)
+                    Toast.makeText(context, R.string.creator_unblocked, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

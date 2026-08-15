@@ -42,6 +42,11 @@ class VideoPlayerManager(private val context: Context) {
     private var savedPosition: Long = 0
     private var savedPlayWhenReady: Boolean = true
 
+    // 释放后标记，防止后续操作误用已释放的播放器
+    @Volatile
+    private var isReleased: Boolean = false
+    private val playerLock = Any()
+
     fun setListener(listener: VideoPlayerListener?) {
         this.listener = listener
     }
@@ -55,20 +60,25 @@ class VideoPlayerManager(private val context: Context) {
     }
 
     fun detachPlayerView() {
+        // 清空 PlayerView 的 player 引用，避免旧 View 持有已释放的 player
         playerView?.player = null
         playerView = null
     }
 
     @OptIn(UnstableApi::class)
     fun play(url: String) {
-        if (player == null) {
-            initializePlayer()
+        if (isReleased) return
+        synchronized(playerLock) {
+            if (isReleased) return
+            if (player == null) {
+                initializePlayer()
+            }
+            currentUrl = url
+            val mediaItem = MediaItem.fromUri(url)
+            player?.setMediaItem(mediaItem)
+            player?.prepare()
+            player?.play()
         }
-        currentUrl = url
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
-        player?.play()
     }
 
     fun pause() {
@@ -84,11 +94,18 @@ class VideoPlayerManager(private val context: Context) {
     }
 
     fun release() {
-        player?.release()
-        player = null
-        isPlaying = false
-        currentPosition = 0
-        duration = 0
+        // 幂等释放：多次调用安全，使用同步锁串行化
+        synchronized(playerLock) {
+            if (isReleased) return
+            isReleased = true
+            player?.release()
+            player = null
+            // 清空 PlayerView 引用，避免残留 player
+            playerView?.player = null
+            isPlaying = false
+            currentPosition = 0
+            duration = 0
+        }
     }
 
     /** 保存当前播放位置与播放状态，用于释放前记录，便于之后恢复 */
@@ -102,17 +119,21 @@ class VideoPlayerManager(private val context: Context) {
     /** 若存在已保存的播放地址，则重新初始化播放器并从上次位置恢复 */
     @OptIn(UnstableApi::class)
     fun restore(): Boolean {
+        if (isReleased) return false
         val url = currentUrl ?: return false
-        if (player == null) {
-            initializePlayer()
+        synchronized(playerLock) {
+            if (isReleased) return false
+            if (player == null) {
+                initializePlayer()
+            }
+            val mediaItem = MediaItem.fromUri(url)
+            player?.setMediaItem(mediaItem)
+            player?.prepare()
+            if (savedPosition > 0) {
+                player?.seekTo(savedPosition)
+            }
+            player?.playWhenReady = savedPlayWhenReady
         }
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
-        if (savedPosition > 0) {
-            player?.seekTo(savedPosition)
-        }
-        player?.playWhenReady = savedPlayWhenReady
         return true
     }
 

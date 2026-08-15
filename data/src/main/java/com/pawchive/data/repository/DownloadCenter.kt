@@ -16,6 +16,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
@@ -67,7 +69,7 @@ class DownloadCenter @Inject constructor(
             account: String = ""
         ): String {
             val raw = "$account|$url|$fileName|$mimeType|${type.name}"
-            val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
+            val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(StandardCharsets.UTF_8))
             return digest.joinToString("") { "%02x".format(it) }
         }
     }
@@ -115,7 +117,20 @@ class DownloadCenter @Inject constructor(
         // 直接复用记录并重新入队（REPLACE），避免任务永远停留在"等待中"（PENDING）。
         historyManager.findActiveByDedupKey(key)?.let { record ->
             if (hasActiveWork(key)) return record.id
-            enqueueWork(record, ExistingWorkPolicy.REPLACE)
+            try {
+                enqueueWork(record, ExistingWorkPolicy.REPLACE)
+            } catch (e: Exception) {
+                // 修复：此分支与下方"创建新记录"的路径必须对称——任何调度失败都
+                // 要把记录从 PENDING 转成 FAILED，否则一旦 enqueueUniqueWork 抛错
+                //（例如 WorkManager/HiltWorkerFactory 初始化失败）记录会永远显示
+                // "等待中"且用户无重试入口。
+                historyManager.updateStatus(
+                    record.id,
+                    DownloadStatus.FAILED,
+                    errorMessage = e.message ?: "Unable to reschedule download"
+                )
+                throw e
+            }
             return record.id
         }
 
@@ -149,28 +164,97 @@ class DownloadCenter @Inject constructor(
     /**
      * 校验指定去重指纹下是否存在活跃（ENQUEUED/RUNNING）的 Work。
      * 用于去重短路判断：仅有数据库记录但任务已消失时，需重新入队而非复用旧 id。
+     *
+     * 对 WorkManager Flow 加 1.5s 超时防护：极端情况下 WorkManager 内部 DB 损坏或
+     * 初始化挂起时，避免协程无限挂起导致整个自愈/去重逻辑停滞。超时则保守认为
+     * "无活跃 Work"以便上层走重新入队或报错路径。
      */
     private suspend fun hasActiveWork(dedupKey: String): Boolean {
         return try {
-            WorkManager.getInstance(context)
-                .getWorkInfosForUniqueWorkFlow(workName(dedupKey))
-                .first()
-                .any {
-                    it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING
-                }
+            withTimeoutOrNull(1500L) {
+                WorkManager.getInstance(context)
+                    .getWorkInfosForUniqueWorkFlow(workName(dedupKey))
+                    .first()
+                    .any {
+                        it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING
+                    }
+            } ?: false
         } catch (e: Exception) {
             false
         }
     }
 
     /**
-     * 自愈：修复"永远等待中"（PENDING 但 Work 已消失）的卡死记录。
-     * 下载中心页面打开/下拉刷新时调用；对每个 PENDING 且无活跃 Work 的记录重新入队。
+     * 查询指定去重指纹下 WorkManager 记录对应的终态 WorkInfo，若 Work 尚未处于
+     * 终态（仍在调度中）或 Work 条目不存在则返回 null。
+     *
+     * 用于同步 [selfHealPending] 中"Worker 创建失败/启动前崩溃导致 doWork 从未
+     * 执行，因此 DownloadWorker 内部的 updateStatus 永远没有机会把 DB 从 PENDING
+     * 更新为 FAILED/COMPLETED"这类 DB 与 WorkManager 状态脱节的场景。
+     */
+    private suspend fun queryWorkTerminalState(dedupKey: String): WorkInfo? {
+        return try {
+            withTimeoutOrNull(1500L) {
+                WorkManager.getInstance(context)
+                    .getWorkInfosForUniqueWorkFlow(workName(dedupKey))
+                    .first()
+                    .firstOrNull {
+                        it.state == WorkInfo.State.FAILED ||
+                            it.state == WorkInfo.State.SUCCEEDED ||
+                            it.state == WorkInfo.State.CANCELLED
+                    }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 自愈：修复"永远等待中"（PENDING 但 Work 已消失/已终态）的卡死记录。
+     * 下载中心页面打开/下拉刷新时调用；仅查询 PENDING 记录（避免加载全量历史导致 OOM/卡顿）。
+     *
+     * 处理顺序：
+     * 1. 同步终态：如果 WorkManager 中该唯一工作已经进入 FAILED/SUCCEEDED/CANCELLED，
+     *    说明 Worker 可能根本没执行到 doWork（例如 HiltWorkerFactory 创建失败），
+     *    DB 永远停留在 PENDING。这里先把 DB 同步为对应终态，让用户能看到失败/重试。
+     * 2. 重入队：若 Work 条目不存在（被系统丢弃/Force Stop 清空），则沿用原记录
+     *    重新 enqueueWork(REPLACE)。
      */
     suspend fun selfHealPending() {
-        val pending = historyManager.getAllRecords().filter { it.status == DownloadStatus.PENDING }
+        val pending = historyManager.getPendingRecords()
         for (record in pending) {
             val key = record.dedupKey ?: continue
+            // Phase 1：若 Work 已到终态但 DB 仍是 PENDING，同步为终态后直接跳过。
+            // 这种情况多发生在 HiltWorkerFactory 无法创建 DownloadWorker（依赖缺失、
+            // 注入时序错误），WorkManager 直接置为 FAILED，但 doWork() 从未运行，
+            // 因此 historyManager.updateStatus(FAILED) 从未被执行。
+            val terminal = queryWorkTerminalState(key)
+            if (terminal != null) {
+                when (terminal.state) {
+                    WorkInfo.State.FAILED -> historyManager.updateStatus(
+                        record.id,
+                        DownloadStatus.FAILED,
+                        errorMessage = "Download worker failed to start (WorkManager FAILED)"
+                    )
+                    WorkInfo.State.CANCELLED -> historyManager.updateStatus(
+                        record.id,
+                        DownloadStatus.CANCELLED,
+                        errorMessage = "Task was cancelled"
+                    )
+                    // SUCCEEDED 理论上应由 Worker 自身写入 COMPLETED。如果到了这里
+                    // 仍是 PENDING，说明 Worker 完成了 doWork 但 DB 写入失败。
+                    // 此时无法获取 filePath/fileSize，所以保持 FAILED 更安全，
+                    // 便于用户点击重试重新下载。
+                    WorkInfo.State.SUCCEEDED -> historyManager.updateStatus(
+                        record.id,
+                        DownloadStatus.FAILED,
+                        errorMessage = "Worker finished but record was not finalized"
+                    )
+                    else -> Unit // ENQUEUED/RUNNING/BLOCKED：继续 Phase 2
+                }
+                if (terminal.state.isFinished) continue
+            }
+            // Phase 2：无活跃 Work 且未匹配到终态 → Work 条目已丢失，重新入队。
             if (!hasActiveWork(key)) {
                 try {
                     enqueueWork(record, ExistingWorkPolicy.REPLACE)

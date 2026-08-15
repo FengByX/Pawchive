@@ -21,7 +21,9 @@ import com.pawchive.common.R
 import com.pawchive.core.store.SettingsManager
 import com.pawchive.common.databinding.FragmentSettingsBinding
 import com.pawchive.common.nav.AppNavigator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -331,22 +333,26 @@ class SettingsFragment : Fragment() {
     }
 
     private fun showCrashLogContent(file: java.io.File) {
-        val content = runCatching { file.readText() }.getOrElse { it.message ?: "read failed" }
-        val scroll = android.widget.ScrollView(requireContext())
-        val textView = TextView(requireContext()).apply {
-            text = content
-            textSize = 11f
-            typeface = android.graphics.Typeface.MONOSPACE
-            setTextIsSelectable(true)
-            setPadding(24, 24, 24, 24)
-            setTextColor(resources.getColor(R.color.text_primary, null))
+        viewLifecycleOwner.lifecycleScope.launch {
+            val content = withContext(Dispatchers.IO) {
+                runCatching { file.readText() }.getOrElse { it.message ?: "read failed" }
+            }
+            val scroll = android.widget.ScrollView(requireContext())
+            val textView = TextView(requireContext()).apply {
+                text = content
+                textSize = 11f
+                typeface = android.graphics.Typeface.MONOSPACE
+                setTextIsSelectable(true)
+                setPadding(24, 24, 24, 24)
+                setTextColor(resources.getColor(R.color.text_primary, null))
+            }
+            scroll.addView(textView)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(file.name)
+                .setView(scroll)
+                .setPositiveButton(R.string.ok, null)
+                .show()
         }
-        scroll.addView(textView)
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle(file.name)
-            .setView(scroll)
-            .setPositiveButton(R.string.ok, null)
-            .show()
     }
 
     private fun setupHideBookmarkedCreators() {

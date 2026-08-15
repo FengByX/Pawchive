@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,7 +40,7 @@ data class ReadingProgressSnapshot(
  * - 视频播放位置：按 URL 持久化，App 重启后可恢复至上次播放位置
  * - 阅读滚动位置：按帖子 ID 持久化，再次打开时恢复滚动位置
  *
- * 视频进度磁盘键为 `video_<url.hashCode()>`（URL 不可逆），
+ * 视频进度磁盘键为 `video_<sha256(url)[0..15]>`（ARCH-BUG-MINOR-15：避免 hashCode 碰撞），
  * 备份导出通过内存镜像 [videoPositions] 还原 URL（覆盖本会话记录过的视频）。
  */
 @Singleton
@@ -63,13 +65,21 @@ class ReadingProgressManager @Inject constructor(@ApplicationContext context: Co
     }
 
     /**
+     * 计算 URL 的短哈希（SHA-256 前 16 字符），用于 DataStore 键，避免 hashCode 碰撞（ARCH-BUG-MINOR-15）。
+     */
+    private fun urlKey(url: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(url.toByteArray(StandardCharsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }.take(16)
+    }
+
+    /**
      * 保存视频播放位置（FEATURE-005 视频记忆）。
      */
     fun saveVideoPosition(url: String, positionMs: Long) {
         if (url.isBlank() || positionMs <= 0) return
         videoPositions = videoPositions + (url to positionMs)
-        val key = longPreferencesKey("video_${url.hashCode()}")
-        updateCache { it[longPreferencesKey("video_${url.hashCode()}")] = positionMs }
+        val key = longPreferencesKey("video_${urlKey(url)}")
+        updateCache { it[key] = positionMs }
         progressIoScope.launch {
             runCatching { dataStore.edit { it[key] = positionMs } }
         }
@@ -80,7 +90,7 @@ class ReadingProgressManager @Inject constructor(@ApplicationContext context: Co
      * 返回 0 表示无记录。
      */
     fun getVideoPosition(url: String): Long {
-        val key = longPreferencesKey("video_${url.hashCode()}")
+        val key = longPreferencesKey("video_${urlKey(url)}")
         return cache[key] ?: 0L
     }
 

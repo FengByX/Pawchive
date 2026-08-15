@@ -94,6 +94,12 @@ interface DownloadHistoryDao {
     @Query("DELETE FROM download_records")
     suspend fun clearAll()
 
+    /**
+     * 获取所有 PENDING 状态的记录（DownloadCenter 自愈用，避免加载全量历史）。
+     */
+    @Query("SELECT * FROM download_records WHERE status = 'PENDING'")
+    suspend fun getPending(): List<DownloadRecord>
+
     /** 应用重启后将所有未完成（PENDING/RUNNING）任务标记为失败（单条批量 UPDATE）。 */
     @Query("UPDATE download_records SET status = :failed, errorMessage = :message WHERE status IN ('PENDING', 'RUNNING')")
     suspend fun markInterruptedAsFailed(failed: DownloadStatus, message: String)

@@ -26,8 +26,15 @@ class DownloadRuleEngine @Inject constructor(
 ) {
 
     companion object {
-        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp")
-        private val VIDEO_EXTENSIONS = setOf("mp4", "webm", "mov", "m4v", "mkv")
+        // 与 PostDetailFragment.isImageFile / isVideoFile 保持一致（ARCH-BUG-MINOR-18）
+        private val IMAGE_EXTENSIONS = setOf(
+            "jpg", "jpeg", "jpe", "png", "gif", "webp", "bmp",
+            "tif", "tiff", "heic", "heif"
+        )
+        private val VIDEO_EXTENSIONS = setOf(
+            "mp4", "webm", "mov", "m4v", "mkv",
+            "ts", "flv", "wmv", "ogv"
+        )
 
         /** 按文件名扩展名推断下载类型；无法识别返回 null（不参与规则匹配）。 */
         fun detectType(fileName: String): DownloadType? {

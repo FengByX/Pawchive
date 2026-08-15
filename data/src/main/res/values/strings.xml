@@ -8,12 +8,16 @@
     <string name="update_later">稍后再说</string>
 
     <!-- 下载通知（DownloadWorker） -->
-    <string name="download_channel_name">视频下载</string>
-    <string name="download_channel_desc">在通知栏显示视频下载进度</string>
-    <string name="download_notification_title">正在下载视频</string>
+    <string name="download_channel_name">下载进度</string>
+    <string name="download_channel_desc">在通知栏显示下载进度</string>
+    <string name="download_notification_title_image">正在下载图片</string>
+    <string name="download_notification_title_video">正在下载视频</string>
+    <string name="download_notification_title_attachment">正在下载附件</string>
     <string name="download_notification_progress">%1$s · %2$d%%</string>
     <string name="download_notification_failed">下载失败：%1$s</string>
-    <string name="download_notification_complete">视频已保存到相册</string>
+    <string name="download_notification_complete_image">图片已保存到相册</string>
+    <string name="download_notification_complete_video">视频已保存到相册</string>
+    <string name="download_notification_complete_attachment">附件已保存到下载文件夹</string>
 
     <!-- 内容更新系统通知（ContentUpdateNotifier） -->
     <string name="content_update_channel_name">内容更新</string>

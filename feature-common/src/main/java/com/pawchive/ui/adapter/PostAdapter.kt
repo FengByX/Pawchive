@@ -20,6 +20,9 @@ import com.pawchive.common.databinding.ItemLoadMoreFooterBinding
 import com.pawchive.common.databinding.ItemPostBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
 class PostAdapter(
     private var posts: List<Post>,
@@ -86,6 +89,9 @@ class PostAdapter(
     }
 
     private fun postKey(post: Post): String = "${post.service}|${post.user}|${post.id}"
+
+    // 每个帖子的书签操作互斥锁，防止快速点击导致竞态（ARCH-BUG-MINOR-13）
+    private val bookmarkMutexes = ConcurrentHashMap<String, Mutex>()
 
     companion object {
         private const val TYPE_POST = 0
@@ -258,39 +264,45 @@ class PostAdapter(
             updateBookmarkIcon(isBookmarked)
 
             binding.btnBookmark.setOnClickListener {
-                val newStatus = !bookmarkManager.isPostBookmarked(post.service, post.user, post.id)
-                // 本地立即更新，保持界面响应性
-                if (newStatus) {
-                    bookmarkManager.bookmarkPost(post)
-                } else {
-                    bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
-                }
-                updateBookmarkIcon(newStatus)
-                onBookmarkChanged(post, newStatus)
-
-                // 登录状态下同步到服务器
-                if (authRepository != null && authRepository.isLoggedIn() && lifecycleScope != null) {
-                    lifecycleScope.launch {
-                        val result = if (newStatus) {
-                            authRepository.addPostToFavorites(post.service, post.user, post.id)
+                val key = postKey(post)
+                // 使用 per-post Mutex 串行化同一帖子的书签操作，防止快速点击竞态（ARCH-BUG-MINOR-13）
+                val mutex = bookmarkMutexes.computeIfAbsent(key) { Mutex() }
+                lifecycleScope?.launch {
+                    mutex.withLock {
+                        val currentStatus = bookmarkManager.isPostBookmarked(post.service, post.user, post.id)
+                        val newStatus = !currentStatus
+                        // 本地立即更新，保持界面响应性
+                        if (newStatus) {
+                            bookmarkManager.bookmarkPost(post)
                         } else {
-                            authRepository.removePostFromFavorites(post.service, post.user, post.id)
+                            bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
                         }
-                        if (result.isFailure) {
-                            // 服务器同步失败，回滚本地状态
-                            val rolledBack = !newStatus
-                            if (rolledBack) {
-                                bookmarkManager.bookmarkPost(post)
+                        updateBookmarkIcon(newStatus)
+                        onBookmarkChanged(post, newStatus)
+
+                        // 登录状态下同步到服务器
+                        if (authRepository != null && authRepository.isLoggedIn()) {
+                            val result = if (newStatus) {
+                                authRepository.addPostToFavorites(post.service, post.user, post.id)
                             } else {
-                                bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
+                                authRepository.removePostFromFavorites(post.service, post.user, post.id)
                             }
-                            updateBookmarkIcon(rolledBack)
-                            onBookmarkChanged(post, rolledBack)
-                            Toast.makeText(
-                                binding.root.context,
-                                binding.root.context.getString(R.string.connection_error),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            if (result.isFailure) {
+                                // 服务器同步失败，回滚本地状态
+                                val rolledBack = !newStatus
+                                if (rolledBack) {
+                                    bookmarkManager.bookmarkPost(post)
+                                } else {
+                                    bookmarkManager.unbookmarkPost(post.service, post.user, post.id)
+                                }
+                                updateBookmarkIcon(rolledBack)
+                                onBookmarkChanged(post, rolledBack)
+                                Toast.makeText(
+                                    binding.root.context,
+                                    binding.root.context.getString(R.string.connection_error),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
                     }
                 }

@@ -7,6 +7,11 @@ import com.pawchive.core.db.CreatorSubscriptionDao
 import com.pawchive.core.model.ContentUpdateEntity
 import com.pawchive.core.model.CreatorSubscriptionEntity
 import com.pawchive.core.model.Post
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -51,6 +56,8 @@ class CreatorSubscriptionRepository @Inject constructor(
 
     companion object {
         private const val TAG = "CreatorSubscription"
+        // 并发同步限流：避免大量订阅同时请求导致 429/超时/WorkManager 超时（ARCH-BUG-MAJOR-8）
+        private const val MAX_CONCURRENT_SYNC = 4
     }
 
     /** 观察全部订阅（订阅时间倒序）。 */
@@ -105,7 +112,7 @@ class CreatorSubscriptionRepository @Inject constructor(
     suspend fun markAllRead() = updateDao.markAllRead()
 
     /**
-     * 对全部订阅创作者执行增量同步。
+     * 对全部订阅创作者执行增量同步（并发限流）。
      *
      * 每个创作者独立容错：单个失败仅记日志，不影响其他订阅；返回成功同步数。
      * 需要本次新增明细（系统通知推送）请使用 [syncSubscribedCreatorsDetailed]。
@@ -120,7 +127,7 @@ class CreatorSubscriptionRepository @Inject constructor(
     ): Int = syncSubscribedCreatorsDetailed(fetchPosts).syncedCount
 
     /**
-     * 对全部订阅创作者执行增量同步，并返回本次新增明细（ARCH-FEATURE-003 系统通知推送）。
+     * 对全部订阅创作者执行增量同步（并发限流），并返回本次新增明细（ARCH-FEATURE-003 系统通知推送）。
      *
      * 与 [syncSubscribedCreators] 同一执行语义，额外通过 [SubscriptionSyncResult.newUpdates]
      * 返回本次实际新增（唯一索引冲突忽略的不算）的内容更新，供 Worker 组装系统通知。
@@ -133,17 +140,30 @@ class CreatorSubscriptionRepository @Inject constructor(
         val subscriptions = subscriptionDao.getAll()
         if (subscriptions.isEmpty()) return SubscriptionSyncResult(0, emptyList())
 
+        val semaphore = Semaphore(MAX_CONCURRENT_SYNC)
+        val results = coroutineScope {
+            subscriptions.map { subscription ->
+                async {
+                    semaphore.withPermit {
+                        runCatching { syncCreator(subscription, fetchPosts) }
+                            .onSuccess {
+                                // success handled by caller
+                            }
+                            .onFailure {
+                                Log.w(TAG, "sync failed for ${subscription.service}/${subscription.creatorId}")
+                            }
+                    }
+                }
+            }.awaitAll()
+        }
+
         var synced = 0
         val newUpdates = mutableListOf<ContentUpdateEntity>()
-        for (subscription in subscriptions) {
-            runCatching { syncCreator(subscription, fetchPosts) }
-                .onSuccess {
-                    synced++
-                    newUpdates += it
-                }
-                .onFailure {
-                    Log.w(TAG, "sync failed for ${subscription.service}/${subscription.creatorId}")
-                }
+        for (result in results) {
+            result.onSuccess {
+                synced++
+                newUpdates += it
+            }
         }
         return SubscriptionSyncResult(synced, newUpdates)
     }

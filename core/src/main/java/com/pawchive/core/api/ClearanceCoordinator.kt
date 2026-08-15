@@ -3,6 +3,7 @@ package com.pawchive.core.api
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
  * - [preheat]：非阻塞触发过盾，供 403 兜底拦截器与应用启动预热调用，
  *   不占用 OkHttp 网络线程（单飞由 CloudflareManager 保证，并发调用复用同一任务）；
  * - [ensureClearance]：挂起等待过盾结果，供 Repository / ViewModel 调用层在请求前使用。
+ * - [shutdown]：取消内部协程作用域，避免 CoroutineScope 泄漏（ARCH-BUG-MINOR-16）。
  */
 object ClearanceCoordinator {
 
@@ -32,5 +34,13 @@ object ClearanceCoordinator {
      */
     suspend fun ensureClearance(forceRefresh: Boolean = false): Boolean {
         return CloudflareManager.ensureClearance(forceRefresh)
+    }
+
+    /**
+     * 取消内部协程作用域，释放资源。
+     * 应在 Application 销毁/低内存时调用（ARCH-BUG-MINOR-16）。
+     */
+    fun shutdown() {
+        scope.coroutineContext.cancel()
     }
 }

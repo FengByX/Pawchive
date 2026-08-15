@@ -62,6 +62,15 @@ class DownloadHistoryManager @Inject constructor(
         downloadIoScope.launch {
             runCatching {
                 migrateFromDataStoreIfNeeded()
+                // ARCH-004：应用被系统杀死/崩溃/升级后重新启动，遗留的 PENDING/RUNNING
+                // 记录对应的 WorkManager 任务已不复存在（WorkManager 会在某些场景下
+                // 丢弃内部 DB 中的条目，或者 Force Stop 会清空其作业），必须批量标失败
+                // 以避免下载中心永远显示"等待中"。selfHealPending 可在之后由 UI 或
+                // DownloadCenter.schedule 触发重新入队（若用户仍需要继续下载）。
+                dao.markInterruptedAsFailed(
+                    DownloadStatus.FAILED,
+                    "应用重启，下载任务中断"
+                )
                 dao.observeAll().collect { _records.value = it }
             }.onFailure { it.printStackTrace() }
         }
@@ -176,6 +185,11 @@ class DownloadHistoryManager @Inject constructor(
      * 不依赖内存快照的异步刷新时序，保证导出拿到最新数据。
      */
     suspend fun getAllRecordsFromDb(): List<DownloadRecord> = dao.getAll()
+
+    /**
+     * 从数据库读取所有 PENDING 状态记录（DownloadCenter 自愈用，避免加载全量历史）。
+     */
+    suspend fun getPendingRecords(): List<DownloadRecord> = dao.getPending()
 
     companion object {
         private val KEY_RECORDS = stringPreferencesKey("download_records")

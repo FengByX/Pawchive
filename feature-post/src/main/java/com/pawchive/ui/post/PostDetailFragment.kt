@@ -1315,6 +1315,8 @@ class PostDetailFragment : Fragment() {
      *
      * The parser intentionally uses simple regex patterns rather than a full DOM library so
      * the extraction stays safe for malformed provider HTML and requires no extra dependencies.
+     * Regex improvements (ARCH-BUG-MINOR-20): handle single/double quotes, unquoted values,
+     * whitespace variations, and newlines in attributes.
      */
     private fun extractExternalLinksFromHtml(html: String?): List<ExternalEmbedLink> {
         if (html.isNullOrBlank()) return emptyList()
@@ -1322,23 +1324,21 @@ class PostDetailFragment : Fragment() {
         val seen = linkedSetOf<String>()
 
         // Match <a ... href="..." ...> inner </a>, DOT_MATCHES_ALL so inner content may span lines.
+        // Improved to handle attributes with various quoting styles and whitespace.
         val linkPattern = Regex(
-            """<a\b([^>]*)>(.*?)</a>""",
-            setOf(kotlin.text.RegexOption.IGNORE_CASE, kotlin.text.RegexOption.DOT_MATCHES_ALL)
+            """(?is)<a\b([^>]*?)(href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))([^>]*?)>(.*?)</a>"""
         )
-        val hrefPattern = Regex("""href\s*=\s*["']([^"']+)["']""", kotlin.text.RegexOption.IGNORE_CASE)
         // Heuristic to find a display name for the embed link (matches Pawchive's layout).
         val embedHeadingPattern = Regex(
-            """<h[1-6][^>]*>(.*?)</h[1-6]>""",
-            setOf(kotlin.text.RegexOption.IGNORE_CASE, kotlin.text.RegexOption.DOT_MATCHES_ALL)
+            """(?is)<h[1-6][^>]*>(.*?)</h[1-6]>"""
         )
-        val embedViewClassPattern = Regex("""class\s*=\s*["'][^"']*embed-view[^"']*["']""", kotlin.text.RegexOption.IGNORE_CASE)
+        val embedViewClassPattern = Regex("""(?i)class\s*=\s*["'][^"']*embed-view[^"']*["']""")
 
         for (match in linkPattern.findAll(html)) {
-            val attrs = match.groupValues[1]
-            val inner = match.groupValues[2]
-            val href = hrefPattern.find(attrs)?.groupValues?.get(1)?.trim() ?: continue
-            if (!href.startsWith("https://", ignoreCase = true)) continue
+            // groupValues indices: 0=full, 1=pre-href attrs, 2=href attr, 3=double-quoted, 4=single-quoted, 5=unquoted, 6=post-href attrs, 7=inner
+            val inner = match.groupValues?.get(7) ?: ""
+            val href = (match.groupValues?.get(3) ?: match.groupValues?.get(4) ?: match.groupValues?.get(5))?.trim()
+            if (href.isNullOrBlank() || !href.startsWith("https://", ignoreCase = true)) continue
             val host = runCatching { Uri.parse(href)?.host.orEmpty() }.getOrDefault("")
             if (host.isBlank()) continue
             // Skip internal file CDN links: those already show up via attachments/file fields.

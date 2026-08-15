@@ -55,6 +55,16 @@
                 tools:node="remove" />
         </provider>
 
+        <!-- WorkManager 前台服务（Android 12+ FGS type 约束）：
+             SystemForegroundService 会调用 startForeground(..., FOREGROUND_SERVICE_TYPE_DATA_SYNC)，
+             manifest 必须声明匹配的 foregroundServiceType，否则抛
+             "foregroundServiceType is not a subset of ... attribute 0x00000000" IllegalArgumentException。
+             使用 tools:node="merge" 与 WorkManager 库自身的声明合并，避免覆盖其 enabled/exported 等属性。 -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
     </application>
 
 </manifest>

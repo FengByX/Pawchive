@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -74,6 +75,8 @@ class DownloadWorker @AssistedInject constructor(
         val fileName = inputData.getString(KEY_FILE_NAME) ?: return@withContext Result.failure()
         // ARCH-005：记录 id（UUID 主键）由 DownloadCenter 入队时写入
         val recordId = inputData.getString(KEY_RECORD_ID) ?: return@withContext Result.failure()
+        // 类型早计算：前台通知、进度、完成/失败文案均需要根据 IMAGE/VIDEO/ATTACHMENT 区分显示
+        val downloadTypeStr = inputData.getString(KEY_DOWNLOAD_TYPE) ?: DownloadType.VIDEO.name
         val context = applicationContext
 
         var outputStream: OutputStream? = null
@@ -87,7 +90,7 @@ class DownloadWorker @AssistedInject constructor(
             // 1) 前台通知初始化（即便无通知权限，下载也会继续，只是无可见通知）
             if (hasNotifyPermission) {
                 ensureChannel(context)
-                setForeground(buildForegroundInfo(context, fileName, 0))
+                setForeground(buildForegroundInfo(context, fileName, 0, downloadTypeStr))
             }
 
             // ARCH-009：下载前确保已过盾（403 拦截器已非阻塞化，不再线程内等待过盾）
@@ -115,7 +118,6 @@ class DownloadWorker @AssistedInject constructor(
 
             // 3) 统一下载入口：优先 SAF 树 URI，回退 MediaStore（P1）
             val mimeType = inputData.getString(KEY_MIME_TYPE) ?: inferMimeType(fileName)
-            val downloadTypeStr = inputData.getString(KEY_DOWNLOAD_TYPE) ?: DownloadType.VIDEO.name
             val repoType = parseRepoType(downloadTypeStr, fileName)
             val target = DownloadRepository.DownloadTarget(
                 type = repoType,
@@ -140,7 +142,7 @@ class DownloadWorker @AssistedInject constructor(
                     if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
                         lastReported = percent
                         if (hasNotifyPermission) {
-                            notifyProgress(context, fileName, percent)
+                            notifyProgress(context, fileName, percent, downloadTypeStr)
                         }
                         setProgressAsync(
                             Data.Builder().putInt(KEY_PROGRESS, percent).build()
@@ -164,7 +166,7 @@ class DownloadWorker @AssistedInject constructor(
                 fileSize = if (contentLength > 0) contentLength else totalRead
             )
             if (hasNotifyPermission) {
-                notifyComplete(context, fileName)
+                notifyComplete(context, fileName, downloadTypeStr)
             }
             Result.success()
         } catch (e: Exception) {
@@ -247,8 +249,24 @@ class DownloadWorker @AssistedInject constructor(
         nm.createNotificationChannel(channel)
     }
 
-    private fun buildForegroundInfo(context: Context, fileName: String, percent: Int): ForegroundInfo {
-        val notification = buildNotification(context, fileName, percent, indeterminate = percent <= 0)
+    @StringRes
+    private fun resolveNotificationTitleRes(typeStr: String): Int = when (typeStr) {
+        DownloadType.IMAGE.name -> R.string.download_notification_title_image
+        DownloadType.VIDEO.name -> R.string.download_notification_title_video
+        DownloadType.ATTACHMENT.name -> R.string.download_notification_title_attachment
+        else -> R.string.download_notification_title_video // 回退兼容旧值
+    }
+
+    @StringRes
+    private fun resolveNotificationCompleteRes(typeStr: String): Int = when (typeStr) {
+        DownloadType.IMAGE.name -> R.string.download_notification_complete_image
+        DownloadType.VIDEO.name -> R.string.download_notification_complete_video
+        DownloadType.ATTACHMENT.name -> R.string.download_notification_complete_attachment
+        else -> R.string.download_notification_complete_video // 回退兼容旧值
+    }
+
+    private fun buildForegroundInfo(context: Context, fileName: String, percent: Int, downloadTypeStr: String): ForegroundInfo {
+        val notification = buildNotification(context, fileName, percent, indeterminate = percent <= 0, downloadTypeStr = downloadTypeStr)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
@@ -260,7 +278,8 @@ class DownloadWorker @AssistedInject constructor(
         context: Context,
         fileName: String,
         percent: Int,
-        indeterminate: Boolean = false
+        indeterminate: Boolean = false,
+        downloadTypeStr: String
     ): android.app.Notification {
         val contentText = if (percent > 0) {
             context.getString(R.string.download_notification_progress, fileName, percent)
@@ -268,7 +287,7 @@ class DownloadWorker @AssistedInject constructor(
             fileName
         }
         return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.download_notification_title))
+            .setContentTitle(context.getString(resolveNotificationTitleRes(downloadTypeStr)))
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification_download)
             .setOngoing(true)
@@ -278,10 +297,10 @@ class DownloadWorker @AssistedInject constructor(
             .build()
     }
 
-    private fun notifyProgress(context: Context, fileName: String, percent: Int) {
+    private fun notifyProgress(context: Context, fileName: String, percent: Int, downloadTypeStr: String) {
         try {
             NotificationManagerCompat.from(context).notify(
-                NOTIFICATION_ID, buildNotification(context, fileName, percent)
+                NOTIFICATION_ID, buildNotification(context, fileName, percent, downloadTypeStr = downloadTypeStr)
             )
         } catch (e: SecurityException) {
             // 极少数情况下权限被撤销：忽略通知，下载继续
@@ -289,10 +308,10 @@ class DownloadWorker @AssistedInject constructor(
         }
     }
 
-    private fun notifyComplete(context: Context, fileName: String) {
+    private fun notifyComplete(context: Context, fileName: String, downloadTypeStr: String) {
         try {
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setContentTitle(context.getString(R.string.download_notification_complete))
+                .setContentTitle(context.getString(resolveNotificationCompleteRes(downloadTypeStr)))
                 .setContentText(fileName)
                 .setSmallIcon(R.drawable.ic_notification_download)
                 .setAutoCancel(true)

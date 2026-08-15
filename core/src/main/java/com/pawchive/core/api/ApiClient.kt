@@ -3,6 +3,7 @@ package com.pawchive.core.api
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 /**
@@ -112,7 +113,7 @@ object ApiClient {
     private fun hashSession(cookie: String): String {
         return try {
             val digest = MessageDigest.getInstance("SHA-256")
-            val bytes = digest.digest(cookie.toByteArray(Charsets.UTF_8))
+            val bytes = digest.digest(cookie.toByteArray(StandardCharsets.UTF_8))
             bytes.joinToString("") { "%02x".format(it) }.take(16)
         } catch (_: Exception) {
             // 极端情况降级为 hashCode，仍不含明文

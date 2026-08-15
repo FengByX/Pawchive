@@ -188,10 +188,12 @@ class HomeViewModel @Inject constructor(
      */
     fun blockCreators(pairs: List<Pair<String, String>>) {
         if (pairs.isEmpty()) return
-        pairs.forEach { (service, creatorId) ->
-            blockedCreatorManager.blockCreator(service, creatorId)
+        viewModelScope.launch {
+            pairs.forEach { (service, creatorId) ->
+                blockedCreatorManager.blockCreator(service, creatorId)
+            }
+            refreshBlockedFilter()
         }
-        refreshBlockedFilter()
     }
 
     /**
