@@ -26,6 +26,7 @@ import com.pawchive.core.error.ErrorMessageHelper
 import androidx.hilt.work.HiltWorker
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
@@ -56,6 +57,7 @@ class DownloadWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
 
     companion object {
+        private const val TAG = "DownloadWorker"
         const val KEY_URL = "url"
         const val KEY_FILE_NAME = "file_name"
         const val KEY_MIME_TYPE = "mime_type"
@@ -71,122 +73,149 @@ class DownloadWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val url = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
-        val fileName = inputData.getString(KEY_FILE_NAME) ?: return@withContext Result.failure()
-        // ARCH-005：记录 id（UUID 主键）由 DownloadCenter 入队时写入
-        val recordId = inputData.getString(KEY_RECORD_ID) ?: return@withContext Result.failure()
-        // 类型早计算：前台通知、进度、完成/失败文案均需要根据 IMAGE/VIDEO/ATTACHMENT 区分显示
+        // 先抽参数：任何步骤失败都能把错误写回同一条 DB 记录。
+        // 若 recordId 不存在，说明入队时 DownloadCenter 没写 KEY_RECORD_ID，那此 Work 本身无法关联记录，直接失败。
+        val recordId = inputData.getString(KEY_RECORD_ID)
+        if (recordId == null) {
+            Log.e(TAG, "Missing record_id input, Work cannot proceed")
+            return@withContext Result.failure()
+        }
+        val url = inputData.getString(KEY_URL)
+        val fileName = inputData.getString(KEY_FILE_NAME) ?: "<unknown>"
         val downloadTypeStr = inputData.getString(KEY_DOWNLOAD_TYPE) ?: DownloadType.VIDEO.name
         val context = applicationContext
-
-        var outputStream: OutputStream? = null
-        var networkResponse: okhttp3.Response? = null
-        // 通知权限在 try 外判断一次：catch 分支同样需要据此决定是否发失败通知
         val hasNotifyPermission = hasNotificationPermission(context)
-        try {
-            // 标记为运行中（移入 try：前台初始化抛异常时也能正确标记 FAILED，不留"永续下载中"）
-            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = 0)
 
-            // 1) 前台通知初始化（即便无通知权限，下载也会继续，只是无可见通知）
-            if (hasNotifyPermission) {
-                ensureChannel(context)
-                setForeground(buildForegroundInfo(context, fileName, 0, downloadTypeStr))
-            }
+        // 统一在 doWork 最外层 try/catch：即使是 setForeground()、ensureClearance()、
+        // historyManager 自身初始化、downloadRepository.openDownloadStream() 等任何
+        // 早期异常，也能把友好错误信息落回 DownloadHistory，而不是让 WorkManager 只
+        // 能留下空 Output Data，然后 selfHealPending 兜底写"Download worker failed to
+        // start"这种模糊文案。
+        runCatching {
+            if (url == null) throw IllegalArgumentException("Missing download URL")
+            var outputStream: OutputStream? = null
+            var networkResponse: okhttp3.Response? = null
+            try {
+                // 标记为运行中（在最外层 try 内：historyManager.updateStatus 任何异常也能进下方 catch）
+                historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = 0)
 
-            // ARCH-009：下载前确保已过盾（403 拦截器已非阻塞化，不再线程内等待过盾）
-            ClearanceCoordinator.ensureClearance()
-            // 2) 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，403 兜底
-            val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
-                .readTimeout(120, TimeUnit.SECONDS)
-                .build()
+                // 1) 前台通知初始化。注意：setForeground() 在少数 ROM 上会因通知权限/前台
+                // 服务类型声明不匹配抛 IllegalStateException，这里会捕获并落库，Work 不会平白 FAILED。
+                if (hasNotifyPermission) {
+                    ensureChannel(context)
+                    setForeground(buildForegroundInfo(context, fileName, 0, downloadTypeStr))
+                }
 
-            val request = okhttp3.Request.Builder()
-                .url(url)
-                .header("Accept", "*/*")
-                .build()
+                // ARCH-009：下载前确保已过盾（403 拦截器已非阻塞化，不再线程内等待过盾）
+                ClearanceCoordinator.ensureClearance()
+                // 2) 复用 ApiClient.sharedOkHttpClient：自动注入 cf_clearance / User-Agent，403 兜底
+                val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
+                    .readTimeout(120, TimeUnit.SECONDS)
+                    .build()
 
-            val response = okHttpClient.newCall(request).execute()
-            networkResponse = response
-            if (!response.isSuccessful) {
-                throw Exception("HTTP ${response.code}: ${response.message}")
-            }
-            val body = response.body ?: run {
-                throw Exception("Empty response body")
-            }
-            val inputStream = body.byteStream()
-            val contentLength = body.contentLength()
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .header("Accept", "*/*")
+                    .build()
 
-            // 3) 统一下载入口：优先 SAF 树 URI，回退 MediaStore（P1）
-            val mimeType = inputData.getString(KEY_MIME_TYPE) ?: inferMimeType(fileName)
-            val repoType = parseRepoType(downloadTypeStr, fileName)
-            val target = DownloadRepository.DownloadTarget(
-                type = repoType,
-                displayName = fileName,
-                mimeType = mimeType
-            )
-            val (os, fileUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
-            outputStream = os
+                val response = okHttpClient.newCall(request).execute()
+                networkResponse = response
+                if (!response.isSuccessful) {
+                    throw Exception("HTTP ${response.code}: ${response.message}")
+                }
+                val body = response.body ?: run {
+                    throw Exception("Empty response body")
+                }
+                val inputStream = body.byteStream()
+                val contentLength = body.contentLength()
 
-            // 4) 边写边更新进度
-            var totalRead = 0L
-            var lastReported = -1
-            val buffer = ByteArray(BUFFER_SIZE)
-            while (true) {
-                val bytesRead = inputStream.read(buffer)
-                if (bytesRead == -1) break
-                os.write(buffer, 0, bytesRead)
-                totalRead += bytesRead
+                // 3) 统一下载入口：优先 SAF 树 URI，回退 MediaStore（P1）
+                val mimeType = inputData.getString(KEY_MIME_TYPE) ?: inferMimeType(fileName)
+                val repoType = parseRepoType(downloadTypeStr, fileName)
+                val target = DownloadRepository.DownloadTarget(
+                    type = repoType,
+                    displayName = fileName,
+                    mimeType = mimeType
+                )
+                val (os, fileUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
+                outputStream = os
 
-                if (contentLength > 0) {
-                    val percent = (totalRead * 100 / contentLength).toInt().coerceIn(0, 100)
-                    if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
-                        lastReported = percent
-                        if (hasNotifyPermission) {
-                            notifyProgress(context, fileName, percent, downloadTypeStr)
+                // 4) 边写边更新进度
+                var totalRead = 0L
+                var lastReported = -1
+                val buffer = ByteArray(BUFFER_SIZE)
+                while (true) {
+                    val bytesRead = inputStream.read(buffer)
+                    if (bytesRead == -1) break
+                    os.write(buffer, 0, bytesRead)
+                    totalRead += bytesRead
+
+                    if (contentLength > 0) {
+                        val percent = (totalRead * 100 / contentLength).toInt().coerceIn(0, 100)
+                        if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
+                            lastReported = percent
+                            if (hasNotifyPermission) {
+                                notifyProgress(context, fileName, percent, downloadTypeStr)
+                            }
+                            setProgressAsync(
+                                Data.Builder().putInt(KEY_PROGRESS, percent).build()
+                            )
+                            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent, fileSize = contentLength)
                         }
-                        setProgressAsync(
-                            Data.Builder().putInt(KEY_PROGRESS, percent).build()
+                    }
+                }
+
+                if (contentLength > 0 && totalRead != contentLength) {
+                    throw Exception("Download incomplete: $totalRead/$contentLength bytes")
+                }
+
+                // 5) 完成：标记 MediaStore IS_PENDING=0，更新通知和历史
+                if (requiresFinalize) downloadRepository.finalizeDownload(fileUri)
+                historyManager.updateStatus(
+                    recordId,
+                    DownloadStatus.COMPLETED,
+                    progress = 100,
+                    filePath = fileUri.toString(),
+                    fileSize = if (contentLength > 0) contentLength else totalRead
+                )
+                if (hasNotifyPermission) {
+                    notifyComplete(context, fileName, downloadTypeStr)
+                }
+                Result.success()
+            } finally {
+                runCatching { outputStream?.close() }
+                runCatching { networkResponse?.close() }
+            }
+        }.fold(
+            onSuccess = { it },
+            onFailure = { e ->
+                when {
+                    isStopped -> {
+                        historyManager.updateStatus(recordId, DownloadStatus.CANCELLED)
+                        Result.failure()
+                    }
+                    e is CancellationException -> {
+                        // 协程取消但 isStopped=false：WorkManager 框架级重排，这里不要误写 FAILED
+                        // 让 WorkManager 自己管理 ENQUEUED 状态（重试时会再次调用 doWork）。
+                        throw e
+                    }
+                    else -> {
+                        val friendly = ErrorMessageHelper.getFriendlyMessage(context, e)
+                        Log.e(TAG, "Download worker failed for record=$recordId file=$fileName", e)
+                        historyManager.updateStatus(recordId, DownloadStatus.FAILED, errorMessage = friendly)
+                        if (hasNotifyPermission) {
+                            notifyFailed(context, fileName, friendly)
+                        }
+                        Result.failure(
+                            Data.Builder()
+                                .putString(KEY_MESSAGE, friendly)
+                                .putString(KEY_RECORD_ID, recordId)
+                                .build()
                         )
-                        historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent, fileSize = contentLength)
                     }
                 }
             }
-
-            if (contentLength > 0 && totalRead != contentLength) {
-                throw Exception("Download incomplete: $totalRead/$contentLength bytes")
-            }
-
-            // 5) 完成：标记 MediaStore IS_PENDING=0，更新通知和历史
-            if (requiresFinalize) downloadRepository.finalizeDownload(fileUri)
-            historyManager.updateStatus(
-                recordId,
-                DownloadStatus.COMPLETED,
-                progress = 100,
-                filePath = fileUri.toString(),
-                fileSize = if (contentLength > 0) contentLength else totalRead
-            )
-            if (hasNotifyPermission) {
-                notifyComplete(context, fileName, downloadTypeStr)
-            }
-            Result.success()
-        } catch (e: Exception) {
-            if (isStopped) {
-                // WorkManager 2.9.0 取消任务时协程被取消（onCancelled 已移除，onStopped 在
-                // CoroutineWorker 中为 final 无法重写），此处通过 isStopped 检测取消并标记状态
-                historyManager.updateStatus(recordId, DownloadStatus.CANCELLED)
-                Result.failure()
-            } else {
-                val friendly = ErrorMessageHelper.getFriendlyMessage(context, e)
-                historyManager.updateStatus(recordId, DownloadStatus.FAILED, errorMessage = friendly)
-                if (hasNotifyPermission) {
-                    notifyFailed(context, fileName, friendly)
-                }
-                Result.failure(Data.Builder().putString(KEY_MESSAGE, friendly).build())
-            }
-        } finally {
-            runCatching { outputStream?.close() }
-            runCatching { networkResponse?.close() }
-        }
+        )
     }
 
     private fun parseRepoType(typeStr: String, fileName: String): DownloadRepository.DownloadType {
