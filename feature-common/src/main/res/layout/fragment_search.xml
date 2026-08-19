@@ -121,7 +121,7 @@
                 android:text="@string/filter_bookmarked"
                 android:checked="false" />
 
-            <!-- ARCH-FEATURE-001：离线全文搜索（收藏内容离线索引） -->
+            <!-- ARCH-FEATURE-001：离线全文搜索（收藏内容离线索引）-->
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_offline"
                 style="@style/Widget.Material3.Chip.Filter"
@@ -284,19 +284,16 @@
 
         </LinearLayout>
 
-        <!-- Progress Indicator (shared) -->
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_loading_circle"
-            android:elevation="6dp"
-            android:indeterminate="true"
-            android:indeterminateTint="?attr/colorPrimary"
-            android:layout_gravity="center"
-            android:padding="8dp"
+        <!-- Skeleton loading -->
+        <include
+            android:id="@+id/skeleton_view"
+            layout="@layout/layout_skeleton_search"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:visibility="gone" />
 
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+

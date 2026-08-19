@@ -25,6 +25,7 @@ import com.pawchive.ui.adapter.CreatorAdapter
 import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.ui.adapter.SearchHistoryAdapter
 import com.pawchive.utils.ErrorStateViewHelper
+import com.pawchive.ui.widget.SkeletonHelper
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import android.widget.RadioButton
@@ -136,7 +137,7 @@ class SearchFragment : Fragment() {
                     creatorAdapter.updateCreators(state.creatorResults)
 
                     // loading 状态
-                    binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+                    if (state.isLoading && state.postResults.isEmpty() && state.creatorResults.isEmpty()) { SkeletonHelper.show(binding.skeletonView.root, binding.contentContainer) } else if (binding.skeletonView.root.visibility == View.VISIBLE) { SkeletonHelper.hide(binding.skeletonView.root, binding.contentContainer) }
                     binding.swipeRefresh.isRefreshing = state.isLoading
 
                     // 空结果提示
@@ -376,7 +377,7 @@ class SearchFragment : Fragment() {
         } else {
             showResultsView()
             binding.tvNoResults.visibility = View.VISIBLE
-            binding.progressBar.visibility = View.GONE
+            if (binding.skeletonView.root.visibility == View.VISIBLE) { SkeletonHelper.hide(binding.skeletonView.root, binding.contentContainer, false) }
             binding.tvEmptyText.text = getString(R.string.search_initial_hint)
             // 清空关键词时隐藏错误页
             errorStateView.hide()
@@ -450,7 +451,7 @@ class SearchFragment : Fragment() {
     private fun showHistoryView() {
         binding.layoutResults.visibility = View.GONE
         binding.layoutHistory.visibility = View.VISIBLE
-        binding.progressBar.visibility = View.GONE
+        if (binding.skeletonView.root.visibility == View.VISIBLE) { SkeletonHelper.hide(binding.skeletonView.root, binding.contentContainer, false) }
         refreshHistoryList()
     }
 
@@ -493,3 +494,4 @@ class SearchFragment : Fragment() {
         _binding = null
     }
 }
+

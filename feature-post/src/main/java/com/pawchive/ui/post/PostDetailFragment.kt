@@ -29,6 +29,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import coil.load
+import coil.request.ImageRequest
 import com.pawchive.common.R
 import com.pawchive.core.api.ApiClient
 import com.pawchive.core.model.Post
@@ -50,6 +51,8 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.pawchive.ui.widget.SkeletonHelper
+
 
 @AndroidEntryPoint
 class PostDetailFragment : Fragment() {
@@ -201,9 +204,18 @@ class PostDetailFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     if (state.isLoading) {
-                        // 加载中：隐藏错误页
+                        // 加载中：隐藏错误页，显示骨架屏
                         errorStateView.hide()
-                    } else if (state.errorMessage != null) {
+                        if (state.post == null) {
+                            SkeletonHelper.show(binding.skeletonView.root, binding.nestedScrollView)
+                        }
+                    } else {
+                        // 加载完成，隐藏骨架屏
+                        if (binding.skeletonView.root.visibility == View.VISIBLE) {
+                            SkeletonHelper.hide(binding.skeletonView.root, binding.nestedScrollView)
+                        }
+                    }
+                    if (state.errorMessage != null) {
                         if (state.post == null) {
                             // 无内容：展示内嵌错误页，提供重试入口（FEATURE-006）
                             binding.nestedScrollView.visibility = View.GONE
@@ -221,6 +233,10 @@ class PostDetailFragment : Fragment() {
                     } else {
                         // 正常展示内容
                         binding.nestedScrollView.visibility = View.VISIBLE
+                        // 确保骨架屏不遮挡内容
+                        if (binding.skeletonView.root.visibility == View.VISIBLE) {
+                            SkeletonHelper.hide(binding.skeletonView.root, binding.nestedScrollView, false)
+                        }
                         errorStateView.hide()
                         state.post?.let { post ->
                             currentPost = post
@@ -394,13 +410,19 @@ class PostDetailFragment : Fragment() {
                 }
             } else {
                 binding.imageCard.visibility = View.VISIBLE
-                binding.ivPostImage.load(fullUrl) {
-                    crossfade(true)
-                    placeholder(R.drawable.ic_image)
-                    error(R.drawable.ic_image_off)
+                val mainImageUrls = buildCandidateImageUrls(filePath)
+                if (mainImageUrls.isNotEmpty()) {
+                    binding.ivPostImage.loadWithFallback(mainImageUrls)
+                } else if (!filePath.isNullOrEmpty()) {
+                    binding.ivPostImage.load(buildFileUrl(filePath)) {
+                        crossfade(true)
+                        placeholder(R.drawable.ic_image)
+                        error(R.drawable.ic_image_off)
+                    }
                 }
                 binding.ivPostImage.setOnClickListener {
-                    openImageViewer(fullUrl, post.file?.name ?: "image.jpg")
+                    val viewerUrl = mainImageUrls.firstOrNull() ?: buildFileUrl(filePath)
+                    openImageViewer(viewerUrl, post.file?.name ?: "image.jpg")
                 }
             }
         } else {
@@ -535,14 +557,19 @@ class PostDetailFragment : Fragment() {
                         }
                         adjustViewBounds = true
                         scaleType = ImageView.ScaleType.FIT_CENTER
-                        val fullUrl = buildFileUrl(attachment.path)
-                        load(fullUrl) {
-                            crossfade(true)
-                            placeholder(R.drawable.ic_image)
-                            error(R.drawable.ic_image_off)
+                        val candidateUrls = buildCandidateImageUrls(attachment.path)
+                        if (candidateUrls.isNotEmpty()) {
+                            loadWithFallback(candidateUrls)
+                        } else if (!attachment.path.isNullOrEmpty()) {
+                            load(buildFileUrl(attachment.path)) {
+                                crossfade(true)
+                                placeholder(R.drawable.ic_image)
+                                error(R.drawable.ic_image_off)
+                            }
                         }
                         setOnClickListener {
-                            openImageViewer(fullUrl, attachment.name ?: "image.jpg")
+                            val viewerUrl = candidateUrls.firstOrNull() ?: buildFileUrl(attachment.path)
+                            openImageViewer(viewerUrl, attachment.name ?: "image.jpg")
                         }
                     }
                     binding.layoutAttachments.addView(imageView)
@@ -1472,6 +1499,46 @@ class PostDetailFragment : Fragment() {
         }
     }
 
+    /**
+     * 构建候选图片 URL 列表（与 PostAdapter 保持一致的回退策略）。
+     * 优先使用 img.pawchive.pw（缩略图 CDN），回退到 file.pawchive.pw。
+     */
+    private fun buildCandidateImageUrls(path: String?): List<String> {
+        if (path.isNullOrEmpty()) return emptyList()
+        val trimmed = path.trim()
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return listOf(trimmed)
+        }
+        val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+        return listOf(
+            "https://img.pawchive.pw/thumbnail/data$normalized",
+            "https://img.pawchive.pw/data$normalized",
+            "https://file.pawchive.pw/data$normalized"
+        )
+    }
+
+    /**
+     * 按候选 URL 顺序依次尝试加载图片，直到成功。
+     */
+    private fun ImageView.loadWithFallback(
+        urls: List<String>,
+        index: Int = 0
+    ) {
+        if (index >= urls.size) return
+        val url = urls[index]
+        val isLast = index == urls.size - 1
+        load(url) {
+            crossfade(true)
+            placeholder(R.drawable.ic_image)
+            error(if (isLast) R.drawable.ic_image_off else R.drawable.ic_image)
+            listener(
+                onError = { _, _ ->
+                    if (!isLast) loadWithFallback(urls, index + 1)
+                }
+            )
+        }
+    }
+
     companion object {
         private const val ARG_SERVICE = "service"
         private const val ARG_CREATOR_ID = "creator_id"
@@ -1489,3 +1556,10 @@ class PostDetailFragment : Fragment() {
         }
     }
 }
+
+
+
+
+
+
+

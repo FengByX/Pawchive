@@ -111,3 +111,9 @@
 # ---------- General ----------
 # Keep crash handler class names for readable stack traces
 -keepnames class com.pawchive.** { *; }
+
+
+# okdownload
+-dontwarn edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+-keep class com.liulishuo.okdownload.** { *; }
+-keep class com.liulishuo.okdownload.connection.okhttp.** { *; }

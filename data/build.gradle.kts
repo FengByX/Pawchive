@@ -66,6 +66,10 @@ dependencies {
     // Coil - AppCacheCleaner 清理图片缓存
     implementation(libs.coil)
 
+    // okdownload - 断点续传下载引擎（替代手动 OkHttp 下载）
+    implementation(libs.okdownload.core)
+    implementation(libs.okdownload.okhttp)
+
     // Hilt - 依赖注入（ARCH-003）
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
@@ -81,3 +85,4 @@ dependencies {
     testImplementation(libs.androidx.test.runner)
     testImplementation(libs.androidx.room.testing)
 }
+

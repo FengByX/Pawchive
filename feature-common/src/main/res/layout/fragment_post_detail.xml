@@ -5,6 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
+    <!-- Skeleton loading -->
+    <include
+        android:id="@+id/skeleton_view"
+        layout="@layout/layout_skeleton_post_detail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
 
     <!-- Header area -->
     <androidx.constraintlayout.widget.ConstraintLayout

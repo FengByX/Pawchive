@@ -87,6 +87,11 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
 
     override fun onCreate() {
         super.onCreate() // Hilt 在此完成字段注入
+
+        // 显式初始化 WorkManager，确保 HiltWorkerFactory 已就绪
+        // 解决 Configuration.Provider 延迟初始化与 Hilt 注入的时序竞态
+        WorkManager.initialize(this, workManagerConfiguration)
+        android.util.Log.i("PawchiveApp", "WorkManager explicitly initialized with HiltWorkerFactory")
         instance = this
 
         // 初始化全局崩溃捕获（FEATURE-006 崩溃埋点）
@@ -209,3 +214,5 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
         CloudflareManager.shutdown()
     }
 }
+
+

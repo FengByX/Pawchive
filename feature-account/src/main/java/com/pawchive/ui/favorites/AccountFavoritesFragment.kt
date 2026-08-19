@@ -21,6 +21,7 @@ import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.pawchive.ui.widget.SkeletonHelper
 
 /**
  * 账号收藏 Fragment（ARCH-006 / FRONTEND-008）。
@@ -107,13 +108,12 @@ class AccountFavoritesFragment : Fragment() {
                     postAdapter.setFooterVisible(state.hasMorePosts)
                     creatorAdapter.updateCreators(state.creators)
 
-                    // 加载指示：初始加载显示 ProgressBar；下拉刷新时由 swipeRefresh 指示
-                    binding.progressBar.visibility =
-                        if (state.isLoading && !binding.swipeRefresh.isRefreshing) {
-                            View.VISIBLE
-                        } else {
-                            View.GONE
-                        }
+                    // 骨架屏：首次加载显示；下拉刷新时不显示
+                    if (state.isLoading && state.posts.isEmpty() && state.creators.isEmpty()) {
+                        SkeletonHelper.show(binding.skeletonView.root, binding.rvFavorites)
+                    } else if (binding.skeletonView.root.visibility == View.VISIBLE) {
+                        SkeletonHelper.hide(binding.skeletonView.root, binding.rvFavorites)
+                    }
                     if (!state.isLoading) {
                         binding.swipeRefresh.isRefreshing = false
                     }
@@ -261,3 +261,5 @@ class AccountFavoritesFragment : Fragment() {
         _binding = null
     }
 }
+
+

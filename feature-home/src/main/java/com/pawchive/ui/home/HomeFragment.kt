@@ -19,6 +19,7 @@ import com.pawchive.common.databinding.FragmentHomeBinding
 import com.pawchive.common.nav.AppNavigator
 import com.pawchive.ui.adapter.PostAdapter
 import com.pawchive.utils.ErrorStateViewHelper
+import com.pawchive.ui.widget.SkeletonHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -90,13 +91,13 @@ class HomeFragment : Fragment() {
             // 列表与 footer
             postAdapter.updatePosts(state.posts)
             postAdapter.setFooterVisible(state.hasMore)
-
-            // 加载指示：初始加载显示 ProgressBar；下拉刷新时由 swipeRefresh 指示
-            binding.progressBar.visibility =
-                if (state.isLoading && !binding.swipeRefresh.isRefreshing) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
+            // 加载指示：首次加载显示骨架屏；下拉刷新时由 swipeRefresh 指示
+            if (state.isLoading && state.posts.isEmpty()) {
+                SkeletonHelper.show(binding.skeletonView.root, binding.swipeRefresh)
+            } else if (binding.skeletonView.root.visibility == View.VISIBLE) {
+                SkeletonHelper.hide(binding.skeletonView.root, binding.swipeRefresh)
+            }
+            if (!state.isLoading) {
                 }
             if (!state.isLoading) {
                 binding.swipeRefresh.isRefreshing = false
@@ -283,3 +284,5 @@ class HomeFragment : Fragment() {
         }
     }
 }
+
+

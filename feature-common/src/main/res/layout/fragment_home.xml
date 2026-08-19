@@ -64,7 +64,7 @@
                 android:textColor="?attr/colorPrimary"
                 app:cornerRadius="18dp" />
 
-            <!-- 批量屏蔽入口（FEATURE） -->
+            <!-- 批量屏蔽入口（FEATURE）-->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_batch"
                 style="@style/Widget.Material3.Button.OutlinedButton"
@@ -160,21 +160,15 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Centered progress indicator -->
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:background="@drawable/bg_loading_circle"
-        android:elevation="6dp"
-        android:indeterminate="true"
-        android:indeterminateTint="?attr/colorPrimary"
-        android:padding="8dp"
+    <!-- Skeleton loading -->
+    <include
+        android:id="@+id/skeleton_view"
+        layout="@layout/layout_skeleton_home"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/swipe_refresh" />
+        app:layout_constraintTop_toBottomOf="@+id/header_layout"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <!-- Empty state -->
     <TextView
@@ -202,3 +196,4 @@
         app:layout_constraintTop_toTopOf="@+id/swipe_refresh" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

@@ -36,6 +36,7 @@ import com.pawchive.core.error.ErrorMessageHelper
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.pawchive.ui.widget.SkeletonHelper
 
 @AndroidEntryPoint
 class CreatorProfileFragment : Fragment() {
@@ -140,7 +141,11 @@ class CreatorProfileFragment : Fragment() {
     }
 
     private fun renderCreatorState(state: CreatorProfileUiState) {
-        binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+        if (state.isLoading && state.posts.isEmpty()) {
+            SkeletonHelper.show(binding.skeletonView.root, binding.rvCreatorPosts)
+        } else if (binding.skeletonView.root.visibility == View.VISIBLE) {
+            SkeletonHelper.hide(binding.skeletonView.root, binding.rvCreatorPosts)
+        }
 
         if (state.errorMessage != null && state.posts.isEmpty()) {
             Toast.makeText(
@@ -563,3 +568,5 @@ class CreatorProfileFragment : Fragment() {
         }
     }
 }
+
+

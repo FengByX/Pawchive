@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 返回按钮 -->
+        <View
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/skeleton_shape_circle" />
+
+        <!-- 头像 -->
+        <View
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/skeleton_shape_circle" />
+
+        <!-- 创作者名 -->
+        <View
+            android:layout_width="160dp"
+            android:layout_height="18dp"
+            android:layout_marginTop="12dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <!-- 服务标签 -->
+        <View
+            android:layout_width="60dp"
+            android:layout_height="14dp"
+            android:layout_marginTop="8dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/skeleton_shape_badge" />
+
+        <!-- 操作按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <View
+                android:layout_width="100dp"
+                android:layout_height="36dp"
+                android:background="@drawable/skeleton_shape_rounded" />
+
+            <View
+                android:layout_width="100dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/skeleton_shape_rounded" />
+        </LinearLayout>
+
+        <!-- 帖子列表 -->
+        <include layout="@layout/item_skeleton_post"
+            android:layout_marginTop="16dp" />
+        <include layout="@layout/item_skeleton_post" />
+        <include layout="@layout/item_skeleton_post" />
+
+    </LinearLayout>
+</ScrollView>

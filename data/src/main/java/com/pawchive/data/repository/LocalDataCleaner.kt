@@ -1,7 +1,6 @@
 package com.pawchive.data.repository
 
 import android.content.Context
-import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,14 +42,10 @@ class LocalDataCleaner @Inject constructor(
             downloadHistoryManager.clearAllForAccountSwitch()
         }
 
-        // 取消所有下载任务
-        runCatching {
-            WorkManager.getInstance(context).cancelAllWorkByTag(DownloadCenter.WORK_TAG)
-        }
-
         // 清除缓存（ARCH-010：统一走 CacheRepository 入口，覆盖 Coil/API 内存缓存等）
         runCatching {
             cacheRepository.clearCache()
         }
     }
 }
+
