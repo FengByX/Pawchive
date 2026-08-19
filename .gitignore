@@ -26,3 +26,6 @@ _lck_fix.txt
 _native.txt
 _proc_diag.txt
 .workbuddy/
+
+.uploads/
+app/release/
