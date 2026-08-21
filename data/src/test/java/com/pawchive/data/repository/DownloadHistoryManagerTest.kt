@@ -181,7 +181,7 @@ class DownloadHistoryManagerTest {
     }
 
     @Test
-    fun `init preserves WorkManager pending and running records`() {
+    fun `init marks pending and running records as failed on startup`() {
         // 先直接写入模拟"上次未完成"的任务
         runBlocking {
             dao.upsert(makeRecord("running", status = DownloadStatus.RUNNING, progress = 30))
@@ -189,14 +189,16 @@ class DownloadHistoryManagerTest {
             dao.upsert(makeRecord("done", status = DownloadStatus.COMPLETED, progress = 100))
         }
         val manager = DownloadHistoryManager(context, dao)
+        // init 会将 PENDING/RUNNING 标记为 FAILED（应用重启后下载任务已中断），
+        // COMPLETED 记录保持不变。
         val records = awaitRecords(manager) { records ->
             val byId = records.associateBy { it.id }
-            byId["running"]?.status == DownloadStatus.RUNNING &&
-                byId["pending"]?.status == DownloadStatus.PENDING &&
+            byId["running"]?.status == DownloadStatus.FAILED &&
+                byId["pending"]?.status == DownloadStatus.FAILED &&
                 byId["done"]?.status == DownloadStatus.COMPLETED
         }
-        assertEquals(DownloadStatus.RUNNING, records.first { it.id == "running" }.status)
-        assertEquals(DownloadStatus.PENDING, records.first { it.id == "pending" }.status)
+        assertEquals(DownloadStatus.FAILED, records.first { it.id == "running" }.status)
+        assertEquals(DownloadStatus.FAILED, records.first { it.id == "pending" }.status)
         assertEquals(DownloadStatus.COMPLETED, records.first { it.id == "done" }.status)
     }
 
