@@ -19,6 +19,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/FengByX/Pawchive/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/FengByX/Pawchive/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI Status" />
+  </a>
   <a href="https://github.com/FengByX/Pawchive/releases">
     <img src="https://img.shields.io/badge/下载-Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="Download" />
   </a>
@@ -26,6 +29,21 @@
     <img src="https://img.shields.io/badge/Telegram-PawchiveX-229ED9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Channel" />
   </a>
 </p>
+
+---
+
+## 📖 目录
+
+- [功能亮点](#-功能亮点)
+- [技术架构](#-技术架构)
+- [核心技术亮点](#-核心技术亮点)
+- [项目结构](#-项目结构)
+- [快速开始](#-快速开始)
+- [权限说明](#-权限说明)
+- [应用截图](#-应用截图)
+- [版本更新](#-版本更新)
+- [贡献指南](#-贡献指南)
+- [开源协议](#-开源协议)
 
 ---
 
@@ -48,22 +66,22 @@
 - **多域名回退**：缩略图 / 原图 / 下载域名三级自动降级（`img.pawchive.pw` → `file.pawchive.pw`）
 
 ### ⭐ 收藏与账号
-- 多账号切换，独立收藏/历史/下载数据隔离
-- 收藏帖离线归档（Room FTS4）：断网可检索与阅读收藏内容
+- **多账号切换**：独立收藏 / 历史 / 下载数据隔离
+- **收藏帖离线归档**：基于 Room FTS4，断网可检索与阅读收藏内容
 - **账号云端收藏**：登录后同步收藏的帖子与创作者
 - **本地离线收藏**：无需登录也可本地管理收藏
 - **账号管理**：登录、登出，注册通过 Chrome Custom Tabs 跳转官方页面
 
 ### 📥 下载中心
 - **okdownload 断点续传引擎**：网络中断后自动从断点恢复，无需重新下载
-- **进度通知**：通知栏实时展示下载进度（每 5% 更新），完成/失败状态反馈
+- **进度通知**：通知栏实时展示下载进度（每 5% 更新），完成 / 失败状态反馈
 - **后台持续下载**：应用切后台不中断下载
 - **下载规则**：按创作者 / 服务 / 文件类型设置自动下载规则，帖子详情页一键批量入队
 - **历史管理**：支持取消、重试、清除下载记录
 
 ### ⚙️ 个性化设置
 - **多语言**：中文 / English / 日本語，实时切换
-- **外观模式**：日间 / 夜间 / 跟随系统，Material Design 3 主题
+- **外观模式**：日间 / 夜间 / 跟随系统，Material Design 3 主题，7 套配色可选
 - **下载管理**：自定义下载目录（SAF），缓存查看与清理
 - **内容更新订阅**：订阅创作者后周期检测新帖，站内未读徽标 + 更新列表
 - **首页过滤已收藏作者**：设置开关隐藏已收藏创作者的帖子，首页聚焦发现新内容
@@ -98,7 +116,7 @@
 ## 🌟 核心技术亮点
 
 ### 1. okdownload 断点续传下载引擎
-集成了 [lingochamp/okdownload](https://github.com/lingochamp/okdownload) 1.0.7 作为下载核心，替代了之前基于 WorkManager + 手动 OkHttp 的方案：
+集成 [lingochamp/okdownload](https://github.com/lingochamp/okdownload) 1.0.7 作为下载核心，替代了之前基于 WorkManager + 手动 OkHttp 的方案：
 - **断点续传**：网络中断后自动从断点恢复，无需重新下载
 - **协程驱动**：直接在 CoroutineScope 中执行下载，无需 WorkManager 初始化、HiltWorkerFactory 注入等复杂链路
 - **Cloudflare 凭据注入**：复用项目的 `sharedOkHttpClient`，自动携带 cf_clearance / User-Agent
@@ -109,7 +127,7 @@
 ### 3. 智能拦截器链
 - **主域注入**：仅对 `pawchive.pw` 主域注入 `cf_clearance` / `Referer`；图片 CDN 子域不注入，避免触发防盗链
 - **非阻塞 403 兜底**：403 时拦截器仅触发过盾预热并返回 403；请求发出前由调用层统一预过盾，403 自动强制刷新重试一次
-- **双 OkHttpClient**：`sharedOkHttpClient`（带 CF 拦截器，用于 API/图片/视频）与 `imageOkHttpClient`（轻量级，用于无需过盾的场景）
+- **双 OkHttpClient**：`sharedOkHttpClient`（带 CF 拦截器，用于 API / 图片 / 视频）与 `imageOkHttpClient`（轻量级，用于无需过盾的场景）
 
 ### 4. 单 Activity + 模块化导航
 - 主界面 Tab Fragment 缓存复用，切换不重建、状态保留
@@ -128,7 +146,7 @@
 ```
 Pawchive/
 ├── app/                          # 装配层：Application / MainActivity / 导航实现
-├── feature-common/               # 共享 UI：SkeletonHelper / adapter / ZoomableImageView
+├── feature-common/               # 共享 UI：SkeletonHelper / Adapter / ZoomableImageView
 ├── feature-home/                 # 首页
 ├── feature-search/               # 搜索
 ├── feature-post/                 # 帖子详情 / 图片查看 / 全屏视频
@@ -137,7 +155,7 @@ Pawchive/
 ├── feature-account/              # 账号 / 登录 / 收藏 / 创作者主页
 ├── data/                         # 业务层：OkDownloadManager / DownloadCenter / Repository
 ├── core/                         # 基础设施：网络 / 错误 / 模型 / Room / 安全存储
-└── gradle/libs.versions.toml     # 版本目录
+└── gradle/libs.versions.toml    # 版本目录
 ```
 
 **依赖方向**：`:app` → `:feature-*` → `:data` → `:core`
@@ -165,8 +183,14 @@ cd Pawchive
 ### 质量门禁
 
 ```powershell
+# Windows
 .\quality-check.ps1          # 单测 → lint → 覆盖率 → 依赖扫描
 .\quality-check.ps1 --fast   # 仅单测 + lint
+```
+
+```bash
+# macOS / Linux
+./gradlew testDebugUnitTest lintDebug
 ```
 
 ### 安装
@@ -186,7 +210,9 @@ cd Pawchive
 
 ---
 
-## 📸 截图
+## 📸 应用截图
+
+> 截图待补充。欢迎提交 PR 贡献应用截图。
 
 | 首页 | 搜索 | 创作者 |
 |------|------|--------|
@@ -205,14 +231,18 @@ cd Pawchive
 - 语义化版本号比较（支持预发布后缀）
 - 发现新版本时弹出 Material 对话框，Markdown 渲染更新日志
 
+完整更新日志请查看 [Releases](https://github.com/FengByX/Pawchive/releases) 页面。
+
 ---
 
-## 🤝 贡献
+## 🤝 贡献指南
 
-欢迎提交 Issue 和 Pull Request。提交前请确保：
+欢迎提交 Issue 和 Pull Request！提交前请确保：
+
 1. 代码风格与现有代码保持一致
-2. 新增功能适配三种语言字符串资源
+2. 新增功能适配三种语言字符串资源（中 / 英 / 日）
 3. 遵循 Material Design 3 设计规范
+4. 通过 CI 质量门禁（单元测试 + Lint）
 
 ---
 
