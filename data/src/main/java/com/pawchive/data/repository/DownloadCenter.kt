@@ -210,6 +210,8 @@ class DownloadCenter @Inject constructor(
     /** 重试下载任务。 */
     suspend fun retry(id: String): String? {
         val record = historyManager.getRecord(id) ?: return null
+        // 重试前清除可能损坏的 okdownload 断点，避免 offset 不匹配错误
+        okDownloadManager.clearBreakpoint(record.url)
         historyManager.updateStatus(id, DownloadStatus.PENDING, progress = 0, errorMessage = null)
         cancelRequests.remove(id)
         launchDownload(record)
