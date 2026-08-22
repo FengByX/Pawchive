@@ -921,12 +921,20 @@ class PostDetailFragment : Fragment() {
                             videoPlayerManager.updateCurrentPosition()
                             val currentPos = videoPlayerManager.currentPosition
                             val bufferedPos = videoPlayerManager.player?.bufferedPosition ?: 0
-
-                            val currentPosInt = if (currentPos > Int.MAX_VALUE) Int.MAX_VALUE else currentPos.toInt()
-                            val bufferedPosInt = if (bufferedPos > Int.MAX_VALUE) Int.MAX_VALUE else bufferedPos.toInt()
-                            binding.seekbarVideo.progress = currentPosInt
-                            binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
-                            binding.seekbarVideo.secondaryProgress = bufferedPosInt
+                            val dur = videoPlayerManager.duration
+                            // 兜底：duration 可能在 STATE_READY 之后才就绪，延迟更新 max
+                            if (dur > 0 && binding.seekbarVideo.max == 0) {
+                                binding.seekbarVideo.max = dur.toInt()
+                                binding.tvDuration.text = videoPlayerManager.formatTime(dur)
+                            }
+                            // 仅在 max 就绪后才设置 progress，避免 currentPos > max 导致滑块跳到最右端
+                            if (binding.seekbarVideo.max > 0) {
+                                val currentPosInt = currentPos.toInt().coerceIn(0, binding.seekbarVideo.max)
+                                val bufferedPosInt = bufferedPos.toInt().coerceIn(0, binding.seekbarVideo.max)
+                                binding.seekbarVideo.progress = currentPosInt
+                                binding.tvCurrentTime.text = videoPlayerManager.formatTime(currentPos)
+                                binding.seekbarVideo.secondaryProgress = bufferedPosInt
+                            }
                         }
                     }
                     kotlinx.coroutines.delay(200)
@@ -1025,6 +1033,13 @@ class PostDetailFragment : Fragment() {
         binding.videoPlayButton.visibility = View.GONE
         binding.tvVideoName.text = fileName
         binding.tvVideoCount.text = "${index + 1}/${videoList.size}"
+
+        // 重置进度条状态，避免上一个视频的 max/progress 残留导致滑块跳到最右端
+        binding.seekbarVideo.max = 0
+        binding.seekbarVideo.progress = 0
+        binding.seekbarVideo.secondaryProgress = 0
+        binding.tvCurrentTime.text = "00:00"
+        binding.tvDuration.text = "00:00"
 
         videoPlayerManager.attachPlayerView(binding.playerView)
         videoPlayerManager.play(url)
