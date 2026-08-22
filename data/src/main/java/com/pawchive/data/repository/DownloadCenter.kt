@@ -163,14 +163,10 @@ class DownloadCenter @Inject constructor(
             // 使用 okdownload 下载
             var lastReported = -1
             val totalRead = okDownloadManager.download(url, os) { currentBytes, totalBytes ->
-                if (cancelRequests.containsKey(recordId)) {
-                    throw InterruptedException("Download cancelled")
-                }
                 if (totalBytes > 0) {
                     val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
                     if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
                         lastReported = percent
-                        // 注意：不能在回调中调用 suspend 函数，只更新 UI 进度
                         Log.d(TAG, "Download progress: $recordId $percent%")
                     }
                 }
@@ -186,9 +182,8 @@ class DownloadCenter @Inject constructor(
                 fileSize = totalRead
             )
             Log.i(TAG, "executeDownload SUCCESS: record=$recordId size=$totalRead")
-        } catch (e: Exception) {
+        } finally {
             os.close()
-            throw e
         }
     }
 
@@ -208,6 +203,7 @@ class DownloadCenter @Inject constructor(
         val record = historyManager.getRecord(id) ?: return
         val key = record.dedupKey ?: return
         activeDownloads.remove(key)
+        okDownloadManager.cancel(record.url)
         Log.i(TAG, "cancel: record=$id")
     }
 
