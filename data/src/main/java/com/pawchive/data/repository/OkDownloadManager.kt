@@ -46,6 +46,30 @@ class OkDownloadManager @Inject constructor(
         }
     }
 
+    /**
+     * 清除指定 URL 对应的 okdownload 断点记录。
+     * 下载失败/取消后必须调用，否则重试时旧断点与已删除的临时文件不匹配，
+     * 会抛出 "The current offset on block-info isn't update correct" 错误。
+     */
+    private fun clearBreakpoint(task: DownloadTask) {
+        try {
+            OkDownload.with().breakpointStore().remove(task.id)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clear breakpoint for task ${task.id}", e)
+        }
+    }
+
+    /** 按 URL 清除断点（供外部重试前调用）。 */
+    fun clearBreakpoint(url: String) {
+        init()
+        val tempDir = File(context.cacheDir, "okdownload")
+        val fileName = "dl_${url.hashCode()}.tmp"
+        val task = DownloadTask.Builder(url, tempDir)
+            .setFilename(fileName)
+            .build()
+        clearBreakpoint(task)
+    }
+
     suspend fun download(
         url: String,
         outputStream: OutputStream,
@@ -71,6 +95,7 @@ class OkDownloadManager @Inject constructor(
                 runningTasks.remove(url)
                 task.cancel()
                 File(tempDir, fileName).delete()
+                clearBreakpoint(task)
             }
 
             task.enqueue(object : DownloadListener {
@@ -99,16 +124,19 @@ class OkDownloadManager @Inject constructor(
                                 f.inputStream().use { it.copyTo(outputStream) }
                                 val bytes = f.length()
                                 f.delete()
+                                clearBreakpoint(task)
                                 cont.resume(bytes)
                             } else {
                                 cont.resumeWithException(Exception("File not found after download"))
                             }
                         } catch (e: Exception) {
                             task.file?.delete()
+                            clearBreakpoint(task)
                             cont.resumeWithException(e)
                         }
                     } else {
                         task.file?.delete()
+                        clearBreakpoint(task)
                         cont.resumeWithException(realCause ?: Exception("Download failed: $cause"))
                     }
                 }
@@ -121,6 +149,7 @@ class OkDownloadManager @Inject constructor(
         val tempDir = File(context.cacheDir, "okdownload")
         val fileName = "dl_${url.hashCode()}.tmp"
         File(tempDir, fileName).delete()
+        clearBreakpoint(url)
     }
 }
 
