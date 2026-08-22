@@ -184,7 +184,7 @@ class PostDetailFragment : Fragment() {
             readingProgressManager.saveReadingScroll(postId, binding.nestedScrollView.scrollY)
         }
         videoPlayerManager.savePlaybackState()
-        videoPlayerManager.release()
+        videoPlayerManager.pause()
     }
 
     override fun onDestroyView() {
@@ -998,7 +998,7 @@ class PostDetailFragment : Fragment() {
      * - 文件写入仍走 DownloadRepository（优先 SAF，回退 MediaStore）。
      */
     private fun enqueueVideoDownload(url: String, fileName: String) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
                 downloadCenter.enqueueVideoDownload(url, fileName, "video/mp4")
             }.onFailure { e ->
