@@ -88,6 +88,11 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
     override fun onCreate() {
         super.onCreate() // Hilt 在此完成字段注入
 
+        // 尽早应用深色/浅色模式：必须在任何 Activity 创建之前设置，
+        // 否则 MainActivity 及其 ViewPager2 Fragment 可能用旧配置实例化，
+        // 导致重启后部分页面仍为浅色（卡片/列表手动检查 uiMode 时读到错误值）。
+        settingsManager.applyAppearance()
+
         // 显式初始化 WorkManager，确保 HiltWorkerFactory 已就绪
         // 解决 Configuration.Provider 延迟初始化与 Hilt 注入的时序竞态
         WorkManager.initialize(this, workManagerConfiguration)
