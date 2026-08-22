@@ -18,6 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Singleton
@@ -27,6 +28,7 @@ class OkDownloadManager @Inject constructor(
     companion object {
         private const val TAG = "OkDownloadManager"
         @Volatile private var initialized = false
+        private const val MAX_RETRY = 3
     }
 
     // 正在运行的下载任务（url -> task），用于外部取消
@@ -70,12 +72,53 @@ class OkDownloadManager @Inject constructor(
         clearBreakpoint(task)
     }
 
+    /**
+     * 下载入口，带自动重试。
+     * 处理 okdownload 的两类可恢复错误：
+     * - SAME_TASK_BUSY：上一个任务未从内部调度器清理，快速重试时冲突
+     * - Update store failed：断点数据库写入失败，需清断点后重试
+     */
     suspend fun download(
         url: String,
         outputStream: OutputStream,
         onProgress: (currentBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Long {
         init()
+
+        var lastError: Exception? = null
+        for (attempt in 1..MAX_RETRY) {
+            // 每次尝试前取消可能残留的旧任务并清断点
+            runningTasks.remove(url)?.cancel()
+            clearBreakpoint(url)
+
+            if (attempt > 1) {
+                Log.w(TAG, "Retry attempt $attempt for $url (last error: ${lastError?.message})")
+                delay(300L * attempt)
+            }
+
+            try {
+                return doDownload(url, outputStream, onProgress)
+            } catch (e: Exception) {
+                lastError = e
+                val msg = e.message ?: ""
+                val recoverable = msg.contains("SAME_TASK_BUSY", true) ||
+                    msg.contains("Update store failed", true) ||
+                    msg.contains("block-info", true)
+                if (!recoverable || attempt == MAX_RETRY) {
+                    throw e
+                }
+                // 可恢复错误，继续循环重试
+            }
+        }
+        throw lastError ?: Exception("Download failed after $MAX_RETRY attempts")
+    }
+
+    /** 单次下载执行（不含重试逻辑）。 */
+    private suspend fun doDownload(
+        url: String,
+        outputStream: OutputStream,
+        onProgress: (currentBytes: Long, totalBytes: Long) -> Unit
+    ): Long {
         val tempDir = File(context.cacheDir, "okdownload")
         if (!tempDir.exists()) tempDir.mkdirs()
         val fileName = "dl_${url.hashCode()}.tmp"
@@ -98,49 +141,58 @@ class OkDownloadManager @Inject constructor(
                 clearBreakpoint(task)
             }
 
-            task.enqueue(object : DownloadListener {
-                override fun taskStart(task: DownloadTask) {}
-                override fun connectTrialStart(task: DownloadTask, h: MutableMap<String, MutableList<String>>) {}
-                override fun connectTrialEnd(task: DownloadTask, code: Int, h: MutableMap<String, MutableList<String>>) {}
-                override fun downloadFromBeginning(task: DownloadTask, info: BreakpointInfo, cause: ResumeFailedCause) {}
-                override fun downloadFromBreakpoint(task: DownloadTask, info: BreakpointInfo) {}
-                override fun connectStart(task: DownloadTask, blockIndex: Int, h: MutableMap<String, MutableList<String>>) {}
-                override fun connectEnd(task: DownloadTask, blockIndex: Int, code: Int, h: MutableMap<String, MutableList<String>>) {}
-                override fun fetchStart(task: DownloadTask, blockIndex: Int, contentLength: Long) {}
-                override fun fetchProgress(task: DownloadTask, blockIndex: Int, increaseBytes: Long) {
-                    val current = task.file?.length() ?: 0L
-                    val total = task.info?.totalLength ?: 0L
-                    onProgress(current, total)
-                }
-                override fun fetchEnd(task: DownloadTask, blockIndex: Int, contentLength: Long) {}
-                override fun taskEnd(task: DownloadTask, cause: EndCause, realCause: Exception?) {
-                    runningTasks.remove(url)
-                    if (resumed) return
-                    resumed = true
-                    if (cause == EndCause.COMPLETED) {
-                        try {
-                            val f = task.file
-                            if (f != null && f.exists()) {
-                                f.inputStream().use { it.copyTo(outputStream) }
-                                val bytes = f.length()
-                                f.delete()
+            try {
+                task.enqueue(object : DownloadListener {
+                    override fun taskStart(task: DownloadTask) {}
+                    override fun connectTrialStart(task: DownloadTask, h: MutableMap<String, MutableList<String>>) {}
+                    override fun connectTrialEnd(task: DownloadTask, code: Int, h: MutableMap<String, MutableList<String>>) {}
+                    override fun downloadFromBeginning(task: DownloadTask, info: BreakpointInfo, cause: ResumeFailedCause) {}
+                    override fun downloadFromBreakpoint(task: DownloadTask, info: BreakpointInfo) {}
+                    override fun connectStart(task: DownloadTask, blockIndex: Int, h: MutableMap<String, MutableList<String>>) {}
+                    override fun connectEnd(task: DownloadTask, blockIndex: Int, code: Int, h: MutableMap<String, MutableList<String>>) {}
+                    override fun fetchStart(task: DownloadTask, blockIndex: Int, contentLength: Long) {}
+                    override fun fetchProgress(task: DownloadTask, blockIndex: Int, increaseBytes: Long) {
+                        val current = task.file?.length() ?: 0L
+                        val total = task.info?.totalLength ?: 0L
+                        onProgress(current, total)
+                    }
+                    override fun fetchEnd(task: DownloadTask, blockIndex: Int, contentLength: Long) {}
+                    override fun taskEnd(task: DownloadTask, cause: EndCause, realCause: Exception?) {
+                        runningTasks.remove(url)
+                        if (resumed) return
+                        resumed = true
+                        if (cause == EndCause.COMPLETED) {
+                            try {
+                                val f = task.file
+                                if (f != null && f.exists()) {
+                                    f.inputStream().use { it.copyTo(outputStream) }
+                                    val bytes = f.length()
+                                    f.delete()
+                                    clearBreakpoint(task)
+                                    cont.resume(bytes)
+                                } else {
+                                    cont.resumeWithException(Exception("File not found after download"))
+                                }
+                            } catch (e: Exception) {
+                                task.file?.delete()
                                 clearBreakpoint(task)
-                                cont.resume(bytes)
-                            } else {
-                                cont.resumeWithException(Exception("File not found after download"))
+                                cont.resumeWithException(e)
                             }
-                        } catch (e: Exception) {
+                        } else {
                             task.file?.delete()
                             clearBreakpoint(task)
-                            cont.resumeWithException(e)
+                            cont.resumeWithException(realCause ?: Exception("Download failed: $cause"))
                         }
-                    } else {
-                        task.file?.delete()
-                        clearBreakpoint(task)
-                        cont.resumeWithException(realCause ?: Exception("Download failed: $cause"))
                     }
+                })
+            } catch (e: Exception) {
+                // enqueue 同步抛出异常（如 SAME_TASK_BUSY）
+                runningTasks.remove(url)
+                if (!resumed) {
+                    resumed = true
+                    cont.resumeWithException(e)
                 }
-            })
+            }
         }
     }
 
@@ -152,4 +204,3 @@ class OkDownloadManager @Inject constructor(
         clearBreakpoint(url)
     }
 }
-
