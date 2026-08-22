@@ -13,11 +13,12 @@ import com.pawchive.core.api.ApiClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.OutputStream
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Singleton
 class OkDownloadManager @Inject constructor(
@@ -27,6 +28,9 @@ class OkDownloadManager @Inject constructor(
         private const val TAG = "OkDownloadManager"
         @Volatile private var initialized = false
     }
+
+    // 正在运行的下载任务（url -> task），用于外部取消
+    private val runningTasks = ConcurrentHashMap<String, DownloadTask>()
 
     fun init() {
         if (initialized) return
@@ -52,7 +56,7 @@ class OkDownloadManager @Inject constructor(
         if (!tempDir.exists()) tempDir.mkdirs()
         val fileName = "dl_${url.hashCode()}.tmp"
 
-        return suspendCoroutine { cont ->
+        return suspendCancellableCoroutine { cont ->
             var resumed = false
             val task = DownloadTask.Builder(url, tempDir)
                 .setFilename(fileName)
@@ -60,6 +64,14 @@ class OkDownloadManager @Inject constructor(
                 .setPassIfAlreadyCompleted(false)
                 .setAutoCallbackToUIThread(false)
                 .build()
+
+            runningTasks[url] = task
+
+            cont.invokeOnCancellation {
+                runningTasks.remove(url)
+                task.cancel()
+                File(tempDir, fileName).delete()
+            }
 
             task.enqueue(object : DownloadListener {
                 override fun taskStart(task: DownloadTask) {}
@@ -77,6 +89,7 @@ class OkDownloadManager @Inject constructor(
                 }
                 override fun fetchEnd(task: DownloadTask, blockIndex: Int, contentLength: Long) {}
                 override fun taskEnd(task: DownloadTask, cause: EndCause, realCause: Exception?) {
+                    runningTasks.remove(url)
                     if (resumed) return
                     resumed = true
                     if (cause == EndCause.COMPLETED) {
@@ -104,9 +117,9 @@ class OkDownloadManager @Inject constructor(
     }
 
     fun cancel(url: String) {
+        runningTasks.remove(url)?.cancel()
         val tempDir = File(context.cacheDir, "okdownload")
         val fileName = "dl_${url.hashCode()}.tmp"
-        DownloadTask.Builder(url, tempDir).setFilename(fileName).build().cancel()
         File(tempDir, fileName).delete()
     }
 }
