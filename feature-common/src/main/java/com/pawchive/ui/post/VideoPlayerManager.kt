@@ -102,6 +102,8 @@ class VideoPlayerManager(private val context: Context) {
             player = null
             // 清空 PlayerView 引用，避免残留 player
             playerView?.player = null
+            playerView = null
+            listener = null
             isPlaying = false
             currentPosition = 0
             duration = 0
