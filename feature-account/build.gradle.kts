@@ -48,7 +48,7 @@ dependencies {
     implementation(libs.coil)
 
     // Chrome Custom Tabs - 注册页
-    implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.browser:browser:1.10.0")
 
     // SwipeRefreshLayout - 收藏页下拉刷新
     implementation(libs.androidx.swiperefreshlayout)

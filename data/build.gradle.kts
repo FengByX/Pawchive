@@ -55,7 +55,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     // Chrome Custom Tabs - UpdateChecker 打开下载页
-    implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.browser:browser:1.10.0")
 
     // Jetpack DataStore - BookmarkManager/SearchHistoryManager/BlockedCreatorManager 等持久化
     implementation("androidx.datastore:datastore-preferences:1.1.1")
