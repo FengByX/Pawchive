@@ -52,9 +52,9 @@ dependencies {
     implementation(libs.coil)
 
     // Media3 - 视频播放（PlayerView/ExoPlayer/UnstableApi）
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    implementation("androidx.media3:media3-ui:1.4.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.0")
+    implementation("androidx.media3:media3-ui:1.11.0")
+    implementation("androidx.media3:media3-datasource-okhttp:1.11.0")
 
     // SwipeRefreshLayout - 详情页下拉刷新
     implementation(libs.androidx.swiperefreshlayout)
