@@ -77,7 +77,7 @@ dependencies {
     ksp(libs.hilt.work.compiler)
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

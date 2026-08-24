@@ -60,7 +60,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     // Coroutines（CloudflareManager 使用 Dispatchers.Main）
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
