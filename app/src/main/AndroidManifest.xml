@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 网络状态检测（NetworkUtils.isNetworkAvailable，lint MissingPermission 修复） -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"
+        android:maxSdkVersion="32" />
+    <!-- WorkManager 视频下载前台通知（Android 13+ 需运行时申请） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 前台服务：视频下载需要在后台存活完成下载 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <application
+        android:name=".PawchiveApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Pawchive">
+
+        <!-- ARCH-007：AppCompat 自动持久化应用语言并在 attachBaseContext 自动应用
+             （配合 AppCompatDelegate.setApplicationLocales） -->
+        <meta-data
+            android:name="autoStoreLocales"
+            android:value="true" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Pawchive"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 禁用 WorkManager 默认初始化器：改由 HiltWorkerFactory 在 Application 中配置（ARCH-003） -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!-- WorkManager 前台服务（Android 12+ FGS type 约束）：
+             SystemForegroundService 会调用 startForeground(..., FOREGROUND_SERVICE_TYPE_DATA_SYNC)，
+             manifest 必须声明匹配的 foregroundServiceType，否则抛
+             "foregroundServiceType is not a subset of ... attribute 0x00000000" IllegalArgumentException。
+             使用 tools:node="merge" 与 WorkManager 库自身的声明合并，避免覆盖其 enabled/exported 等属性。 -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
+    </application>
+
+</manifest>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 返回按钮占位 -->
+        <View
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/skeleton_shape_circle" />
+
+        <!-- 标题 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <View
+            android:layout_width="240dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <!-- 创作者信息 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <View
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/skeleton_shape_circle" />
+
+            <View
+                android:layout_width="120dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/skeleton_shape_rounded" />
+        </LinearLayout>
+
+        <!-- 主图占位 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <!-- 内容文本 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <View
+            android:layout_width="160dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <!-- 附件区域占位 -->
+        <View
+            android:layout_width="100dp"
+            android:layout_height="14dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/skeleton_shape_rounded" />
+
+    </LinearLayout>
+</ScrollView>

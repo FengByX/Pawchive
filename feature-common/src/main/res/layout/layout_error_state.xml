@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    可复用错误状态视图（FEATURE-006）。
+    用法：通过 <include> 引入，在代码中调用 bindErrorState(view, message, onRetry)。
+    默认 visibility=gone，仅在出现错误且列表为空时展示。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layout_error_state"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:visibility="gone">
+
+    <ImageView
+        android:id="@+id/iv_error_icon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/ic_retry"
+        android:alpha="0.5"
+        app:tint="?attr/colorTextMuted"
+        android:contentDescription="@string/error_load_failed" />
+
+    <TextView
+        android:id="@+id/tv_error_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/error_load_failed"
+        android:textColor="?attr/colorTextSecondary"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:maxWidth="280dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_retry"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:minHeight="48dp"
+        android:text="@string/error_retry"
+        android:textSize="14sp"
+        app:icon="@drawable/ic_retry"
+        app:iconSize="18dp" />
+
+</LinearLayout>

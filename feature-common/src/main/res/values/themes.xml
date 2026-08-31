@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Rounded thumbnail shape for post list items (ARCH-002 阶段 4：从 app 迁至共享模块) -->
+    <style name="ShapeAppearance.Pawchive.Thumbnail" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+</resources>
