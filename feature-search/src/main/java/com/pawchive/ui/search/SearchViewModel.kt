@@ -89,6 +89,9 @@ class SearchViewModel @Inject constructor(
     // 创作者全量缓存：一次性加载，后续本地过滤使用
     private var allCreatorsCache: List<Creator> = emptyList()
 
+    // 缓存加载是否失败（用于区分"无结果"和"加载失败"）
+    private var creatorsCacheLoadFailed: Boolean = false
+
     // 缓存未就绪时用户输入的创作者搜索关键词，缓存加载完后自动重过滤
     private var pendingCreatorQuery: String? = null
 
@@ -161,20 +164,16 @@ class SearchViewModel @Inject constructor(
             val result = ApiCallHandler.runCatchingDirect { api.getCreators() }
             result.onSuccess { creators ->
                 allCreatorsCache = creators
+                creatorsCacheLoadFailed = false
             }.onFailure {
-                // 静默降级：创作者搜索不可用不影响帖子搜索
+                allCreatorsCache = emptyList()
+                creatorsCacheLoadFailed = true
             }
             _uiState.value = _uiState.value.copy(creatorsCacheLoaded = true)
             // 加载完成后，若有等待中的查询立即执行
             pendingCreatorQuery?.let { query ->
                 pendingCreatorQuery = null
                 filterCreatorsLocal(query)
-            }
-            // 如果当前有创作者搜索结果（缓存刷新后需要重新过滤）
-            val lastQuery = pendingCreatorQuery
-            if (lastQuery == null && _uiState.value.creatorResults.isNotEmpty()) {
-                // 用户已有搜索结果，刷新后重过滤一次
-                // 但需要 query —— 这里不做，由 Fragment 在需要时调 filterCreatorsLocal
             }
         }
     }
@@ -183,6 +182,7 @@ class SearchViewModel @Inject constructor(
      * 本地过滤创作者。
      * - 缓存已就绪：立即过滤并返回 true
      * - 缓存未就绪：记住 query 等待缓存加载完自动重过滤，返回 false
+     * - 缓存加载失败：显示错误提示，引导用户下拉刷新重试
      */
     fun filterCreatorsLocal(query: String): Boolean {
         if (!_uiState.value.creatorsCacheLoaded) {
@@ -190,17 +190,24 @@ class SearchViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             return false
         }
+        if (creatorsCacheLoadFailed) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = getApplication<Application>().getString(
+                    com.pawchive.common.R.string.creator_cache_load_failed
+                )
+            )
+            return true
+        }
         val filtered = allCreatorsCache.filter {
             (it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true))
                     && !blockedCreatorManager.isCreatorBlocked(it.service, it.id)
         }
         applyCreatorSort(filtered)
-        if (filtered.isEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                emptyHintResId = com.pawchive.common.R.string.no_creators_found
-            )
-        }
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            emptyHintResId = if (filtered.isEmpty()) com.pawchive.common.R.string.no_creators_found else null
+        )
         return true
     }
 

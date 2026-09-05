@@ -157,17 +157,17 @@ class SearchFragment : Fragment() {
                     if (state.isLoading && state.postResults.isEmpty() && state.creatorResults.isEmpty()) { SkeletonHelper.show(binding.skeletonView.root, binding.contentContainer) } else if (binding.skeletonView.root.visibility == View.VISIBLE) { SkeletonHelper.hide(binding.skeletonView.root, binding.contentContainer) }
                     binding.swipeRefresh.isRefreshing = state.isLoading
 
-                    // 空结果提示
-                    if (state.emptyHintResId != null) {
+                    // 空结果提示：有结果时一律隐藏，防止 emptyHintResId 残留导致空提示层叠加
+                    val hasResults = state.postResults.isNotEmpty() || state.creatorResults.isNotEmpty()
+                    if (hasResults) {
+                        binding.tvNoResults.visibility = View.GONE
+                    } else if (state.emptyHintResId != null) {
                         binding.tvEmptyText.text = getString(state.emptyHintResId)
                         binding.tvNoResults.visibility = View.VISIBLE
-                    } else if (state.postResults.isNotEmpty() || state.creatorResults.isNotEmpty()) {
-                        binding.tvNoResults.visibility = View.GONE
                     }
 
                     // 错误提示（FEATURE-006）：列表为空时展示内嵌错误页，有结果时仅 Toast 提示
                     state.errorMessage?.let { msg ->
-                        val hasResults = state.postResults.isNotEmpty() || state.creatorResults.isNotEmpty()
                         if (!hasResults) {
                             // 列表为空：展示内嵌错误页，提供重试入口
                             binding.tvNoResults.visibility = View.GONE
@@ -217,6 +217,12 @@ class SearchFragment : Fragment() {
             onCreatorLongClicked = {
                 // 只有创作者 Tab 支持多选屏蔽
                 if (!isSearchingPosts) enterSelectionMode()
+            },
+            onSelectionChanged = {
+                // 选中状态变化时刷新 ActionBar（计数/按钮状态）
+                if (creatorAdapter.isInSelectionMode()) {
+                    updateSelectionActionBar()
+                }
             }
         )
 

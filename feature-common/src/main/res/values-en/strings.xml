@@ -15,6 +15,7 @@
     <string name="sort_label">Sort:</string>
     <string name="no_posts_found">No posts found</string>
     <string name="no_creators_found">No creators found</string>
+    <string name="creator_cache_load_failed">Failed to load creators. Pull down to refresh.</string>
     <string name="load_more">Load More</string>
     <string name="back">Back</string>
     <string name="home_subtitle">Explore the latest posts</string>

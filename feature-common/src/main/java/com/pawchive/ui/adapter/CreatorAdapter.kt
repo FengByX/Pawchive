@@ -23,21 +23,28 @@ import java.util.Locale
  * 两种模式：
  * - 普通模式：点击进入创作者详情，长按进入多选模式
  * - 多选模式：点击切换选中状态，顶部出现 ActionBar（退出/全选/屏蔽）
+ *
+ * 选中状态基于 creator key（service|id）而非 position，避免列表更新时选中错位。
  */
 class CreatorAdapter(
     private val onCreatorClicked: (Creator) -> Unit,
-    private val onCreatorLongClicked: (Creator) -> Unit = {}
+    private val onCreatorLongClicked: (Creator) -> Unit = {},
+    private val onSelectionChanged: () -> Unit = {}
 ) : ListAdapter<Creator, CreatorAdapter.CreatorViewHolder>(DIFF_CALLBACK) {
 
     private var selectionMode = false
-    private val selectedPositions = mutableSetOf<Int>()
+    private val selectedKeys = mutableSetOf<String>()
+
+    /** creator 唯一标识 */
+    private fun Creator.key(): String = "$service|$id"
 
     /** 进入/退出多选模式 */
     fun setSelectionMode(enabled: Boolean) {
         if (selectionMode == enabled) return
         selectionMode = enabled
-        if (!enabled) selectedPositions.clear()
+        if (!enabled) selectedKeys.clear()
         notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION_CHANGED)
+        onSelectionChanged()
     }
 
     fun isInSelectionMode() = selectionMode
@@ -45,32 +52,38 @@ class CreatorAdapter(
     /** 切换指定位置的选中状态（多选模式下） */
     fun toggleSelection(position: Int) {
         if (position !in 0 until itemCount) return
-        if (position in selectedPositions) {
-            selectedPositions.remove(position)
+        val creator = getItem(position)
+        val key = creator.key()
+        if (key in selectedKeys) {
+            selectedKeys.remove(key)
         } else {
-            selectedPositions.add(position)
+            selectedKeys.add(key)
         }
         notifyItemChanged(position, PAYLOAD_SELECTION_CHANGED)
+        onSelectionChanged()
     }
 
     /** 全选/取消全选 */
     fun selectAll() {
-        if (selectedPositions.size == itemCount) {
-            selectedPositions.clear()
+        if (selectedKeys.size == itemCount) {
+            selectedKeys.clear()
         } else {
-            selectedPositions.clear()
-            selectedPositions.addAll(0 until itemCount)
+            selectedKeys.clear()
+            for (i in 0 until itemCount) {
+                selectedKeys.add(getItem(i).key())
+            }
         }
         notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION_CHANGED)
+        onSelectionChanged()
     }
 
-    fun isAllSelected() = selectedPositions.size == itemCount && itemCount > 0
+    fun isAllSelected() = selectedKeys.size == itemCount && itemCount > 0
 
-    fun getSelectedCount() = selectedPositions.size
+    fun getSelectedCount() = selectedKeys.size
 
     /** 获取所有被选中的 Creator */
     fun getSelectedCreators(): List<Creator> {
-        return selectedPositions.sorted().map { getItem(it) }
+        return (0 until itemCount).filter { getItem(it).key() in selectedKeys }.map { getItem(it) }
     }
 
     /** 退出多选模式并重置选中状态 */
@@ -80,8 +93,7 @@ class CreatorAdapter(
 
     fun updateCreators(newCreators: List<Creator>) {
         submitList(newCreators)
-        // 列表变化时清除选中（位置可能错位）
-        selectedPositions.clear()
+        // ID-based selection: 不需要清除选中，因为 key 不依赖 position
     }
 
     companion object {
@@ -100,7 +112,8 @@ class CreatorAdapter(
     }
 
     override fun onBindViewHolder(holder: CreatorViewHolder, position: Int) {
-        holder.bind(getItem(position), selectionMode, position in selectedPositions)
+        val creator = getItem(position)
+        holder.bind(creator, selectionMode, creator.key() in selectedKeys)
     }
 
     override fun onBindViewHolder(
@@ -109,7 +122,8 @@ class CreatorAdapter(
         payloads: MutableList<Any>
     ) {
         if (payloads.contains(PAYLOAD_SELECTION_CHANGED)) {
-            holder.bindSelectionState(selectionMode, position in selectedPositions)
+            val creator = getItem(position)
+            holder.bindSelectionState(selectionMode, creator.key() in selectedKeys)
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }

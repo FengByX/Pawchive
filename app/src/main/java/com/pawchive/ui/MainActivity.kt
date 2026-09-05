@@ -158,6 +158,10 @@ class MainActivity : AppCompatActivity(), AppNavigator {
 
     override fun onResume() {
         super.onResume()
+        // 画中画/分屏恢复时，根据返回栈状态恢复底部导航栏可见性
+        // 防止二级页面（如创作者详情）恢复后底部 Tab 栏错误重现
+        val hasBackStack = supportFragmentManager.backStackEntryCount > 0
+        setBottomNavigationVisibility(!hasBackStack)
         updateBottomNavVisibility()
         // 回到前台时预热 Cloudflare 过盾（已有有效凭据时零开销）：
         // 避免后台停留超过 TTL 后，用户首次进入页面才同步等待 WebView 过盾导致加载慢
