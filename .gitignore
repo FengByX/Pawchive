@@ -28,3 +28,9 @@ Thumbs.db
 
 # Workbuddy
 .workbuddy/
+
+# Lint temp files
+lint_log*.txt
+lint_log.zip
+lint_combined.txt
+lint_log_dir/
