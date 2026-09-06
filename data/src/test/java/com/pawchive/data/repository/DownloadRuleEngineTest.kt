@@ -117,7 +117,7 @@ class DownloadRuleEngineTest {
     @Test
     fun `enqueueMatches returns 0 when no rules exist`() = runBlocking {
         val post = postWith(PostFile("a.jpg", "/1/a.jpg"), null)
-        assertEquals(0, engine.enqueueMatches(post))
+        assertEquals(0, engine.enqueueMatches(post).size)
         assertTrue(enqueuer.enqueued.isEmpty())
     }
 
@@ -134,7 +134,7 @@ class DownloadRuleEngineTest {
 
         val count = engine.enqueueMatches(post)
 
-        assertEquals(2, count)
+        assertEquals(2, count.size)
         assertEquals(
             listOf("IMAGE:https://file.pawchive.pw/data/1/a.jpg", "IMAGE:https://file.pawchive.pw/data/1/b.png"),
             enqueuer.enqueued.map { "${it.type}:${it.url}" }
@@ -151,7 +151,7 @@ class DownloadRuleEngineTest {
 
         val count = engine.enqueueMatches(post)
 
-        assertEquals(2, count)
+        assertEquals(2, count.size)
         assertTrue(enqueuer.enqueued.any { it.type == "VIDEO" })
         assertTrue(enqueuer.enqueued.any { it.type == "IMAGE" })
     }
@@ -161,7 +161,7 @@ class DownloadRuleEngineTest {
         insertRule(creatorId = "creator1", service = "fanbox", fileType = DownloadRuleFileType.ALL, enabled = false)
         val post = postWith(PostFile("a.jpg", "/1/a.jpg"), null)
 
-        assertEquals(0, engine.enqueueMatches(post))
+        assertEquals(0, engine.enqueueMatches(post).size)
         assertTrue(enqueuer.enqueued.isEmpty())
     }
 
@@ -170,7 +170,7 @@ class DownloadRuleEngineTest {
         insertRule(creatorId = "otherCreator", service = "patreon", fileType = DownloadRuleFileType.ALL)
         val post = postWith(PostFile("a.jpg", "/1/a.jpg"), null)
 
-        assertEquals(0, engine.enqueueMatches(post))
+        assertEquals(0, engine.enqueueMatches(post).size)
         assertTrue(enqueuer.enqueued.isEmpty())
     }
 
@@ -179,7 +179,7 @@ class DownloadRuleEngineTest {
         insertRule(fileType = DownloadRuleFileType.ALL)
         val post = postWith(PostFile("noext", "/1/noext"), listOf(Attachment("a.jpg", "/1/a.jpg")))
 
-        assertEquals(1, engine.enqueueMatches(post))
+        assertEquals(1, engine.enqueueMatches(post).size)
         assertEquals(listOf("IMAGE:https://file.pawchive.pw/data/1/a.jpg"), enqueuer.enqueued.map { "${it.type}:${it.url}" })
     }
 
@@ -188,7 +188,7 @@ class DownloadRuleEngineTest {
         insertRule(creatorId = "creator1", fileType = DownloadRuleFileType.IMAGE)
         val post = postWith(PostFile("a.jpg", "/1/a.jpg"), null)
 
-        assertEquals(1, engine.enqueueMatches(post))
+        assertEquals(1, engine.enqueueMatches(post).size)
     }
 
     private class FakeDownloadEnqueuer : DownloadEnqueuer {
