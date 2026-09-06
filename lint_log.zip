@@ -1,0 +1,1019 @@
+﻿2026-09-06T04:47:09.5991136Z Current runner version: '2.337.0'
+2026-09-06T04:47:09.6016909Z ##[group]Runner Image Provisioner
+2026-09-06T04:47:09.6017781Z Hosted Compute Agent
+2026-09-06T04:47:09.6018372Z Version: 20260828.587
+2026-09-06T04:47:09.6019123Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-06T04:47:09.6019853Z Build Date: 2026-08-28T16:44:25Z
+2026-09-06T04:47:09.6020511Z Worker ID: {901d85c6-7a36-4041-9502-cc86e7f2ff2d}
+2026-09-06T04:47:09.6021296Z Azure Region: westus
+2026-09-06T04:47:09.6021865Z ##[endgroup]
+2026-09-06T04:47:09.6023799Z ##[group]Operating System
+2026-09-06T04:47:09.6024450Z Ubuntu
+2026-09-06T04:47:09.6024950Z 24.04.4
+2026-09-06T04:47:09.6025530Z LTS
+2026-09-06T04:47:09.6026084Z ##[endgroup]
+2026-09-06T04:47:09.6026666Z ##[group]Runner Image
+2026-09-06T04:47:09.6027277Z Image: ubuntu-24.04
+2026-09-06T04:47:09.6027834Z Version: 20260831.293.1
+2026-09-06T04:47:09.6029145Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-06T04:47:09.6030741Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+2026-09-06T04:47:09.6031712Z ##[endgroup]
+2026-09-06T04:47:09.6032837Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T04:47:09.6034922Z Contents: read
+2026-09-06T04:47:09.6035566Z Metadata: read
+2026-09-06T04:47:09.6036622Z ##[endgroup]
+2026-09-06T04:47:09.6038668Z Secret source: Actions
+2026-09-06T04:47:09.6040033Z Prepare workflow directory
+2026-09-06T04:47:09.6375949Z Prepare all required actions
+2026-09-06T04:47:09.6424998Z Getting action download info
+2026-09-06T04:47:10.0027158Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-06T04:47:10.1042471Z Download action repository 'actions/setup-java@v4' (SHA:cf277c60eb25467037889841efdb72551f06f6c3)
+2026-09-06T04:47:10.6379051Z Download action repository 'gradle/actions@v4' (SHA:ed408507eac070d1f99cc633dbcf757c94c7933a)
+2026-09-06T04:47:11.5786553Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-06T04:47:11.8527277Z Complete job name: Lint check
+2026-09-06T04:47:11.9440341Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:47:11.9451819Z ##[group]Run actions/checkout@v4
+2026-09-06T04:47:11.9453117Z with:
+2026-09-06T04:47:11.9454229Z   repository: FengByX/Pawchive
+2026-09-06T04:47:11.9463238Z   token: ***
+2026-09-06T04:47:11.9464256Z   ssh-strict: true
+2026-09-06T04:47:11.9465157Z   ssh-user: git
+2026-09-06T04:47:11.9466072Z   persist-credentials: true
+2026-09-06T04:47:11.9467069Z   clean: true
+2026-09-06T04:47:11.9467989Z   sparse-checkout-cone-mode: true
+2026-09-06T04:47:11.9469067Z   fetch-depth: 1
+2026-09-06T04:47:11.9469970Z   fetch-tags: false
+2026-09-06T04:47:11.9470924Z   show-progress: true
+2026-09-06T04:47:11.9471850Z   lfs: false
+2026-09-06T04:47:11.9472750Z   submodules: false
+2026-09-06T04:47:11.9474088Z   set-safe-directory: true
+2026-09-06T04:47:11.9475173Z   allow-unsafe-pr-checkout: false
+2026-09-06T04:47:11.9476606Z ##[endgroup]
+2026-09-06T04:47:12.0513651Z Syncing repository: FengByX/Pawchive
+2026-09-06T04:47:12.0517931Z ##[group]Getting Git version info
+2026-09-06T04:47:12.0520248Z Working directory is '/home/runner/work/Pawchive/Pawchive'
+2026-09-06T04:47:12.0524083Z [command]/usr/bin/git version
+2026-09-06T04:47:12.0566768Z git version 2.55.0
+2026-09-06T04:47:12.0590219Z ##[endgroup]
+2026-09-06T04:47:12.0606059Z Temporarily overriding HOME='/home/runner/work/_temp/a14e2be0-3896-4149-9f78-1c4ec6be9477' before making global git config changes
+2026-09-06T04:47:12.0610856Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T04:47:12.0614853Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Pawchive/Pawchive
+2026-09-06T04:47:12.0671704Z Deleting the contents of '/home/runner/work/Pawchive/Pawchive'
+2026-09-06T04:47:12.0681095Z ##[group]Initializing the repository
+2026-09-06T04:47:12.0682618Z [command]/usr/bin/git init /home/runner/work/Pawchive/Pawchive
+2026-09-06T04:47:12.0796934Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-06T04:47:12.0800693Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-06T04:47:12.0803239Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-06T04:47:12.0805965Z hint: call:
+2026-09-06T04:47:12.0806916Z hint:
+2026-09-06T04:47:12.0807984Z hint: 	git config --global init.defaultBranch <name>
+2026-09-06T04:47:12.0809275Z hint:
+2026-09-06T04:47:12.0810880Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-06T04:47:12.0813301Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-06T04:47:12.0815178Z hint:
+2026-09-06T04:47:12.0816026Z hint: 	git branch -m <name>
+2026-09-06T04:47:12.0817000Z hint:
+2026-09-06T04:47:12.0819187Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-06T04:47:12.0822417Z Initialized empty Git repository in /home/runner/work/Pawchive/Pawchive/.git/
+2026-09-06T04:47:12.0831765Z [command]/usr/bin/git remote add origin https://github.com/FengByX/Pawchive
+2026-09-06T04:47:12.0872339Z ##[endgroup]
+2026-09-06T04:47:12.0874842Z ##[group]Disabling automatic garbage collection
+2026-09-06T04:47:12.0876837Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-06T04:47:12.0907627Z ##[endgroup]
+2026-09-06T04:47:12.0909117Z ##[group]Setting up auth
+2026-09-06T04:47:12.0915919Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T04:47:12.0955379Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-06T04:47:12.1336635Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T04:47:12.1389101Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-06T04:47:12.1622562Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T04:47:12.1659260Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-06T04:47:12.1885042Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-06T04:47:12.1923265Z ##[endgroup]
+2026-09-06T04:47:12.1990217Z ##[group]Fetching the repository
+2026-09-06T04:47:12.1993002Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +bd793f9af13f83ccfff5c1b874f489123a7d8aa6:refs/remotes/origin/main
+2026-09-06T04:47:12.7333145Z From https://github.com/FengByX/Pawchive
+2026-09-06T04:47:12.7334378Z  * [new ref]         bd793f9af13f83ccfff5c1b874f489123a7d8aa6 -> origin/main
+2026-09-06T04:47:12.7338919Z ##[endgroup]
+2026-09-06T04:47:12.7339677Z ##[group]Determining the checkout info
+2026-09-06T04:47:12.7341850Z ##[endgroup]
+2026-09-06T04:47:12.7348250Z [command]/usr/bin/git sparse-checkout disable
+2026-09-06T04:47:12.7398909Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-06T04:47:12.7430245Z ##[group]Checking out the ref
+2026-09-06T04:47:12.7434820Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-06T04:47:12.7714746Z Switched to a new branch 'main'
+2026-09-06T04:47:12.7732309Z branch 'main' set up to track 'origin/main'.
+2026-09-06T04:47:12.7739105Z ##[endgroup]
+2026-09-06T04:47:12.7782204Z [command]/usr/bin/git log -1 --format=%H
+2026-09-06T04:47:12.7809346Z bd793f9af13f83ccfff5c1b874f489123a7d8aa6
+2026-09-06T04:47:12.8104278Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:47:12.8106435Z ##[group]Run actions/setup-java@v4
+2026-09-06T04:47:12.8106757Z with:
+2026-09-06T04:47:12.8107003Z   distribution: temurin
+2026-09-06T04:47:12.8107292Z   java-version: 21
+2026-09-06T04:47:12.8107552Z   java-package: jdk
+2026-09-06T04:47:12.8107827Z   check-latest: false
+2026-09-06T04:47:12.8108090Z   server-id: github
+2026-09-06T04:47:12.8108354Z   server-username: GITHUB_ACTOR
+2026-09-06T04:47:12.8108664Z   server-password: GITHUB_TOKEN
+2026-09-06T04:47:12.8108971Z   overwrite-settings: true
+2026-09-06T04:47:12.8109255Z   job-status: success
+2026-09-06T04:47:12.8111899Z   token: ***
+2026-09-06T04:47:12.8112170Z ##[endgroup]
+2026-09-06T04:47:12.9813827Z ##[warning]setup-java v4 is deprecated and will no longer receive updates. Please migrate to actions/setup-java@v5.
+2026-09-06T04:47:12.9826918Z ##[group]Installed distributions
+2026-09-06T04:47:12.9867013Z Resolved Java 21.0.12+1 from tool-cache
+2026-09-06T04:47:12.9867698Z Setting Java 21.0.12+1 as the default
+2026-09-06T04:47:12.9878624Z (node:2254) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T04:47:12.9879507Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T04:47:12.9882072Z Creating toolchains.xml for JDK version 21 from temurin
+2026-09-06T04:47:12.9958163Z Writing to /home/runner/.m2/toolchains.xml
+2026-09-06T04:47:12.9958648Z 
+2026-09-06T04:47:12.9958889Z Java configuration:
+2026-09-06T04:47:12.9959389Z   Distribution: temurin
+2026-09-06T04:47:12.9959817Z   Version: 21.0.12+1
+2026-09-06T04:47:12.9960451Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:47:12.9960934Z 
+2026-09-06T04:47:12.9961375Z ##[endgroup]
+2026-09-06T04:47:12.9974994Z Creating settings.xml with server-id: github
+2026-09-06T04:47:13.0014690Z Writing to /home/runner/.m2/settings.xml
+2026-09-06T04:47:13.0336829Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:47:13.0338602Z ##[group]Run gradle/actions/setup-gradle@v4
+2026-09-06T04:47:13.0339116Z with:
+2026-09-06T04:47:13.0339399Z   cache-disabled: false
+2026-09-06T04:47:13.0339688Z   cache-read-only: false
+2026-09-06T04:47:13.0339971Z   cache-write-only: false
+2026-09-06T04:47:13.0340269Z   cache-overwrite-existing: false
+2026-09-06T04:47:13.0340591Z   cache-cleanup: on-success
+2026-09-06T04:47:13.0340953Z   gradle-home-cache-includes: caches
+notifications
+
+2026-09-06T04:47:13.0341335Z   add-job-summary: always
+2026-09-06T04:47:13.0341638Z   add-job-summary-as-pr-comment: never
+2026-09-06T04:47:13.0342030Z   dependency-graph: disabled
+2026-09-06T04:47:13.0342865Z   dependency-graph-report-dir: dependency-graph-reports
+2026-09-06T04:47:13.0344005Z   dependency-graph-continue-on-failure: true
+2026-09-06T04:47:13.0344776Z   build-scan-publish: false
+2026-09-06T04:47:13.0345624Z   validate-wrappers: true
+2026-09-06T04:47:13.0346273Z   allow-snapshot-wrappers: false
+2026-09-06T04:47:13.0346995Z   gradle-home-cache-strict-match: false
+2026-09-06T04:47:13.0347712Z   workflow-job-context: null
+2026-09-06T04:47:13.0352430Z   github-token: ***
+2026-09-06T04:47:13.0352876Z env:
+2026-09-06T04:47:13.0353616Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:47:13.0354494Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:47:13.0355197Z ##[endgroup]
+2026-09-06T04:47:14.8374459Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
+2026-09-06T04:47:14.8376182Z Preparing cache for cleanup.
+2026-09-06T04:47:14.8384937Z ##[group]Restore Gradle state from cache
+2026-09-06T04:47:15.0857059Z Cache hit for restore-key: gradle-home-v1|Linux-X64|lint[b8a35c2f917259958c9abe8f2ff1b5ff]-85d22106973d6e50b99b064a75f2f08e867de5a7
+2026-09-06T04:47:16.3567915Z Received 369654 of 4563958 (8.1%), 0.4 MBs/sec
+2026-09-06T04:47:16.4663892Z Received 4563958 of 4563958 (100.0%), 3.9 MBs/sec
+2026-09-06T04:47:16.4667256Z Cache Size: ~4 MB (4563958 B)
+2026-09-06T04:47:16.4696463Z [command]/usr/bin/tar -xf /home/runner/work/_temp/630e8e95-8a8d-4224-9056-c3cad654f067/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:16.6344022Z Cache restored successfully
+2026-09-06T04:47:16.6350814Z Restored cache entry with key gradle-home-v1|Linux-X64|lint[b8a35c2f917259958c9abe8f2ff1b5ff]-bd793f9af13f83ccfff5c1b874f489123a7d8aa6 to /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1795ms
+2026-09-06T04:47:16.8799558Z Cache hit for: gradle-kotlin-dsl-v1-bf8fdfc951c4e3d0703f5404a22df0cc
+2026-09-06T04:47:16.8833834Z Cache hit for: gradle-transforms-v1-619f045cbe663f87086e0d67f294ab12
+2026-09-06T04:47:16.8841173Z Cache hit for: gradle-wrapper-zips-v1-1922ac6863145c4cf78b9888f5904620
+2026-09-06T04:47:16.8930847Z Cache hit for: gradle-dependencies-v1-4879906cea028b64da1fb5c852133a9c
+2026-09-06T04:47:16.8935013Z Cache hit for: gradle-generated-gradle-jars-v1-385d131625f54d4dab75422dfcb34a24
+2026-09-06T04:47:16.8938802Z Cache hit for: gradle-instrumented-jars-v1-4aa33c5fe8c5152bf6ca3484d0ae9157
+2026-09-06T04:47:16.8942575Z Cache hit for: gradle-groovy-dsl-v1-e69f3ef19191c83ce7985f8b60f2faea
+2026-09-06T04:47:17.4367737Z Received 110925 of 110925 (100.0%), 0.5 MBs/sec
+2026-09-06T04:47:17.4369393Z Cache Size: ~0 MB (110925 B)
+2026-09-06T04:47:17.4396771Z [command]/usr/bin/tar -xf /home/runner/work/_temp/b05d9c65-bba8-458c-ae61-8a2caaf5a4b2/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:17.4647647Z Cache restored successfully
+2026-09-06T04:47:17.4650046Z Restored cache entry with key gradle-groovy-dsl-v1-e69f3ef19191c83ce7985f8b60f2faea to /home/runner/.gradle/caches/*/groovy-dsl/*/ in 827ms
+2026-09-06T04:47:17.5651707Z Received 64608 of 64608 (100.0%), 0.2 MBs/sec
+2026-09-06T04:47:17.5652557Z Cache Size: ~0 MB (64608 B)
+2026-09-06T04:47:17.5675445Z [command]/usr/bin/tar -xf /home/runner/work/_temp/cbcb6255-ae65-48d8-978c-a57827fa9473/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:17.5781088Z Cache restored successfully
+2026-09-06T04:47:17.5782883Z Restored cache entry with key gradle-instrumented-jars-v1-4aa33c5fe8c5152bf6ca3484d0ae9157 to /home/runner/.gradle/caches/jars-*/*/ in 942ms
+2026-09-06T04:47:17.5944785Z Received 191258 of 191258 (100.0%), 0.4 MBs/sec
+2026-09-06T04:47:17.5945681Z Cache Size: ~0 MB (191258 B)
+2026-09-06T04:47:17.5964807Z [command]/usr/bin/tar -xf /home/runner/work/_temp/987d2987-70ce-4f85-99c9-78246498ddb3/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:17.6670499Z Cache restored successfully
+2026-09-06T04:47:17.6674635Z Restored cache entry with key gradle-kotlin-dsl-v1-bf8fdfc951c4e3d0703f5404a22df0cc to /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 1031ms
+2026-09-06T04:47:18.1414947Z Received 0 of 121447072 (0.0%), 0.0 MBs/sec
+2026-09-06T04:47:18.1522558Z Received 0 of 139591214 (0.0%), 0.0 MBs/sec
+2026-09-06T04:47:18.1776059Z Received 0 of 622210703 (0.0%), 0.0 MBs/sec
+2026-09-06T04:47:18.1866601Z Received 0 of 42071658 (0.0%), 0.0 MBs/sec
+2026-09-06T04:47:18.7199203Z Received 42071658 of 42071658 (100.0%), 26.1 MBs/sec
+2026-09-06T04:47:18.7202267Z Cache Size: ~40 MB (42071658 B)
+2026-09-06T04:47:18.7802378Z [command]/usr/bin/tar -xf /home/runner/work/_temp/182df91c-1c38-476e-9457-235e9e844d2c/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:19.1402439Z Received 96468992 of 121447072 (79.4%), 46.0 MBs/sec
+2026-09-06T04:47:19.1430872Z Cache restored successfully
+2026-09-06T04:47:19.1454069Z Restored cache entry with key gradle-generated-gradle-jars-v1-385d131625f54d4dab75422dfcb34a24 to /home/runner/.gradle/caches/9.5.0/generated-gradle-jars/gradle-api-9.5.0.jar in 2510ms
+2026-09-06T04:47:19.1522676Z Received 104857600 of 139591214 (75.1%), 50.0 MBs/sec
+2026-09-06T04:47:19.1778585Z Received 88080384 of 622210703 (14.2%), 41.9 MBs/sec
+2026-09-06T04:47:19.3900549Z Received 121447072 of 121447072 (100.0%), 51.5 MBs/sec
+2026-09-06T04:47:19.3903378Z Cache Size: ~116 MB (121447072 B)
+2026-09-06T04:47:19.4032223Z [command]/usr/bin/tar -xf /home/runner/work/_temp/9cdc6c80-5371-48e7-b6aa-81225d8917a7/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:19.5730595Z Received 139591214 of 139591214 (100.0%), 55.0 MBs/sec
+2026-09-06T04:47:19.5732014Z Cache Size: ~133 MB (139591214 B)
+2026-09-06T04:47:19.6306358Z [command]/usr/bin/tar -xf /home/runner/work/_temp/1d0aa39d-2960-4f6a-bb17-2d3e9ea2f1b5/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:20.0234772Z Cache restored successfully
+2026-09-06T04:47:20.0321668Z Restored cache entry with key gradle-wrapper-zips-v1-1922ac6863145c4cf78b9888f5904620 to /home/runner/.gradle/wrapper/dists/gradle-9.5.0-bin/bvnork1r7n8i6kp5cnkibsc9q in 3394ms
+2026-09-06T04:47:20.1780341Z Received 197132288 of 622210703 (31.7%), 62.6 MBs/sec
+2026-09-06T04:47:21.1736441Z Cache restored successfully
+2026-09-06T04:47:21.1864412Z Received 331350016 of 622210703 (53.3%), 78.8 MBs/sec
+2026-09-06T04:47:21.1885831Z Restored cache entry with key gradle-transforms-v1-619f045cbe663f87086e0d67f294ab12 to /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 4551ms
+2026-09-06T04:47:22.1834595Z Received 473956352 of 622210703 (76.2%), 90.2 MBs/sec
+2026-09-06T04:47:23.1424583Z Received 622210703 of 622210703 (100.0%), 99.5 MBs/sec
+2026-09-06T04:47:23.1425618Z Cache Size: ~593 MB (622210703 B)
+2026-09-06T04:47:23.2907054Z [command]/usr/bin/tar -xf /home/runner/work/_temp/af32284f-beab-4e0d-a718-26151fdd1619/cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --use-compress-program unzstd
+2026-09-06T04:47:24.1487533Z Cache restored successfully
+2026-09-06T04:47:24.1744458Z Restored cache entry with key gradle-dependencies-v1-4879906cea028b64da1fb5c852133a9c to /home/runner/.gradle/caches/modules-*/files-*/*/*/*/* in 7538ms
+2026-09-06T04:47:24.1858593Z ##[endgroup]
+2026-09-06T04:47:24.1997249Z ##[group]All Gradle Wrapper jars are valid
+2026-09-06T04:47:24.1998565Z ✓ Found known Gradle Wrapper JAR files:
+2026-09-06T04:47:24.1999510Z   76805e32c009c0cf0dd5d206bddc9fb22ea42e84db904b764f3047de095493f3 gradle/wrapper/gradle-wrapper.jar
+2026-09-06T04:47:24.2000285Z ##[endgroup]
+2026-09-06T04:47:24.2601534Z ##[group]Run ./gradlew lintDebug --console=plain
+2026-09-06T04:47:24.2602016Z [36;1m./gradlew lintDebug --console=plain[0m
+2026-09-06T04:47:24.2641164Z shell: /usr/bin/bash -e {0}
+2026-09-06T04:47:24.2641467Z env:
+2026-09-06T04:47:24.2641836Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:47:24.2642394Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:47:24.2642883Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-09-06T04:47:24.2643237Z   GRADLE_USER_HOME: /home/runner/.gradle
+2026-09-06T04:47:24.2643886Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-09-06T04:47:24.2644238Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-09-06T04:47:24.2644742Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-09-06T04:47:24.2645276Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-09-06T04:47:24.2645641Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-09-06T04:47:24.2646204Z ##[endgroup]
+2026-09-06T04:47:25.9857003Z Starting a Gradle Daemon (subsequent builds will be faster)
+2026-09-06T04:47:31.5852330Z Calculating task graph as no cached configuration is available for tasks: lintDebug
+2026-09-06T04:47:50.7871088Z > Task :core:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:50.7914392Z > Task :core:preBuild UP-TO-DATE
+2026-09-06T04:47:50.7924131Z > Task :data:preBuild UP-TO-DATE
+2026-09-06T04:47:50.7933867Z > Task :data:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:50.7940803Z > Task :core:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:51.0857828Z > Task :data:generateDebugBuildConfig
+2026-09-06T04:47:51.0887922Z > Task :core:generateDebugBuildConfig
+2026-09-06T04:47:51.0914260Z > Task :core:processDebugNavigationResources
+2026-09-06T04:47:51.0944162Z > Task :core:generateDebugResources
+2026-09-06T04:47:51.2852796Z > Task :core:prepareLintJarForPublish
+2026-09-06T04:47:51.2857675Z > Task :core:extractDeepLinksForAarDebug
+2026-09-06T04:47:51.2858646Z > Task :core:packageDebugResources
+2026-09-06T04:47:51.2859505Z > Task :core:mergeDebugAssets
+2026-09-06T04:47:53.2922289Z > Task :core:checkDebugAarMetadata
+2026-09-06T04:47:53.2984179Z > Task :core:prepareDebugArtProfile
+2026-09-06T04:47:53.3874578Z > Task :core:javaPreCompileDebug
+2026-09-06T04:47:53.3944328Z > Task :core:writeDebugAarMetadata
+2026-09-06T04:47:53.5864400Z > Task :core:processDebugManifest
+2026-09-06T04:47:53.5894089Z > Task :data:generateDebugResources
+2026-09-06T04:47:53.5914748Z > Task :data:checkDebugAarMetadata
+2026-09-06T04:47:53.5923960Z > Task :data:processDebugNavigationResources
+2026-09-06T04:47:53.5940393Z > Task :data:extractDeepLinksForAarDebug
+2026-09-06T04:47:53.5978293Z > Task :data:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:53.6014366Z > Task :data:mergeDebugAssets
+2026-09-06T04:47:53.6015159Z > Task :data:packageDebugResources
+2026-09-06T04:47:53.6854462Z > Task :data:javaPreCompileDebug
+2026-09-06T04:47:53.6884077Z > Task :data:prepareDebugArtProfile
+2026-09-06T04:47:53.6914225Z > Task :data:prepareLintJarForPublish
+2026-09-06T04:47:53.6943971Z > Task :data:processDebugManifest
+2026-09-06T04:47:53.6974111Z > Task :data:writeDebugAarMetadata
+2026-09-06T04:47:53.6974756Z > Task :feature-common:preBuild UP-TO-DATE
+2026-09-06T04:47:53.7003956Z > Task :feature-common:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:53.8854339Z > Task :feature-common:checkDebugAarMetadata
+2026-09-06T04:47:53.9883113Z > Task :feature-common:dataBindingMergeDependencyArtifactsDebug
+2026-09-06T04:47:53.9914009Z > Task :feature-common:generateDebugResources
+2026-09-06T04:47:54.5857839Z > Task :core:parseDebugLocalResources
+2026-09-06T04:47:54.5884518Z > Task :data:parseDebugLocalResources
+2026-09-06T04:47:54.6851576Z > Task :data:generateDebugRFile
+2026-09-06T04:47:54.6923805Z > Task :core:generateDebugRFile
+2026-09-06T04:47:54.6952655Z > Task :feature-common:processDebugNavigationResources
+2026-09-06T04:47:54.6965063Z > Task :feature-common:generateDebugBuildConfig
+2026-09-06T04:47:54.6966678Z > Task :feature-common:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:54.6967892Z > Task :feature-common:extractDeepLinksForAarDebug
+2026-09-06T04:47:54.6968875Z > Task :feature-common:mergeDebugAssets
+2026-09-06T04:47:54.6969751Z > Task :feature-common:javaPreCompileDebug
+2026-09-06T04:47:54.6970642Z > Task :feature-common:prepareDebugArtProfile
+2026-09-06T04:47:54.6971580Z > Task :feature-common:prepareLintJarForPublish
+2026-09-06T04:47:54.6972527Z > Task :feature-common:writeDebugAarMetadata
+2026-09-06T04:47:54.7878856Z > Task :feature-home:preBuild UP-TO-DATE
+2026-09-06T04:47:54.7902862Z > Task :feature-home:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:54.7924156Z > Task :feature-common:processDebugManifest
+2026-09-06T04:47:54.7954170Z > Task :feature-home:generateDebugBuildConfig
+2026-09-06T04:47:54.7970416Z > Task :feature-home:generateDebugResources
+2026-09-06T04:47:54.7994157Z > Task :feature-home:packageDebugResources
+2026-09-06T04:47:54.8024046Z > Task :feature-home:checkDebugAarMetadata
+2026-09-06T04:47:54.8054251Z > Task :feature-home:processDebugNavigationResources
+2026-09-06T04:47:54.8055649Z > Task :feature-home:extractDeepLinksForAarDebug
+2026-09-06T04:47:54.8067769Z > Task :feature-home:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:54.8094191Z > Task :feature-home:mergeDebugAssets
+2026-09-06T04:47:54.8110960Z > Task :feature-home:javaPreCompileDebug
+2026-09-06T04:47:54.8134246Z > Task :feature-home:parseDebugLocalResources
+2026-09-06T04:47:54.8164109Z > Task :feature-home:prepareDebugArtProfile
+2026-09-06T04:47:54.8890673Z > Task :feature-home:prepareLintJarForPublish
+2026-09-06T04:47:54.8936961Z > Task :feature-home:generateDebugRFile
+2026-09-06T04:47:54.8937618Z > Task :feature-home:processDebugManifest
+2026-09-06T04:47:54.8964458Z > Task :feature-search:preBuild UP-TO-DATE
+2026-09-06T04:47:54.8989756Z > Task :feature-search:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:54.9004368Z > Task :feature-home:writeDebugAarMetadata
+2026-09-06T04:47:54.9024300Z > Task :feature-search:generateDebugBuildConfig
+2026-09-06T04:47:54.9054319Z > Task :feature-search:generateDebugResources
+2026-09-06T04:47:54.9064092Z > Task :feature-search:checkDebugAarMetadata
+2026-09-06T04:47:54.9084284Z > Task :feature-search:packageDebugResources
+2026-09-06T04:47:54.9114281Z > Task :feature-search:processDebugNavigationResources
+2026-09-06T04:47:54.9115225Z > Task :feature-search:extractDeepLinksForAarDebug
+2026-09-06T04:47:54.9915217Z > Task :feature-search:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:54.9934796Z > Task :feature-search:mergeDebugAssets
+2026-09-06T04:47:54.9957715Z > Task :feature-search:javaPreCompileDebug
+2026-09-06T04:47:54.9964321Z > Task :feature-search:parseDebugLocalResources
+2026-09-06T04:47:54.9976674Z > Task :feature-search:prepareDebugArtProfile
+2026-09-06T04:47:54.9977316Z > Task :feature-search:prepareLintJarForPublish
+2026-09-06T04:47:54.9977895Z > Task :feature-search:generateDebugRFile
+2026-09-06T04:47:54.9978539Z > Task :feature-search:processDebugManifest
+2026-09-06T04:47:54.9979150Z > Task :feature-post:preBuild UP-TO-DATE
+2026-09-06T04:47:54.9979736Z > Task :feature-post:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:54.9980306Z > Task :feature-search:writeDebugAarMetadata
+2026-09-06T04:47:55.0912648Z > Task :feature-post:generateDebugBuildConfig
+2026-09-06T04:47:55.0954422Z > Task :feature-post:generateDebugResources
+2026-09-06T04:47:55.0981436Z > Task :feature-post:checkDebugAarMetadata
+2026-09-06T04:47:55.1024504Z > Task :feature-post:processDebugNavigationResources
+2026-09-06T04:47:55.1054169Z > Task :feature-post:extractDeepLinksForAarDebug
+2026-09-06T04:47:55.1084087Z > Task :feature-post:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:55.1108703Z > Task :feature-post:packageDebugResources
+2026-09-06T04:47:55.1109560Z > Task :feature-post:mergeDebugAssets
+2026-09-06T04:47:55.1110275Z > Task :feature-post:parseDebugLocalResources
+2026-09-06T04:47:55.1110974Z > Task :feature-post:javaPreCompileDebug
+2026-09-06T04:47:55.1111664Z > Task :feature-post:prepareDebugArtProfile
+2026-09-06T04:47:55.1112658Z > Task :feature-post:generateDebugRFile
+2026-09-06T04:47:55.1113339Z > Task :feature-post:prepareLintJarForPublish
+2026-09-06T04:47:55.1882577Z > Task :feature-post:writeDebugAarMetadata
+2026-09-06T04:47:55.1883362Z > Task :feature-downloads:preBuild UP-TO-DATE
+2026-09-06T04:47:55.1884347Z > Task :feature-downloads:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:55.1885045Z > Task :feature-post:processDebugManifest
+2026-09-06T04:47:55.1897747Z > Task :feature-downloads:generateDebugBuildConfig
+2026-09-06T04:47:55.1898484Z > Task :feature-downloads:generateDebugResources
+2026-09-06T04:47:55.1899191Z > Task :feature-downloads:checkDebugAarMetadata
+2026-09-06T04:47:55.1899864Z > Task :feature-downloads:packageDebugResources
+2026-09-06T04:47:55.1900601Z > Task :feature-downloads:processDebugNavigationResources
+2026-09-06T04:47:55.1901466Z > Task :feature-downloads:extractDeepLinksForAarDebug
+2026-09-06T04:47:55.1902201Z > Task :feature-downloads:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:55.1903112Z > Task :feature-downloads:mergeDebugAssets
+2026-09-06T04:47:55.1904378Z > Task :feature-downloads:parseDebugLocalResources
+2026-09-06T04:47:55.2877170Z > Task :feature-downloads:javaPreCompileDebug
+2026-09-06T04:47:55.2952993Z > Task :feature-downloads:generateDebugRFile
+2026-09-06T04:47:55.3006683Z > Task :feature-downloads:prepareLintJarForPublish
+2026-09-06T04:47:55.3059543Z > Task :feature-downloads:prepareDebugArtProfile
+2026-09-06T04:47:55.3122735Z > Task :feature-downloads:writeDebugAarMetadata
+2026-09-06T04:47:55.3125475Z > Task :feature-settings:preBuild UP-TO-DATE
+2026-09-06T04:47:55.3164500Z > Task :feature-settings:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:55.3204529Z > Task :feature-downloads:processDebugManifest
+2026-09-06T04:47:55.3214852Z > Task :feature-settings:generateDebugBuildConfig
+2026-09-06T04:47:55.3264436Z > Task :feature-settings:generateDebugResources
+2026-09-06T04:47:55.3265722Z > Task :feature-settings:checkDebugAarMetadata
+2026-09-06T04:47:55.3266751Z > Task :feature-settings:processDebugNavigationResources
+2026-09-06T04:47:55.3267792Z > Task :feature-settings:packageDebugResources
+2026-09-06T04:47:55.3268717Z > Task :feature-settings:extractDeepLinksForAarDebug
+2026-09-06T04:47:55.3269692Z > Task :feature-settings:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:55.3857900Z > Task :feature-settings:mergeDebugAssets
+2026-09-06T04:47:55.3884255Z > Task :feature-settings:parseDebugLocalResources
+2026-09-06T04:47:55.3904265Z > Task :feature-settings:javaPreCompileDebug
+2026-09-06T04:47:55.3937301Z > Task :feature-settings:prepareDebugArtProfile
+2026-09-06T04:47:55.3974265Z > Task :feature-settings:prepareLintJarForPublish
+2026-09-06T04:47:55.3975230Z > Task :feature-settings:generateDebugRFile
+2026-09-06T04:47:55.4004235Z > Task :feature-settings:processDebugManifest
+2026-09-06T04:47:55.4025805Z > Task :feature-account:preBuild UP-TO-DATE
+2026-09-06T04:47:55.4045138Z > Task :feature-account:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:55.4064204Z > Task :feature-settings:writeDebugAarMetadata
+2026-09-06T04:47:55.4090912Z > Task :feature-account:generateDebugBuildConfig
+2026-09-06T04:47:55.4114277Z > Task :feature-account:generateDebugResources
+2026-09-06T04:47:55.4127931Z > Task :feature-account:checkDebugAarMetadata
+2026-09-06T04:47:55.4153001Z > Task :feature-account:packageDebugResources
+2026-09-06T04:47:55.4174297Z > Task :feature-account:extractDeepLinksForAarDebug
+2026-09-06T04:47:55.4206751Z > Task :feature-account:generateDebugAssets UP-TO-DATE
+2026-09-06T04:47:55.4208646Z > Task :feature-account:processDebugNavigationResources
+2026-09-06T04:47:55.4850785Z > Task :feature-account:mergeDebugAssets
+2026-09-06T04:47:55.4884935Z > Task :feature-account:javaPreCompileDebug
+2026-09-06T04:47:55.4919340Z > Task :feature-account:parseDebugLocalResources
+2026-09-06T04:47:55.4946576Z > Task :feature-account:prepareDebugArtProfile
+2026-09-06T04:47:55.4972649Z > Task :feature-account:generateDebugRFile
+2026-09-06T04:47:55.4974663Z > Task :feature-account:prepareLintJarForPublish
+2026-09-06T04:47:55.4977150Z > Task :feature-account:writeDebugAarMetadata
+2026-09-06T04:47:55.4979430Z > Task :app:preBuild UP-TO-DATE
+2026-09-06T04:47:55.4981425Z > Task :feature-account:processDebugManifest
+2026-09-06T04:47:55.4982351Z > Task :app:preDebugBuild UP-TO-DATE
+2026-09-06T04:47:55.4986474Z > Task :core:extractDeepLinksDebug
+2026-09-06T04:47:55.5856707Z > Task :feature-common:packageDebugResources
+2026-09-06T04:47:55.5879771Z > Task :app:generateDebugResources
+2026-09-06T04:47:55.7877143Z > Task :app:dataBindingMergeDependencyArtifactsDebug
+2026-09-06T04:47:55.8894473Z > Task :app:packageDebugResources
+2026-09-06T04:47:55.9864578Z > Task :feature-common:parseDebugLocalResources
+2026-09-06T04:47:56.0851427Z > Task :app:processDebugNavigationResources
+2026-09-06T04:47:56.1864338Z > Task :feature-common:generateDebugRFile
+2026-09-06T04:47:56.2856775Z > Task :app:parseDebugLocalResources
+2026-09-06T04:47:56.2884589Z > Task :app:generateDebugBuildConfig
+2026-09-06T04:47:56.2904449Z > Task :app:generateDebugRFile
+2026-09-06T04:47:56.2934439Z > Task :app:javaPreCompileDebug
+2026-09-06T04:47:56.3854158Z > Task :app:checkDebugAarMetadata
+2026-09-06T04:47:56.3885079Z > Task :app:mapDebugSourceSetPaths
+2026-09-06T04:47:56.3904209Z > Task :app:compileDebugNavigationResources
+2026-09-06T04:47:56.3918375Z > Task :app:createDebugCompatibleScreenManifests
+2026-09-06T04:47:56.3944582Z > Task :app:extractDeepLinksDebug
+2026-09-06T04:47:56.4876857Z > Task :data:extractDeepLinksDebug
+2026-09-06T04:47:56.4894822Z > Task :feature-account:extractDeepLinksDebug
+2026-09-06T04:47:56.4924419Z > Task :feature-common:extractDeepLinksDebug
+2026-09-06T04:47:56.4954191Z > Task :feature-downloads:extractDeepLinksDebug
+2026-09-06T04:47:56.4964007Z > Task :feature-home:extractDeepLinksDebug
+2026-09-06T04:47:56.4984330Z > Task :feature-post:extractDeepLinksDebug
+2026-09-06T04:47:56.5004190Z > Task :feature-search:extractDeepLinksDebug
+2026-09-06T04:47:56.5030349Z > Task :feature-settings:extractDeepLinksDebug
+2026-09-06T04:47:56.9854608Z > Task :feature-common:dataBindingGenBaseClassesDebug
+2026-09-06T04:47:56.9878202Z > Task :core:mapDebugSourceSetPaths
+2026-09-06T04:47:56.9894201Z > Task :core:compileDebugLibraryResources
+2026-09-06T04:47:56.9951848Z > Task :data:mapDebugSourceSetPaths
+2026-09-06T04:47:57.0888389Z > Task :app:processDebugMainManifest
+2026-09-06T04:47:57.2882505Z > Task :app:processDebugManifest
+2026-09-06T04:47:57.2924355Z > Task :data:compileDebugLibraryResources
+2026-09-06T04:47:57.2984145Z > Task :feature-account:mapDebugSourceSetPaths
+2026-09-06T04:47:57.3084436Z > Task :feature-account:compileDebugLibraryResources
+2026-09-06T04:47:57.3144232Z > Task :app:processDebugManifestForPackage
+2026-09-06T04:47:57.3200827Z > Task :feature-downloads:mapDebugSourceSetPaths
+2026-09-06T04:47:57.3234328Z > Task :feature-common:mapDebugSourceSetPaths
+2026-09-06T04:47:57.3276434Z > Task :feature-downloads:compileDebugLibraryResources
+2026-09-06T04:47:57.3904640Z > Task :feature-home:mapDebugSourceSetPaths
+2026-09-06T04:47:57.5864112Z > Task :feature-home:compileDebugLibraryResources
+2026-09-06T04:47:57.5895781Z > Task :feature-post:mapDebugSourceSetPaths
+2026-09-06T04:47:57.6888712Z > Task :feature-post:compileDebugLibraryResources
+2026-09-06T04:47:57.6908036Z > Task :feature-common:compileDebugLibraryResources
+2026-09-06T04:47:57.6938997Z > Task :feature-settings:mapDebugSourceSetPaths
+2026-09-06T04:47:57.6954158Z > Task :feature-search:mapDebugSourceSetPaths
+2026-09-06T04:47:57.7009901Z > Task :feature-search:compileDebugLibraryResources
+2026-09-06T04:47:57.7017625Z > Task :feature-settings:compileDebugLibraryResources
+2026-09-06T04:47:57.7048998Z > Task :app:preDebugAndroidTestBuild SKIPPED
+2026-09-06T04:47:57.7080805Z > Task :data:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7094217Z > Task :core:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7096447Z > Task :feature-common:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7154476Z > Task :feature-account:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7175081Z > Task :feature-home:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7177569Z > Task :feature-downloads:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7184171Z > Task :feature-post:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7226243Z > Task :feature-search:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7854854Z > Task :feature-settings:writeDebugLintModelMetadata
+2026-09-06T04:47:57.7856217Z > Task :app:extractProguardFiles
+2026-09-06T04:47:57.7857209Z > Task :core:extractProguardFiles
+2026-09-06T04:47:57.7858019Z > Task :data:extractProguardFiles
+2026-09-06T04:47:57.7871791Z > Task :feature-account:extractProguardFiles
+2026-09-06T04:47:57.7872761Z > Task :feature-common:extractProguardFiles
+2026-09-06T04:47:57.7874003Z > Task :feature-downloads:extractProguardFiles
+2026-09-06T04:47:57.7874936Z > Task :feature-home:extractProguardFiles
+2026-09-06T04:47:57.7875782Z > Task :feature-post:extractProguardFiles
+2026-09-06T04:47:57.7876594Z > Task :feature-search:extractProguardFiles
+2026-09-06T04:47:57.7877408Z > Task :feature-settings:extractProguardFiles
+2026-09-06T04:47:57.7878223Z > Task :app:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7879522Z > Task :core:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7896970Z > Task :core:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7915034Z > Task :data:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7916045Z > Task :data:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7917047Z > Task :feature-account:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7918004Z > Task :feature-account:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7918768Z > Task :feature-common:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7919503Z > Task :feature-common:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7920061Z > Task :feature-downloads:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7920539Z > Task :feature-downloads:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7920967Z > Task :feature-home:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7975266Z > Task :feature-home:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7979966Z > Task :feature-post:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7982760Z > Task :feature-post:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7984087Z > Task :feature-search:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7985015Z > Task :feature-search:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7985893Z > Task :feature-settings:preDebugUnitTestBuild UP-TO-DATE
+2026-09-06T04:47:57.7986804Z > Task :feature-settings:preDebugAndroidTestBuild UP-TO-DATE
+2026-09-06T04:47:59.9852350Z > Task :app:mergeDebugResources
+2026-09-06T04:48:00.0849791Z > Task :app:dataBindingGenBaseClassesDebug
+2026-09-06T04:48:01.2851201Z > Task :app:processDebugResources
+2026-09-06T04:48:08.4858049Z > Task :core:kspDebugKotlin
+2026-09-06T04:48:09.4884540Z > Task :core:extractDebugAnnotations
+2026-09-06T04:48:24.1857234Z 
+2026-09-06T04:48:24.1874779Z > Task :core:compileDebugKotlin
+2026-09-06T04:48:24.1895010Z w: file:///home/runner/work/Pawchive/Pawchive/core/src/main/java/com/pawchive/core/api/CloudflareManager.kt:250:26 'var databaseEnabled: Boolean' is deprecated. Deprecated in Java.
+2026-09-06T04:48:24.2849578Z 
+2026-09-06T04:48:24.2851227Z > Task :core:processDebugJavaRes
+2026-09-06T04:48:24.4850467Z > Task :core:mergeDebugJavaResource
+2026-09-06T04:48:25.6861620Z > Task :core:compileDebugJavaWithJavac
+2026-09-06T04:48:26.0854678Z > Task :core:transformDebugClassesWithAsm
+2026-09-06T04:48:26.0903090Z > Task :core:mergeDebugGeneratedProguardFiles
+2026-09-06T04:48:26.0944265Z > Task :core:mergeDebugConsumerProguardFiles
+2026-09-06T04:48:26.1871279Z > Task :core:syncDebugLibJars
+2026-09-06T04:48:26.1894259Z > Task :core:bundleDebugLocalLintAar
+2026-09-06T04:48:26.3860459Z > Task :core:bundleLibCompileToJarDebug
+2026-09-06T04:48:26.9894450Z > Task :core:generateDebugLintReportModel
+2026-09-06T04:48:26.9924445Z > Task :core:generateDebugLintModel
+2026-09-06T04:48:27.0885849Z > Task :core:bundleLibRuntimeToJarDebug
+2026-09-06T04:48:27.0945089Z > Task :core:createFullJarDebug
+2026-09-06T04:48:27.1874581Z > Task :core:generateDebugAndroidTestLintModel
+2026-09-06T04:48:27.3850151Z > Task :core:generateDebugUnitTestLintModel
+2026-09-06T04:48:32.2851524Z > Task :data:kspDebugKotlin
+2026-09-06T04:48:32.3875052Z > Task :data:extractDebugAnnotations
+2026-09-06T04:48:36.7854503Z > Task :core:lintAnalyzeDebugAndroidTest
+2026-09-06T04:48:45.5863975Z 
+2026-09-06T04:48:45.5894473Z > Task :data:compileDebugKotlin
+2026-09-06T04:48:45.5910532Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/AuthRepository.kt:25:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.5913181Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.5978498Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6054240Z 
+2026-09-06T04:48:45.6064497Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6086092Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/BlockedCreatorManager.kt:39:49 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6094779Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6116238Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6123783Z 
+2026-09-06T04:48:45.6124233Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6126217Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/BookmarkManager.kt:42:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6128580Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6129941Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6130551Z 
+2026-09-06T04:48:45.6130925Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6132855Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/CacheRepository.kt:36:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6135394Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6136963Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6137696Z 
+2026-09-06T04:48:45.6138157Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6140719Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/CacheRepository.kt:77:31 This declaration needs opt-in. Its usage should be marked with '@coil.annotation.ExperimentalCoilApi' or '@OptIn(coil.annotation.ExperimentalCoilApi::class)'
+2026-09-06T04:48:45.6191826Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/DownloadCenter.kt:35:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6194654Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6196213Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6196855Z 
+2026-09-06T04:48:45.6197590Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6199817Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/DownloadHistoryManager.kt:51:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6202209Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6204055Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6204856Z 
+2026-09-06T04:48:45.6252841Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6256045Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/DownloadRepository.kt:31:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6258303Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6281357Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6282021Z 
+2026-09-06T04:48:45.6282435Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6284677Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/LocalDataCleaner.kt:22:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6286974Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6314835Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6315445Z 
+2026-09-06T04:48:45.6315814Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6317722Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/OfflineArchiveBackfill.kt:26:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6320031Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6321632Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6322380Z 
+2026-09-06T04:48:45.6322822Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6335455Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/OkDownloadManager.kt:28:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6344549Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6346008Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6346722Z 
+2026-09-06T04:48:45.6347160Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6349060Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/data/repository/SearchHistoryManager.kt:40:48 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6351322Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6352587Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6353147Z 
+2026-09-06T04:48:45.6353687Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6355727Z w: file:///home/runner/work/Pawchive/Pawchive/data/src/main/java/com/pawchive/work/ContentUpdateNotifier.kt:33:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:48:45.6357878Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:48:45.6359110Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:48:45.6359655Z 
+2026-09-06T04:48:45.6359986Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:48:45.6869573Z 
+2026-09-06T04:48:45.6885390Z > Task :data:processDebugJavaRes
+2026-09-06T04:48:45.7881405Z > Task :data:mergeDebugJavaResource
+2026-09-06T04:48:46.8850441Z > Task :data:compileDebugJavaWithJavac
+2026-09-06T04:48:46.9894468Z > Task :data:generateDebugLintModel
+2026-09-06T04:48:47.0854707Z > Task :data:generateDebugLintReportModel
+2026-09-06T04:48:47.1850132Z > Task :data:transformDebugClassesWithAsm
+2026-09-06T04:48:47.1864630Z > Task :data:mergeDebugGeneratedProguardFiles
+2026-09-06T04:48:47.1865968Z > Task :data:mergeDebugConsumerProguardFiles
+2026-09-06T04:48:47.2882834Z > Task :data:bundleLibCompileToJarDebug
+2026-09-06T04:48:47.3886167Z > Task :data:syncDebugLibJars
+2026-09-06T04:48:47.3924317Z > Task :data:bundleDebugLocalLintAar
+2026-09-06T04:48:47.4884351Z > Task :data:bundleLibRuntimeToJarDebug
+2026-09-06T04:48:47.5872494Z > Task :data:createFullJarDebug
+2026-09-06T04:48:47.6856203Z > Task :data:generateDebugAndroidTestLintModel
+2026-09-06T04:48:47.7884410Z > Task :data:generateDebugUnitTestLintModel
+2026-09-06T04:48:48.6867938Z > Task :data:lintAnalyzeDebugAndroidTest
+2026-09-06T04:48:50.8874784Z > Task :feature-common:kspDebugKotlin
+2026-09-06T04:48:51.0894705Z > Task :feature-common:extractDebugAnnotations
+2026-09-06T04:48:53.2878049Z > Task :core:lintAnalyzeDebugUnitTest
+2026-09-06T04:48:55.6874705Z > Task :core:lintAnalyzeDebug
+2026-09-06T04:48:58.7874072Z 
+2026-09-06T04:48:58.7904479Z > Task :feature-common:compileDebugKotlin
+2026-09-06T04:48:58.7965309Z w: file:///home/runner/work/Pawchive/Pawchive/feature-common/src/main/java/com/pawchive/ui/post/VideoPlayerManager.kt:54:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:48:58.8025454Z w: file:///home/runner/work/Pawchive/Pawchive/feature-common/src/main/java/com/pawchive/ui/post/VideoPlayerManager.kt:68:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:48:58.8085401Z w: file:///home/runner/work/Pawchive/Pawchive/feature-common/src/main/java/com/pawchive/ui/post/VideoPlayerManager.kt:122:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:48:58.8175595Z w: file:///home/runner/work/Pawchive/Pawchive/feature-common/src/main/java/com/pawchive/ui/post/VideoPlayerManager.kt:163:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:48:58.8853991Z 
+2026-09-06T04:48:58.8914653Z > Task :feature-common:processDebugJavaRes
+2026-09-06T04:48:58.8944380Z > Task :feature-common:mergeDebugJavaResource
+2026-09-06T04:49:00.7849868Z > Task :feature-common:compileDebugJavaWithJavac
+2026-09-06T04:49:00.9866966Z > Task :feature-common:generateDebugLintModel
+2026-09-06T04:49:00.9890326Z > Task :feature-common:transformDebugClassesWithAsm
+2026-09-06T04:49:00.9891436Z > Task :feature-common:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:00.9897967Z > Task :feature-common:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:00.9964468Z > Task :feature-common:generateDebugLintReportModel
+2026-09-06T04:49:01.0870067Z > Task :feature-common:syncDebugLibJars
+2026-09-06T04:49:01.0894717Z > Task :feature-common:bundleLibCompileToJarDebug
+2026-09-06T04:49:01.0920743Z > Task :feature-common:bundleDebugLocalLintAar
+2026-09-06T04:49:01.2874693Z > Task :feature-common:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:02.2874609Z > Task :data:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:05.9849773Z > Task :feature-home:kspDebugKotlin
+2026-09-06T04:49:06.0874511Z > Task :feature-home:extractDebugAnnotations
+2026-09-06T04:49:06.0964361Z > Task :feature-search:kspDebugKotlin
+2026-09-06T04:49:06.1875865Z > Task :feature-search:extractDebugAnnotations
+2026-09-06T04:49:07.4869175Z > Task :feature-post:kspDebugKotlin
+2026-09-06T04:49:07.5857538Z > Task :feature-post:extractDebugAnnotations
+2026-09-06T04:49:09.9856968Z 
+2026-09-06T04:49:09.9925892Z > Task :feature-home:compileDebugKotlin
+2026-09-06T04:49:09.9965338Z w: file:///home/runner/work/Pawchive/Pawchive/feature-home/src/main/java/com/pawchive/ui/home/HomeViewModel.kt:26:31 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:49:09.9977817Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:49:10.0005570Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:49:10.0090179Z 
+2026-09-06T04:49:10.0117604Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:49:10.5905655Z 
+2026-09-06T04:49:10.5935200Z > Task :feature-search:compileDebugKotlin
+2026-09-06T04:49:10.5995533Z w: file:///home/runner/work/Pawchive/Pawchive/feature-search/src/main/java/com/pawchive/ui/search/SearchViewModel.kt:26:27 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:49:10.6065203Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:49:10.6086518Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:49:10.6114738Z 
+2026-09-06T04:49:10.6145384Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:49:10.6165468Z w: file:///home/runner/work/Pawchive/Pawchive/feature-search/src/main/java/com/pawchive/ui/search/SearchViewModel.kt:37:30 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:49:10.6194713Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:49:10.6204412Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:49:10.6234844Z 
+2026-09-06T04:49:10.6264462Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:49:10.7863395Z 
+2026-09-06T04:49:10.7894665Z > Task :feature-home:processDebugJavaRes
+2026-09-06T04:49:10.7895689Z > Task :feature-home:mergeDebugJavaResource
+2026-09-06T04:49:11.2912885Z > Task :feature-home:compileDebugJavaWithJavac
+2026-09-06T04:49:11.4864740Z > Task :feature-home:transformDebugClassesWithAsm
+2026-09-06T04:49:11.4904578Z > Task :feature-home:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:11.4960292Z > Task :feature-search:compileDebugJavaWithJavac
+2026-09-06T04:49:11.5024389Z > Task :feature-home:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:11.5077471Z > Task :feature-home:syncDebugLibJars
+2026-09-06T04:49:11.5114157Z > Task :feature-home:bundleDebugLocalLintAar
+2026-09-06T04:49:11.5886035Z > Task :feature-search:processDebugJavaRes
+2026-09-06T04:49:11.5924269Z > Task :feature-search:mergeDebugJavaResource
+2026-09-06T04:49:11.6854579Z > Task :feature-search:transformDebugClassesWithAsm
+2026-09-06T04:49:11.6894390Z > Task :feature-search:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:11.6895406Z > Task :feature-search:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:11.7864418Z > Task :feature-search:syncDebugLibJars
+2026-09-06T04:49:11.7874239Z > Task :feature-search:bundleDebugLocalLintAar
+2026-09-06T04:49:15.9863853Z 
+2026-09-06T04:49:15.9924891Z > Task :feature-post:compileDebugKotlin
+2026-09-06T04:49:15.9985052Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/FullscreenVideoDialog.kt:86:40 'static field FLAG_FULLSCREEN: Int' is deprecated. Deprecated in Java.
+2026-09-06T04:49:16.0018446Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/FullscreenVideoDialog.kt:87:40 'static field FLAG_FULLSCREEN: Int' is deprecated. Deprecated in Java.
+2026-09-06T04:49:16.0043128Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/FullscreenVideoDialog.kt:113:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:49:16.0046797Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/FullscreenVideoDialog.kt:144:45 The corresponding parameter in the supertype 'VideoPlayerListener' is named 'isPlaying'. This may cause problems when calling this function with named arguments.
+2026-09-06T04:49:16.0050524Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:128:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:49:16.0053843Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:887:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:49:16.0056889Z w: file:///home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:1095:12 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+2026-09-06T04:49:16.8850024Z 
+2026-09-06T04:49:16.8859779Z > Task :feature-downloads:kspDebugKotlin
+2026-09-06T04:49:16.8860818Z > Task :feature-post:processDebugJavaRes
+2026-09-06T04:49:16.8884240Z > Task :feature-post:compileDebugJavaWithJavac
+2026-09-06T04:49:16.8914206Z > Task :feature-post:mergeDebugJavaResource
+2026-09-06T04:49:16.8945152Z > Task :feature-downloads:extractDebugAnnotations
+2026-09-06T04:49:17.0849985Z > Task :feature-post:transformDebugClassesWithAsm
+2026-09-06T04:49:17.0956729Z > Task :feature-post:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:17.1858056Z > Task :feature-post:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:17.1914605Z > Task :feature-post:syncDebugLibJars
+2026-09-06T04:49:17.2877006Z > Task :feature-post:bundleDebugLocalLintAar
+2026-09-06T04:49:18.6849498Z > Task :feature-downloads:compileDebugKotlin
+2026-09-06T04:49:19.0853948Z > Task :feature-downloads:compileDebugJavaWithJavac
+2026-09-06T04:49:19.0856019Z > Task :feature-settings:kspDebugKotlin
+2026-09-06T04:49:19.1934827Z > Task :feature-downloads:transformDebugClassesWithAsm
+2026-09-06T04:49:19.1985100Z > Task :feature-downloads:processDebugJavaRes
+2026-09-06T04:49:19.2015456Z > Task :feature-downloads:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:19.2016362Z > Task :feature-downloads:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:19.2074649Z > Task :feature-downloads:mergeDebugJavaResource
+2026-09-06T04:49:19.2104388Z > Task :feature-downloads:syncDebugLibJars
+2026-09-06T04:49:19.2195544Z > Task :feature-settings:extractDebugAnnotations
+2026-09-06T04:49:19.2260869Z > Task :feature-downloads:bundleDebugLocalLintAar
+2026-09-06T04:49:19.2884450Z > Task :feature-downloads:bundleLibCompileToJarDebug
+2026-09-06T04:49:19.2888534Z > Task :feature-home:bundleLibCompileToJarDebug
+2026-09-06T04:49:19.2889491Z > Task :feature-post:bundleLibCompileToJarDebug
+2026-09-06T04:49:19.2895691Z > Task :feature-search:bundleLibCompileToJarDebug
+2026-09-06T04:49:19.3854709Z > Task :feature-home:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:19.3877370Z > Task :feature-search:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:19.3944649Z > Task :feature-post:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:19.4886819Z > Task :feature-downloads:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:19.4944963Z > Task :feature-common:createFullJarDebug
+2026-09-06T04:49:19.4974714Z > Task :feature-downloads:createFullJarDebug
+2026-09-06T04:49:19.5906638Z > Task :feature-home:createFullJarDebug
+2026-09-06T04:49:19.5964458Z > Task :feature-post:createFullJarDebug
+2026-09-06T04:49:19.6001708Z > Task :feature-search:createFullJarDebug
+2026-09-06T04:49:19.7850390Z > Task :feature-downloads:generateDebugLintModel
+2026-09-06T04:49:19.8849599Z > Task :feature-home:generateDebugLintModel
+2026-09-06T04:49:19.9849953Z > Task :feature-post:generateDebugLintModel
+2026-09-06T04:49:20.0849667Z > Task :feature-search:generateDebugLintModel
+2026-09-06T04:49:20.1893844Z > Task :feature-common:generateDebugAndroidTestLintModel
+2026-09-06T04:49:20.2879793Z > Task :feature-common:generateDebugUnitTestLintModel
+2026-09-06T04:49:21.0864743Z > Task :feature-common:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:21.6854645Z > Task :feature-common:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:21.7894694Z > Task :feature-downloads:generateDebugAndroidTestLintModel
+2026-09-06T04:49:21.9884701Z > Task :feature-downloads:generateDebugUnitTestLintModel
+2026-09-06T04:49:22.2875127Z > Task :feature-downloads:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:22.6853849Z > Task :feature-downloads:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:22.7874678Z > Task :feature-home:generateDebugAndroidTestLintModel
+2026-09-06T04:49:22.8849663Z > Task :feature-home:generateDebugUnitTestLintModel
+2026-09-06T04:49:23.2898008Z > Task :feature-home:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:23.4884486Z > Task :feature-account:kspDebugKotlin
+2026-09-06T04:49:23.5924500Z > Task :feature-account:extractDebugAnnotations
+2026-09-06T04:49:23.5964537Z > Task :feature-home:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:23.6884505Z > Task :feature-post:generateDebugAndroidTestLintModel
+2026-09-06T04:49:23.7864710Z > Task :feature-post:generateDebugUnitTestLintModel
+2026-09-06T04:49:24.2895816Z > Task :feature-post:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:25.0854532Z > Task :feature-post:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:25.1855986Z > Task :feature-search:generateDebugAndroidTestLintModel
+2026-09-06T04:49:25.1913025Z > Task :feature-search:generateDebugUnitTestLintModel
+2026-09-06T04:49:25.4854605Z > Task :feature-search:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:25.7864452Z > Task :feature-search:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:26.3886162Z 
+2026-09-06T04:49:26.3934570Z > Task :core:lintReportDebug
+2026-09-06T04:49:26.3964861Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/core/build/reports/lint-results-debug.html
+2026-09-06T04:49:26.4024710Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/core/build/reports/lint-results-debug.sarif
+2026-09-06T04:49:26.4084078Z 
+2026-09-06T04:49:26.4136474Z > Task :core:lintDebug
+2026-09-06T04:49:26.4874570Z > Task :feature-downloads:generateDebugLintReportModel
+2026-09-06T04:49:26.4904034Z > Task :feature-home:generateDebugLintReportModel
+2026-09-06T04:49:26.5884639Z > Task :feature-post:generateDebugLintReportModel
+2026-09-06T04:49:26.5904082Z > Task :feature-search:generateDebugLintReportModel
+2026-09-06T04:49:27.2901161Z > Task :feature-settings:compileDebugKotlin
+2026-09-06T04:49:27.2934689Z > Task :feature-settings:processDebugJavaRes
+2026-09-06T04:49:27.2984854Z > Task :feature-settings:mergeDebugJavaResource
+2026-09-06T04:49:28.4854618Z > Task :feature-settings:compileDebugJavaWithJavac
+2026-09-06T04:49:28.4913883Z 
+2026-09-06T04:49:28.4974388Z > Task :feature-account:compileDebugKotlin
+2026-09-06T04:49:28.5035856Z w: file:///home/runner/work/Pawchive/Pawchive/feature-account/src/main/java/com/pawchive/ui/favorites/AccountFavoritesViewModel.kt:22:35 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:49:28.5095219Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:49:28.5124236Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:49:28.5153926Z 
+2026-09-06T04:49:28.5184335Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:49:28.5186535Z w: file:///home/runner/work/Pawchive/Pawchive/feature-account/src/main/java/com/pawchive/ui/favorites/AccountFavoritesViewModel.kt:34:38 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+2026-09-06T04:49:28.5214528Z - To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+2026-09-06T04:49:28.5244475Z - To keep applying to the value parameter only, use the '@param:' annotation target.
+2026-09-06T04:49:28.5253710Z 
+2026-09-06T04:49:28.5284858Z See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+2026-09-06T04:49:28.6848788Z 
+2026-09-06T04:49:28.6874676Z > Task :feature-settings:generateDebugLintModel
+2026-09-06T04:49:28.6924539Z > Task :feature-account:processDebugJavaRes
+2026-09-06T04:49:28.6984253Z > Task :feature-account:mergeDebugJavaResource
+2026-09-06T04:49:28.7024162Z > Task :feature-settings:generateDebugLintReportModel
+2026-09-06T04:49:28.8925056Z > Task :feature-settings:transformDebugClassesWithAsm
+2026-09-06T04:49:28.8934510Z > Task :feature-settings:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:28.9874939Z > Task :feature-settings:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:28.9929754Z > Task :feature-settings:bundleLibCompileToJarDebug
+2026-09-06T04:49:29.0884708Z > Task :feature-settings:syncDebugLibJars
+2026-09-06T04:49:29.1043947Z > Task :feature-settings:bundleDebugLocalLintAar
+2026-09-06T04:49:29.1044913Z > Task :feature-settings:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:29.1874570Z > Task :feature-settings:createFullJarDebug
+2026-09-06T04:49:29.2864991Z > Task :feature-settings:generateDebugUnitTestLintModel
+2026-09-06T04:49:29.2904447Z > Task :feature-settings:generateDebugAndroidTestLintModel
+2026-09-06T04:49:29.3874653Z > Task :feature-account:compileDebugJavaWithJavac
+2026-09-06T04:49:29.5871283Z > Task :feature-account:transformDebugClassesWithAsm
+2026-09-06T04:49:29.5905733Z > Task :feature-account:mergeDebugGeneratedProguardFiles
+2026-09-06T04:49:29.5906718Z > Task :feature-account:mergeDebugConsumerProguardFiles
+2026-09-06T04:49:29.5925479Z > Task :feature-settings:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:29.6864754Z > Task :feature-settings:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:29.6914446Z > Task :feature-account:bundleLibCompileToJarDebug
+2026-09-06T04:49:29.6974667Z > Task :feature-account:syncDebugLibJars
+2026-09-06T04:49:29.6984167Z > Task :feature-account:bundleDebugLocalLintAar
+2026-09-06T04:49:29.6991839Z > Task :feature-account:bundleLibRuntimeToJarDebug
+2026-09-06T04:49:29.7014283Z > Task :feature-account:createFullJarDebug
+2026-09-06T04:49:29.7858178Z > Task :feature-account:generateDebugLintModel
+2026-09-06T04:49:29.7866506Z > Task :feature-account:generateDebugAndroidTestLintModel
+2026-09-06T04:49:29.7912244Z > Task :feature-account:generateDebugUnitTestLintModel
+2026-09-06T04:49:30.1856800Z > Task :feature-account:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:30.1874556Z > Task :feature-account:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:30.1921114Z > Task :feature-account:generateDebugLintReportModel
+2026-09-06T04:49:34.3852580Z > Task :app:kspDebugKotlin
+2026-09-06T04:49:37.0874684Z > Task :app:compileDebugKotlin
+2026-09-06T04:49:37.5849827Z > Task :app:compileDebugJavaWithJavac
+2026-09-06T04:49:37.5874258Z > Task :app:hiltSyncDebug
+2026-09-06T04:49:37.8850140Z > Task :app:generateDebugLintReportModel
+2026-09-06T04:49:37.8871967Z > Task :app:hiltAggregateDepsDebug
+2026-09-06T04:49:42.6849626Z > Task :app:hiltJavaCompileDebug
+2026-09-06T04:49:42.6874237Z > Task :app:bundleDebugClassesToCompileJar
+2026-09-06T04:49:42.7885069Z > Task :app:generateDebugUnitTestLintModel
+2026-09-06T04:49:42.8865238Z > Task :app:generateDebugAndroidTestLintModel
+2026-09-06T04:49:43.1857360Z > Task :app:lintAnalyzeDebugUnitTest
+2026-09-06T04:49:43.2849491Z > Task :app:lintAnalyzeDebugAndroidTest
+2026-09-06T04:49:45.2854650Z > Task :data:lintAnalyzeDebug
+2026-09-06T04:49:45.4854202Z 
+2026-09-06T04:49:45.4874425Z > Task :data:lintReportDebug
+2026-09-06T04:49:45.4904476Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/data/build/reports/lint-results-debug.html
+2026-09-06T04:49:45.4905910Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/data/build/reports/lint-results-debug.sarif
+2026-09-06T04:49:45.4906711Z 
+2026-09-06T04:49:45.4906902Z > Task :data:lintDebug
+2026-09-06T04:49:52.9849719Z > Task :feature-common:lintAnalyzeDebug
+2026-09-06T04:49:57.7854688Z > Task :feature-downloads:lintAnalyzeDebug
+2026-09-06T04:49:58.5849768Z > Task :feature-home:lintAnalyzeDebug
+2026-09-06T04:50:06.1864706Z > Task :feature-search:lintAnalyzeDebug
+2026-09-06T04:50:07.9850297Z > Task :feature-account:lintAnalyzeDebug
+2026-09-06T04:50:07.9874313Z > Task :feature-post:lintAnalyzeDebug
+2026-09-06T04:50:08.1864160Z 
+2026-09-06T04:50:08.1924591Z > Task :feature-account:lintReportDebug
+2026-09-06T04:50:08.1953141Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-account/build/reports/lint-results-debug.html
+2026-09-06T04:50:08.2005591Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-account/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:08.2063945Z 
+2026-09-06T04:50:08.2077670Z > Task :feature-account:lintDebug
+2026-09-06T04:50:08.2865695Z 
+2026-09-06T04:50:08.2894674Z > Task :feature-downloads:lintReportDebug
+2026-09-06T04:50:08.2916907Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-downloads/build/reports/lint-results-debug.html
+2026-09-06T04:50:08.2925045Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-downloads/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:08.2953230Z 
+2026-09-06T04:50:08.2985357Z > Task :feature-downloads:lintDebug
+2026-09-06T04:50:08.3865805Z 
+2026-09-06T04:50:08.3894406Z > Task :feature-home:lintReportDebug
+2026-09-06T04:50:08.3925037Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-home/build/reports/lint-results-debug.html
+2026-09-06T04:50:08.3946095Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-home/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:08.3983875Z 
+2026-09-06T04:50:08.3988975Z > Task :feature-home:lintDebug
+2026-09-06T04:50:08.6849054Z 
+2026-09-06T04:50:08.6849993Z > Task :feature-post:lintReportDebug
+2026-09-06T04:50:08.6879121Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-post/build/reports/lint-results-debug.html
+2026-09-06T04:50:08.6914533Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-post/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:08.6924174Z Lint found 1 error and 36 warnings. First failure:
+2026-09-06T04:50:08.6952490Z /home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:306: Error: Format string 'download_notification_complete' is not a valid format string so it should not be passed to String.format [StringFormatInvalid]
+2026-09-06T04:50:08.6984635Z                                     DownloadType.ATTACHMENT -> getString(R.string.download_notification_complete, record.fileName)
+2026-09-06T04:50:08.7004385Z                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-09-06T04:50:08.7034623Z     /home/runner/work/Pawchive/Pawchive/feature-common/src/main/res/values/strings.xml:183: This definition does not require arguments
+2026-09-06T04:50:08.7035649Z 
+2026-09-06T04:50:08.7851172Z 
+2026-09-06T04:50:08.7884427Z > Task :feature-post:lintDebug FAILED
+2026-09-06T04:50:08.7894319Z Lint found 1 error, 36 warnings. First failure:
+2026-09-06T04:50:08.7913759Z 
+2026-09-06T04:50:08.7945953Z /home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:306: Error: Format string 'download_notification_complete' is not a valid format string so it should not be passed to String.format [StringFormatInvalid]
+2026-09-06T04:50:08.7948646Z                                     DownloadType.ATTACHMENT -> getString(R.string.download_notification_complete, record.fileName)
+2026-09-06T04:50:08.7974216Z                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-09-06T04:50:08.8004593Z     /home/runner/work/Pawchive/Pawchive/feature-common/src/main/res/values/strings.xml:183: This definition does not require arguments
+2026-09-06T04:50:08.8024122Z 
+2026-09-06T04:50:08.8052581Z    Explanation for issues of type "StringFormatInvalid":
+2026-09-06T04:50:08.8084330Z    If a string contains a '%' character, then the string may be a formatting
+2026-09-06T04:50:08.8094160Z    string which will be passed to String.format from Java code to replace each
+2026-09-06T04:50:08.8114199Z    '%' occurrence with specific values.
+2026-09-06T04:50:08.8143804Z 
+2026-09-06T04:50:08.8154111Z    This lint warning checks for two related problems:
+2026-09-06T04:50:08.8175457Z    (1) Formatting strings that are invalid, meaning that String.format will
+2026-09-06T04:50:08.8202725Z    throw exceptions at runtime when attempting to use the format string.
+2026-09-06T04:50:08.8224366Z    (2) Strings containing '%' that are not formatting strings getting passed
+2026-09-06T04:50:08.8244227Z    to a String.format call. In this case the '%' will need to be escaped as
+2026-09-06T04:50:08.8251306Z    '%%'.
+2026-09-06T04:50:08.8251724Z 
+2026-09-06T04:50:08.8253721Z    NOTE: Not all Strings which look like formatting strings are intended for
+2026-09-06T04:50:08.8254703Z    use by String.format; for example, they may contain date formats intended
+2026-09-06T04:50:08.8255699Z    for android.text.format.Time#format(). Lint cannot always figure out that a
+2026-09-06T04:50:08.8256670Z    String is a date format, so you may get false warnings in those scenarios.
+2026-09-06T04:50:08.8258196Z    See the suppress help topic for information on how to suppress errors in
+2026-09-06T04:50:08.8258907Z    that case.
+2026-09-06T04:50:08.8259153Z 
+2026-09-06T04:50:08.8259160Z 
+2026-09-06T04:50:08.8259374Z The full lint text report is located at:
+2026-09-06T04:50:08.8260828Z   /home/runner/work/Pawchive/Pawchive/feature-post/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+2026-09-06T04:50:08.9853927Z 
+2026-09-06T04:50:08.9884374Z > Task :feature-search:lintReportDebug
+2026-09-06T04:50:08.9944830Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-search/build/reports/lint-results-debug.html
+2026-09-06T04:50:08.9974529Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-search/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:09.0854177Z 
+2026-09-06T04:50:09.0874469Z > Task :feature-common:lintReportDebug
+2026-09-06T04:50:09.0904775Z Wrote HTML report to file:///home/runner/work/Pawchive/Pawchive/feature-common/build/reports/lint-results-debug.html
+2026-09-06T04:50:09.0934654Z Wrote SARIF report to file:///home/runner/work/Pawchive/Pawchive/feature-common/build/reports/lint-results-debug.sarif
+2026-09-06T04:50:13.4848826Z 
+2026-09-06T04:50:13.4850846Z > Task :feature-settings:lintAnalyzeDebug
+2026-09-06T04:50:13.4852324Z gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1788670052665.json
+2026-09-06T04:50:13.5861957Z 407 actionable tasks: 407 executed
+2026-09-06T04:50:13.5864170Z 
+2026-09-06T04:50:13.5864897Z Configuration cache entry stored.
+2026-09-06T04:50:13.5870533Z FAILURE: Build failed with an exception.
+2026-09-06T04:50:13.5871006Z 
+2026-09-06T04:50:13.5871192Z * What went wrong:
+2026-09-06T04:50:13.5872109Z Execution failed for task ':feature-post:lintDebug' (registered by plugin 'com.android.internal.library').
+2026-09-06T04:50:13.5873902Z > Lint found errors in the project; aborting build.
+2026-09-06T04:50:13.5874609Z   
+2026-09-06T04:50:13.5875277Z   Fix the issues identified by lint, or create a baseline to see only new errors.
+2026-09-06T04:50:13.5876601Z   To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+2026-09-06T04:50:13.5877643Z   ```
+2026-09-06T04:50:13.5878038Z   android {
+2026-09-06T04:50:13.5878437Z       lint {
+2026-09-06T04:50:13.5878909Z           baseline = file("lint-baseline.xml")
+2026-09-06T04:50:13.5879493Z       }
+2026-09-06T04:50:13.5879870Z   }
+2026-09-06T04:50:13.5880245Z   ```
+2026-09-06T04:50:13.5881026Z   For more details, see https://developer.android.com/studio/write/lint#snapshot
+2026-09-06T04:50:13.5881856Z   
+2026-09-06T04:50:13.5882339Z   Lint found 1 error, 36 warnings. First failure:
+2026-09-06T04:50:13.5882952Z   
+2026-09-06T04:50:13.5885060Z   /home/runner/work/Pawchive/Pawchive/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt:306: Error: Format string 'download_notification_complete' is not a valid format string so it should not be passed to String.format [StringFormatInvalid]
+2026-09-06T04:50:13.5887898Z                                       DownloadType.ATTACHMENT -> getString(R.string.download_notification_complete, record.fileName)
+2026-09-06T04:50:13.5889155Z                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-09-06T04:50:13.5890618Z       /home/runner/work/Pawchive/Pawchive/feature-common/src/main/res/values/strings.xml:183: This definition does not require arguments
+2026-09-06T04:50:13.5891801Z   
+2026-09-06T04:50:13.5892381Z      Explanation for issues of type "StringFormatInvalid":
+2026-09-06T04:50:13.5893308Z      If a string contains a '%' character, then the string may be a formatting
+2026-09-06T04:50:13.5894704Z      string which will be passed to String.format from Java code to replace each
+2026-09-06T04:50:13.5895570Z      '%' occurrence with specific values.
+2026-09-06T04:50:13.5896159Z   
+2026-09-06T04:50:13.5896650Z      This lint warning checks for two related problems:
+2026-09-06T04:50:13.5897535Z      (1) Formatting strings that are invalid, meaning that String.format will
+2026-09-06T04:50:13.5898512Z      throw exceptions at runtime when attempting to use the format string.
+2026-09-06T04:50:13.5899506Z      (2) Strings containing '%' that are not formatting strings getting passed
+2026-09-06T04:50:13.5900463Z      to a String.format call. In this case the '%' will need to be escaped as
+2026-09-06T04:50:13.5901159Z      '%%'.
+2026-09-06T04:50:13.5901525Z   
+2026-09-06T04:50:13.5902117Z      NOTE: Not all Strings which look like formatting strings are intended for
+2026-09-06T04:50:13.5903061Z      use by String.format; for example, they may contain date formats intended
+2026-09-06T04:50:13.5904423Z      for android.text.format.Time#format(). Lint cannot always figure out that a
+2026-09-06T04:50:13.5905438Z      String is a date format, so you may get false warnings in those scenarios.
+2026-09-06T04:50:13.5906438Z      See the suppress help topic for information on how to suppress errors in
+2026-09-06T04:50:13.5907200Z      that case.
+2026-09-06T04:50:13.5907614Z   
+2026-09-06T04:50:13.5907991Z   
+2026-09-06T04:50:13.5908431Z   The full lint text report is located at:
+2026-09-06T04:50:13.5909733Z     /home/runner/work/Pawchive/Pawchive/feature-post/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+2026-09-06T04:50:13.5910842Z 
+2026-09-06T04:50:13.5911014Z * Try:
+2026-09-06T04:50:13.5911524Z > Run with --stacktrace option to get the stack trace.
+2026-09-06T04:50:13.5912302Z > Run with --info or --debug option to get more log output.
+2026-09-06T04:50:13.5913209Z > Run with --scan to get full insights from a Build Scan (powered by Develocity).
+2026-09-06T04:50:13.5914289Z > Get more help at https://help.gradle.org.
+2026-09-06T04:50:13.5914655Z 
+2026-09-06T04:50:13.5914829Z BUILD FAILED in 2m 49s
+2026-09-06T04:50:14.0103270Z ##[error]Process completed with exit code 1.
+2026-09-06T04:50:14.0182346Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:50:14.0184009Z ##[group]Run actions/upload-artifact@v4
+2026-09-06T04:50:14.0184323Z with:
+2026-09-06T04:50:14.0184549Z   name: lint-report
+2026-09-06T04:50:14.0184844Z   path: **/build/reports/lint-results-debug.html
+2026-09-06T04:50:14.0185186Z   retention-days: 7
+2026-09-06T04:50:14.0185448Z   if-no-files-found: warn
+2026-09-06T04:50:14.0185733Z   compression-level: 6
+2026-09-06T04:50:14.0185985Z   overwrite: false
+2026-09-06T04:50:14.0186237Z   include-hidden-files: false
+2026-09-06T04:50:14.0186511Z env:
+2026-09-06T04:50:14.0186845Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:50:14.0187610Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-09-06T04:50:14.0188075Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-09-06T04:50:14.0188424Z   GRADLE_USER_HOME: /home/runner/.gradle
+2026-09-06T04:50:14.0188754Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-09-06T04:50:14.0189095Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-09-06T04:50:14.0189576Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-09-06T04:50:14.0190098Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-09-06T04:50:14.0190455Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-09-06T04:50:14.0190779Z ##[endgroup]
+2026-09-06T04:50:14.1838435Z (node:2774) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T04:50:14.1839705Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T04:50:15.2097228Z With the provided path, there will be 8 files uploaded
+2026-09-06T04:50:15.2103673Z Artifact name is valid!
+2026-09-06T04:50:15.2104617Z Root directory input is valid!
+2026-09-06T04:50:15.6079753Z Beginning upload of artifact content to blob storage
+2026-09-06T04:50:15.6571201Z (node:2774) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-09-06T04:50:16.0889651Z Uploaded bytes 185097
+2026-09-06T04:50:16.1605682Z Finished uploading artifact content to blob storage!
+2026-09-06T04:50:16.1606841Z SHA256 digest of uploaded artifact zip is 21a2a2149021d2c0c953ebf0a409033a8b5318ac2f924bdf508012fbe9ab7026
+2026-09-06T04:50:16.1608218Z Finalizing artifact upload
+2026-09-06T04:50:16.4470652Z Artifact lint-report.zip successfully finalized. Artifact ID 9982890363
+2026-09-06T04:50:16.4472056Z Artifact lint-report has been successfully uploaded! Final size is 185097 bytes. Artifact ID is 9982890363
+2026-09-06T04:50:16.4478890Z Artifact download URL: https://github.com/FengByX/Pawchive/actions/runs/34012376144/artifacts/9982890363
+2026-09-06T04:50:16.4730044Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:50:16.4731328Z Post job cleanup.
+2026-09-06T04:50:16.7075047Z In post-action step
+2026-09-06T04:50:16.7090151Z ##[group]Stopping Gradle daemons
+2026-09-06T04:50:16.7091707Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-9.5.0-bin/bvnork1r7n8i6kp5cnkibsc9q/gradle-9.5.0
+2026-09-06T04:50:16.7108534Z [command]/home/runner/.gradle/wrapper/dists/gradle-9.5.0-bin/bvnork1r7n8i6kp5cnkibsc9q/gradle-9.5.0/bin/gradle --stop
+2026-09-06T04:50:17.4316877Z Stopping Daemon(s)
+2026-09-06T04:50:17.4322511Z 1 Daemon stopped
+2026-09-06T04:50:17.4448030Z ##[endgroup]
+2026-09-06T04:50:17.4450096Z Not performing cache-cleanup due to build failure
+2026-09-06T04:50:17.4451353Z ##[group]Caching Gradle state
+2026-09-06T04:50:17.4555307Z Not saving configuration-cache state, as no encryption key was provided
+2026-09-06T04:50:19.3559596Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --files-from manifest.txt --use-compress-program zstdmt
+2026-09-06T04:50:21.9957772Z Sent 23855104 of 123194629 (19.4%), 22.7 MBs/sec
+2026-09-06T04:50:22.9966103Z Sent 81264640 of 123194629 (66.0%), 38.7 MBs/sec
+2026-09-06T04:50:23.9962048Z Sent 123194629 of 123194629 (100.0%), 39.1 MBs/sec
+2026-09-06T04:50:24.3089450Z Saved cache entry with key gradle-transforms-v1-f9f59f08e370f89ae6d20795da83e5f3 from /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 5777ms
+2026-09-06T04:50:25.0989287Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Pawchive/Pawchive --files-from manifest.txt --use-compress-program zstdmt
+2026-09-06T04:50:26.2941578Z Sent 4624182 of 4624182 (100.0%), 5.4 MBs/sec
+2026-09-06T04:50:26.5511113Z Saved cache entry with key gradle-home-v1|Linux-X64|lint[b8a35c2f917259958c9abe8f2ff1b5ff]-bd793f9af13f83ccfff5c1b874f489123a7d8aa6 from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1468ms
+2026-09-06T04:50:26.5513378Z ##[endgroup]
+2026-09-06T04:50:26.5519190Z Generating Job Summary
+2026-09-06T04:50:26.5532861Z Completed post-action step
+2026-09-06T04:50:26.5741529Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:50:26.5742830Z Post job cleanup.
+2026-09-06T04:50:26.7075079Z (node:2856) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-06T04:50:26.7076498Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T04:50:26.7292258Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-06T04:50:26.7294671Z Post job cleanup.
+2026-09-06T04:50:26.8265276Z [command]/usr/bin/git version
+2026-09-06T04:50:26.8311241Z git version 2.55.0
+2026-09-06T04:50:26.8355451Z Temporarily overriding HOME='/home/runner/work/_temp/bef8517c-eef9-4331-88b0-8b6047ec30be' before making global git config changes
+2026-09-06T04:50:26.8357107Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T04:50:26.8361454Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Pawchive/Pawchive
+2026-09-06T04:50:26.8402194Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T04:50:26.8446545Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-06T04:50:26.8739183Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T04:50:26.8771017Z http.https://github.com/.extraheader
+2026-09-06T04:50:26.8782615Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-06T04:50:26.8817390Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-06T04:50:26.9074869Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T04:50:26.9113676Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-06T04:50:26.9524745Z Cleaning up orphan processes
+2026-09-06T04:50:26.9823324Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-java@v4, actions/upload-artifact@v4, gradle/actions/setup-gradle@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

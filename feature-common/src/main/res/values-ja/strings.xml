@@ -180,7 +180,7 @@
     <string name="download_notification_progress">%1$s · %2$d%%</string>
     <string name="download_notification_canceled">ダウンロードはキャンセルされました</string>
     <string name="download_notification_failed">ダウンロード失敗：%1$s</string>
-    <string name="download_notification_complete">動画をアルバムに保存しました</string>
+    <string name="download_notification_complete">添付ファイルを保存しました：%1$s</string>
     <string name="download_no_permission">進捗表示に通知権限が必要です。バックグラウンドダウンロードを開始しました</string>
 
     <!-- Settings: Download -->

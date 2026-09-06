@@ -180,7 +180,7 @@
     <string name="download_notification_progress">%1$s · %2$d%%</string>
     <string name="download_notification_canceled">下载已取消</string>
     <string name="download_notification_failed">下载失败：%1$s</string>
-    <string name="download_notification_complete">视频已保存到相册</string>
+    <string name="download_notification_complete">附件已保存：%1$s</string>
     <string name="download_no_permission">需要通知权限才能显示下载进度，已开始后台下载</string>
 
     <!-- Settings: Download -->
