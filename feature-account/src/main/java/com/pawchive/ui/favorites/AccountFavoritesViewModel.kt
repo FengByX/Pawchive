@@ -271,7 +271,14 @@ class AccountFavoritesViewModel @Inject constructor(
 
     private fun applyPostSort() {
         if (loadedPosts.isEmpty()) {
-            _uiState.value = _uiState.value.copy(posts = emptyList())
+            // 修复 BUG-001：applySort 不再只是"重新发布数据"，必须按当前 Tab 同步重置 emptyVisible，
+            // 否则从另一个空 Tab 切回当前 Tab 时，emptyVisible 残留旧值，UI 会错误地显示"暂无收藏"。
+            val newState = _uiState.value.copy(posts = emptyList())
+            _uiState.value = if (newState.currentTab == 0) {
+                newState.copy(emptyVisible = true)
+            } else {
+                newState
+            }
             return
         }
         val sorted = when (currentPostSort) {
@@ -282,12 +289,24 @@ class AccountFavoritesViewModel @Inject constructor(
             FavoritePostSortOption.NEWEST_EDITED -> loadedPosts.sortedByDescending { it.edited ?: it.published }
             FavoritePostSortOption.OLDEST_EDITED -> loadedPosts.sortedBy { it.edited ?: it.published }
         }
-        _uiState.value = _uiState.value.copy(posts = sorted)
+        // 仅当帖子 Tab 是当前 Tab 时清除空状态，避免覆盖另一 Tab 的 emptyVisible
+        val newState = _uiState.value.copy(posts = sorted)
+        _uiState.value = if (newState.currentTab == 0) {
+            newState.copy(emptyVisible = false)
+        } else {
+            newState
+        }
     }
 
     private fun applyCreatorSort() {
         if (loadedCreators.isEmpty()) {
-            _uiState.value = _uiState.value.copy(creators = emptyList())
+            // 修复 BUG-001：同上，applySort 需按 currentTab 同步重置 emptyVisible
+            val newState = _uiState.value.copy(creators = emptyList())
+            _uiState.value = if (newState.currentTab == 1) {
+                newState.copy(emptyVisible = true)
+            } else {
+                newState
+            }
             return
         }
         val sorted = when (currentCreatorSort) {
@@ -298,7 +317,13 @@ class AccountFavoritesViewModel @Inject constructor(
             FavoriteCreatorSortOption.NAME_ASC -> loadedCreators.sortedBy { it.name.lowercase() }
             FavoriteCreatorSortOption.NAME_DESC -> loadedCreators.sortedByDescending { it.name.lowercase() }
         }
-        _uiState.value = _uiState.value.copy(creators = sorted)
+        // 仅当创作者 Tab 是当前 Tab 时清除空状态
+        val newState = _uiState.value.copy(creators = sorted)
+        _uiState.value = if (newState.currentTab == 1) {
+            newState.copy(emptyVisible = false)
+        } else {
+            newState
+        }
     }
 
     private fun friendlyMessage(error: Throwable): String {

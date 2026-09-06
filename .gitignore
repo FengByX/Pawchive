@@ -25,3 +25,6 @@ Thumbs.db
 # Signing
 *.jks
 *.keystore
+
+# Workbuddy
+.workbuddy/

@@ -1,5 +1,6 @@
 package com.pawchive.data.repository
 
+import android.net.Uri
 import com.pawchive.core.model.Attachment
 import com.pawchive.core.model.DownloadRuleFileType
 import com.pawchive.core.model.DownloadType
@@ -67,11 +68,11 @@ class DownloadRuleEngine @Inject constructor(
     /**
      * 对帖子应用启用中的规则，批量入队匹配的附件下载。
      *
-     * @return 实际入队数量（去重后）
+     * @return 实际入队的 recordId 列表（去重后），供调用方跟踪每条下载的状态变化以弹 Toast
      */
-    suspend fun enqueueMatches(post: Post): Int {
+    suspend fun enqueueMatches(post: Post): List<String> {
         val rules = ruleRepository.getEnabledRules()
-        if (rules.isEmpty()) return 0
+        if (rules.isEmpty()) return emptyList()
 
         // 归一化主文件（PostFile）与附件（Attachment）为 (文件名, 路径) 列表
         val files = buildList<Pair<String, String>> {
@@ -85,7 +86,7 @@ class DownloadRuleEngine @Inject constructor(
             }
         }
 
-        var count = 0
+        val recordIds = mutableListOf<String>()
         for ((name, path) in files) {
             val type = detectType(name) ?: continue
             val matched = rules.any { rule ->
@@ -95,15 +96,29 @@ class DownloadRuleEngine @Inject constructor(
             }
             if (!matched) continue
 
-            val url = "https://file.pawchive.pw/data$path"
-            when (type) {
+            val url = buildFileUrl(path)
+            val recordId = when (type) {
                 DownloadType.IMAGE -> downloadEnqueuer.enqueueImageDownload(url, name)
                 DownloadType.VIDEO -> downloadEnqueuer.enqueueVideoDownload(url, name)
                 DownloadType.ATTACHMENT ->
                     downloadEnqueuer.enqueueAttachmentDownload(url, name, guessMimeType(name))
             }
-            count++
+            recordIds.add(recordId)
         }
-        return count
+        return recordIds
+    }
+
+    /**
+     * 构造附件直链：与 PostDetailFragment.buildFileUrl 行为保持一致
+     * （补前导斜杠 + 对 path 做 URL 编码、保留 "/"）。
+     *
+     * 此前直接拼接原始 path，文件名含空格/中文/# 等字符时 URL 非法，
+     * 服务端返回 404 —— 规则匹配明明命中了，用户却只看到"下载失败"。
+     */
+    private fun buildFileUrl(path: String): String {
+        val trimmed = path.trim()
+        if (trimmed.isEmpty()) return ""
+        val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+        return "https://file.pawchive.pw/data${Uri.encode(normalized, "/")}"
     }
 }

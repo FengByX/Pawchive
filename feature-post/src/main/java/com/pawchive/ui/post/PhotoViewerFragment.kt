@@ -1,10 +1,6 @@
 package com.pawchive.ui.post
 
-import android.content.ContentValues
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,10 +17,7 @@ import com.pawchive.core.error.ErrorMessageHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.OutputStream
-import java.util.concurrent.TimeUnit
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -100,11 +93,10 @@ class PhotoViewerFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             var response: okhttp3.Response? = null
             try {
-                // 使用 sharedOkHttpClient：img.pawchive.pw 也可能被 Cloudflare 拦截，
-                // sharedOkHttpClient 内置 CF 重试逻辑。
-                val okHttpClient = ApiClient.sharedOkHttpClient.newBuilder()
-                    .readTimeout(60, TimeUnit.SECONDS)
-                    .build()
+                // 使用 downloadOkHttpClient：既带 Cloudflare 拦截/重试逻辑，又不带
+                // sharedOkHttpClient 的 60s 总调用超时——原图动辄几十 MB，慢网下
+                // 边下边读会被 OkHttp 看门狗在 60s 处掐断，表现为"保存失败"。
+                val okHttpClient = ApiClient.downloadOkHttpClient
 
                 val request = Request.Builder()
                     .url(imageUrl)
@@ -156,12 +148,18 @@ class PhotoViewerFragment : Fragment() {
                 displayName = fileName,
                 mimeType = mimeType
             )
-            val (outputStream, mediaUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
-
-            outputStream.use { out ->
-                inputStream.use { input -> input.copyTo(out) }
+            // opened 声明在 try 外，失败时才能拿到 uri 清理半截文件
+            val opened = downloadRepository.openDownloadStream(target)
+            try {
+                opened.outputStream.use { out ->
+                    inputStream.copyTo(out)
+                }
+                // 先关流（use 已关闭）再 finalize，保证落盘后才对系统可见
+                if (opened.requiresFinalize) downloadRepository.finalizeDownload(opened.uri)
+            } catch (e: Exception) {
+                downloadRepository.abandonDownload(opened.uri, opened.isSaf)
+                throw e
             }
-            if (requiresFinalize) downloadRepository.finalizeDownload(mediaUri)
 
             withContext(Dispatchers.Main) {
                 Toast.makeText(

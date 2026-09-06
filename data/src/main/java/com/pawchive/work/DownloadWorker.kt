@@ -28,7 +28,6 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.OutputStream
 /**
  * 统一下载 Worker（P2 FRONTEND-006 + FEATURE-001 下载中心）。
  *
@@ -90,7 +89,7 @@ class DownloadWorker @AssistedInject constructor(
         // start"这种模糊文案。
         try {
             if (url == null) throw IllegalArgumentException("Missing download URL")
-            var outputStream: OutputStream? = null
+            var opened: DownloadRepository.OpenedDownloadStream? = null
             try {
                 // 标记为运行中（在最外层 try 内：historyManager.updateStatus 任何异常也能进下方 catch）
                 historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = 0)
@@ -106,11 +105,11 @@ class DownloadWorker @AssistedInject constructor(
                 val mimeType = inputData.getString(KEY_MIME_TYPE) ?: inferMimeType(fileName)
                 val repoType = parseRepoType(downloadTypeStr, fileName)
                 val target = DownloadRepository.DownloadTarget(repoType, fileName, mimeType)
-                val (os, fileUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
-                outputStream = os
+                val stream = downloadRepository.openDownloadStream(target)
+                opened = stream
                 var lastReported = -1
 
-                val totalRead = okDownloadManager.download(url, os) { currentBytes, totalBytes ->
+                val totalRead = okDownloadManager.download(url, stream.outputStream) { currentBytes, totalBytes ->
                     if (totalBytes > 0) {
                         val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
                         if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
@@ -122,21 +121,33 @@ class DownloadWorker @AssistedInject constructor(
                     }
                 }
 
-                // 5) 完成：标记 MediaStore IS_PENDING=0，更新通知和历史
-                if (requiresFinalize) downloadRepository.finalizeDownload(fileUri)
+                // 5) 完成：先 flush + close 输出流，再把 IS_PENDING 置 0（顺序不可颠倒，
+                // 否则文件会在数据落盘前就对系统可见，产生 0 字节/损坏文件），
+                // 然后更新通知和历史。
+                stream.outputStream.flush()
+                stream.outputStream.close()
+
+                if (stream.requiresFinalize) downloadRepository.finalizeDownload(stream.uri)
                 historyManager.updateStatus(
                     recordId,
                     DownloadStatus.COMPLETED,
                     progress = 100,
-                    filePath = fileUri.toString(),
+                    filePath = stream.uri.toString(),
                     fileSize = totalRead
                 )
                 if (hasNotifyPermission) {
                     notifyComplete(context, fileName, downloadTypeStr)
                 }
                 Result.success()
+            } catch (e: Throwable) {
+                // 失败/取消：关闭输出流并删除半截文件，避免留下 IS_PENDING=1 的
+                // MediaStore 孤儿行或 SAF 空文档。
+                val stream = opened
+                runCatching { stream?.outputStream?.close() }
+                if (stream != null) downloadRepository.abandonDownload(stream.uri, stream.isSaf)
+                throw e
             } finally {
-                runCatching { outputStream?.close() }
+                runCatching { opened?.outputStream?.close() }
             }
         } catch (e: Throwable) {
             Log.e(TAG, "doWork EXCEPTION: : ", e)

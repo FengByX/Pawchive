@@ -32,6 +32,8 @@ import coil.load
 import coil.request.ImageRequest
 import com.pawchive.common.R
 import com.pawchive.core.api.ApiClient
+import com.pawchive.core.model.DownloadStatus
+import com.pawchive.core.model.DownloadType
 import com.pawchive.core.model.Post
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BookmarkManager
@@ -89,6 +91,12 @@ class PostDetailFragment : Fragment() {
 
     // 视频下载：Android 13+ 需运行时申请通知权限以展示进度条
     private var pendingDownload: Pair<String, String>? = null
+
+    // BUG-002：本 Fragment 入队过的下载记录 ID，用于在 onViewCreated 启动 observeDownloads()
+    // 后只对属于本 Fragment 的下载完成/失败弹 Toast，避免跨 Fragment 重复提示。
+    // notifiedRecordIds 防同一 record 多次 collect 时重复弹 Toast。
+    private val trackingRecordIds = mutableSetOf<String>()
+    private val notifiedRecordIds = mutableSetOf<String>()
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
             val ctx = context ?: return@registerForActivityResult
@@ -146,6 +154,9 @@ class PostDetailFragment : Fragment() {
             loadPostDetails()
         }
         observeUiState()
+        // BUG-002：监控当前 Fragment 入队过的下载记录，对完成/失败弹 Toast。
+        // 必须在 observeUiState() 之后、loadPostDetails() 之前调用，保证生命周期 owner 已设置。
+        observeDownloads()
         loadPostDetails()
     }
 
@@ -190,6 +201,9 @@ class PostDetailFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         videoPlayerManager.release()
+        // BUG-002：清空本 Fragment 维护的下载跟踪集合，避免 Fragment 重建后状态污染。
+        trackingRecordIds.clear()
+        notifiedRecordIds.clear()
         _binding = null
     }
 
@@ -258,6 +272,48 @@ class PostDetailFragment : Fragment() {
                             } else {
                                 binding.nestedScrollView.scrollTo(0, 0)
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * BUG-002：监控 DownloadCenter 的下载历史 StateFlow，对本 Fragment 入队过的
+     * record 弹 Toast（成功 / 失败）。仅在 STARTED 状态下 collect，离开 Fragment 自动暂停。
+     *
+     * 关键设计：
+     * - trackingRecordIds：仅本 Fragment 入队的 recordId 才参与匹配，避免跨 Fragment 提示。
+     * - notifiedRecordIds：弹过 Toast 的 recordId 防重复（Flow 会反复触发）。
+     * - 只对 COMPLETED / FAILED 状态弹，RUNNING / PENDING / CANCELLED 不弹。
+     * - Fragment 重建 / View 重建会清空两个集合（onDestroyView），避免旧 toast 再弹一次。
+     */
+    private fun observeDownloads() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                downloadCenter.observeHistory().collect { records ->
+                    val ctx = context ?: return@collect
+                    for (record in records) {
+                        if (record.id !in trackingRecordIds) continue
+                        if (record.id in notifiedRecordIds) continue
+                        when (record.status) {
+                            DownloadStatus.COMPLETED -> {
+                                notifiedRecordIds.add(record.id)
+                                val msg = when (record.type) {
+                                    DownloadType.IMAGE -> getString(R.string.image_saved)
+                                    DownloadType.VIDEO -> getString(R.string.video_downloaded)
+                                    DownloadType.ATTACHMENT -> getString(R.string.download_notification_complete, record.fileName)
+                                }
+                                Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+                            }
+                            DownloadStatus.FAILED -> {
+                                notifiedRecordIds.add(record.id)
+                                val err = record.errorMessage ?: getString(R.string.save_failed)
+                                Toast.makeText(ctx, getString(R.string.download_notification_failed, err), Toast.LENGTH_LONG).show()
+                            }
+                            // RUNNING / PENDING / CANCELLED 不弹（运行中有通知栏进度，CANCELLED 通常是用户主动取消）
+                            else -> {}
                         }
                     }
                 }
@@ -743,9 +799,15 @@ class PostDetailFragment : Fragment() {
         post.file?.let { file ->
             val name = file.name ?: ""
             if (imageExtensions.any { name.endsWith(it, true) }) {
-                val fullUrl = "https://file.pawchive.pw/data${file.path.orEmpty()}"
+                // 必须走 buildFileUrl 做 URL 编码：此前直接拼接原始 path，
+                // 文件名含空格/中文/# 等字符时请求 URL 非法，服务端返回 404，
+                // 表现为"点了保存但什么都没下载到"。
+                val fullUrl = buildFileUrl(file.path)
+                val mime = guessMimeType(name)
                 viewLifecycleOwner.lifecycleScope.launch {
-                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg") }
+                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, mime) }
+                        // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
+                        .onSuccess { id -> trackingRecordIds.add(id) }
                         .onFailure { e ->
                             Log.w("PostDetailFragment", "enqueue image download failed: $fullUrl", e)
                         }
@@ -758,9 +820,14 @@ class PostDetailFragment : Fragment() {
         post.attachments?.forEach { attachment ->
             val name = attachment.name ?: ""
             if (imageExtensions.any { name.endsWith(it, true) }) {
-                val fullUrl = "https://file.pawchive.pw/data${attachment.path.orEmpty()}"
+                val fullUrl = buildFileUrl(attachment.path)
+                // 此前对所有图片一律传 "image/jpeg"，PNG/GIF/WebP 会以错误 MIME
+                // 写入 MediaStore/SAF，导致部分相册与文件管理器识别异常。
+                val mime = guessMimeType(name)
                 viewLifecycleOwner.lifecycleScope.launch {
-                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, "image/jpeg") }
+                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, mime) }
+                        // BUG-002：跟踪 recordId
+                        .onSuccess { id -> trackingRecordIds.add(id) }
                         .onFailure { e ->
                             Log.w("PostDetailFragment", "enqueue attachment image download failed: $fullUrl", e)
                         }
@@ -783,9 +850,11 @@ class PostDetailFragment : Fragment() {
     private fun downloadByRules(post: Post) {
         val ctx = context ?: return
         viewLifecycleOwner.lifecycleScope.launch {
-            val count = downloadRuleEngine.enqueueMatches(post)
-            if (count > 0) {
-                Toast.makeText(ctx, getString(R.string.rules_downloaded_count, count), Toast.LENGTH_SHORT).show()
+            // BUG-002：enqueueMatches 现在返回 recordId 列表，加入 tracking 以便 observeDownloads() 弹 Toast
+            val recordIds = downloadRuleEngine.enqueueMatches(post)
+            trackingRecordIds.addAll(recordIds)
+            if (recordIds.isNotEmpty()) {
+                Toast.makeText(ctx, getString(R.string.rules_downloaded_count, recordIds.size), Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(ctx, R.string.rules_download_none, Toast.LENGTH_SHORT).show()
             }
@@ -1009,14 +1078,17 @@ class PostDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
                 downloadCenter.enqueueVideoDownload(url, fileName, "video/mp4")
-            }.onFailure { e ->
-                Log.w("PostDetailFragment", "enqueue video download failed: $url", e)
-                Toast.makeText(
-                    context,
-                    getString(R.string.error_load_failed),
-                    Toast.LENGTH_SHORT
-                ).show()
             }
+                // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
+                .onSuccess { id -> trackingRecordIds.add(id) }
+                .onFailure { e ->
+                    Log.w("PostDetailFragment", "enqueue video download failed: $url", e)
+                    Toast.makeText(
+                        context,
+                        getString(R.string.error_load_failed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
         }
     }
 
@@ -1460,7 +1532,12 @@ class PostDetailFragment : Fragment() {
      * 构造 file.pawchive.pw 直链：对 path 做 URL 编码（保留斜杠），避免空格/特殊字符导致请求失败。
      */
     private fun buildFileUrl(path: String?): String {
-        return "https://file.pawchive.pw/data${Uri.encode(path.orEmpty(), "/")}"
+        val trimmed = path.orEmpty().trim()
+        if (trimmed.isEmpty()) return ""
+        // 补齐前导斜杠：API 返回的 path 有的带 "/"、有的不带，缺少时拼出的
+        // URL 会把首段目录名直接贴到 /data 后面，请求落到不存在的路径。
+        val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
+        return "https://file.pawchive.pw/data${Uri.encode(normalized, "/")}"
     }
 
     /**
@@ -1469,13 +1546,18 @@ class PostDetailFragment : Fragment() {
     private fun downloadFileByUrl(url: String, fileName: String) {
         val ctx = context ?: return
         viewLifecycleOwner.lifecycleScope.launch {
-            try {
+            runCatching {
                 downloadCenter.enqueueAttachmentDownload(url, fileName, guessMimeType(fileName))
-                Toast.makeText(ctx, getString(R.string.download_queued, fileName), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Log.w("PostDetailFragment", "enqueue attachment download failed: $url", e)
-                Toast.makeText(ctx, R.string.error_load_failed, Toast.LENGTH_SHORT).show()
             }
+                // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
+                .onSuccess { id ->
+                    trackingRecordIds.add(id)
+                    Toast.makeText(ctx, getString(R.string.download_queued, fileName), Toast.LENGTH_SHORT).show()
+                }
+                .onFailure { e ->
+                    Log.w("PostDetailFragment", "enqueue attachment download failed: $url", e)
+                    Toast.makeText(ctx, R.string.error_load_failed, Toast.LENGTH_SHORT).show()
+                }
         }
     }
 

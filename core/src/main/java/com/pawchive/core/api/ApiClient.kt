@@ -41,6 +41,14 @@ object ApiClient {
     val sharedOkHttpClient: OkHttpClient by lazy { httpClientFactory.createApiClient() }
 
     /**
+     * 大文件下载专用客户端（无 callTimeout、无内存缓存拦截器）。
+     *
+     * 附件/视频下载必须走这里：[sharedOkHttpClient] 带 60s 总调用超时，
+     * 会中断任何 60 秒内传不完的流式下载。详见 [HttpClientFactory.createDownloadClient]。
+     */
+    val downloadOkHttpClient: OkHttpClient by lazy { httpClientFactory.createDownloadClient() }
+
+    /**
      * 轻量级 OkHttpClient（无 Cloudflare 拦截器），
      * 仅用于确定不需要过盾的场景（如本地文件下载等）。
      */

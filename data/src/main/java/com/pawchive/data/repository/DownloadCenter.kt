@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -61,8 +62,9 @@ class DownloadCenter @Inject constructor(
     // 正在执行的下载任务（dedupKey -> true）
     private val activeDownloads = ConcurrentHashMap<String, Boolean>()
 
-    // 取消信号（recordId -> true 表示请求取消）
-    private val cancelRequests = ConcurrentHashMap<String, Boolean>()
+    // BUG-003 fix: 取消语义统一由 OkDownloadManager 抛 CancellationException 走协程结构化并发，
+    // 不再维护 cancelRequests map——之前的实现无法识别"okdownload 内部主动 cancel"，
+    // 导致 taskEnd(CANCELLED) 被 catch 块当成 FAILED，文案"Download failed: CANCELLED"。
 
     override suspend fun enqueueImageDownload(
         url: String, fileName: String, mimeType: String
@@ -117,22 +119,22 @@ class DownloadCenter @Inject constructor(
     private fun launchDownload(record: DownloadRecord) {
         val key = record.dedupKey ?: return
         activeDownloads[key] = true
-        cancelRequests.remove(record.id)
 
         scope.launch {
             try {
                 executeDownload(record)
+            } catch (e: CancellationException) {
+                // BUG-003 fix: 取消路径走协程结构化并发，不再依赖 cancelRequests map。
+                // 这样"用户点取消"和"okdownload 内部主动 cancel"都能正确标 CANCELLED。
+                Log.d(TAG, "Download cancelled: record=${record.id}")
+                historyManager.updateStatus(record.id, DownloadStatus.CANCELLED)
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed: record=${record.id}", e)
-                if (cancelRequests.remove(record.id) != null) {
-                    historyManager.updateStatus(record.id, DownloadStatus.CANCELLED)
-                } else {
-                    historyManager.updateStatus(
-                        record.id,
-                        DownloadStatus.FAILED,
-                        errorMessage = e.message ?: "Download failed"
-                    )
-                }
+                historyManager.updateStatus(
+                    record.id,
+                    DownloadStatus.FAILED,
+                    errorMessage = e.message ?: "Download failed"
+                )
             } finally {
                 activeDownloads.remove(key)
             }
@@ -157,33 +159,49 @@ class DownloadCenter @Inject constructor(
             else -> DownloadRepository.DownloadType.ATTACHMENT
         }
         val target = DownloadRepository.DownloadTarget(repoType, fileName, mimeType)
-        val (os, fileUri, requiresFinalize) = downloadRepository.openDownloadStream(target)
+        val opened = downloadRepository.openDownloadStream(target)
 
         try {
             // 使用 okdownload 下载
             var lastReported = -1
-            val totalRead = okDownloadManager.download(url, os) { currentBytes, totalBytes ->
+            val totalRead = okDownloadManager.download(url, opened.outputStream) { currentBytes, totalBytes ->
                 if (totalBytes > 0) {
                     val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
                     if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
                         lastReported = percent
                         Log.d(TAG, "Download progress: $recordId $percent%")
+                        // BUG-003 fix: progress 回调此前只 Log.d，从未写回 Room，
+                        // 导致 UI 永远显示"下载中 0%"。此处通过 scope.launch 异步回写
+                        // （Room 在 IO 调度执行单条 UPDATE），5% 节流已避免频繁写。
+                        scope.launch {
+                            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent)
+                        }
                     }
                 }
             }
 
-            // 完成
-            if (requiresFinalize) downloadRepository.finalizeDownload(fileUri)
+            // 完成。顺序不可颠倒：必须先 flush + close 输出流，再把 IS_PENDING 置 0。
+            // IS_PENDING 归零的瞬间文件立刻对系统/图库/文件管理器可见，若此时数据
+            // 还留在缓冲区未落盘，用户看到的就是 0 字节或损坏文件——这正是
+            // "图片保存成功但打不开"的表现。
+            opened.outputStream.flush()
+            opened.outputStream.close()
+
+            if (opened.requiresFinalize) downloadRepository.finalizeDownload(opened.uri)
             historyManager.updateStatus(
                 recordId,
                 DownloadStatus.COMPLETED,
                 progress = 100,
-                filePath = fileUri.toString(),
+                filePath = opened.uri.toString(),
                 fileSize = totalRead
             )
             Log.i(TAG, "executeDownload SUCCESS: record=$recordId size=$totalRead")
-        } finally {
-            os.close()
+        } catch (e: Throwable) {
+            // 失败/取消：先关流，再删掉半截文件（MediaStore 的 IS_PENDING=1 孤儿行
+            // 或 SAF 目录里的 0 字节空文档），避免反复重试堆积垃圾。
+            runCatching { opened.outputStream.close() }
+            downloadRepository.abandonDownload(opened.uri, opened.isSaf)
+            throw e
         }
     }
 
@@ -197,9 +215,13 @@ class DownloadCenter @Inject constructor(
         else -> "application/octet-stream"
     }
 
-    /** 取消指定下载任务。 */
+    /**
+     * 取消指定下载任务。
+     *
+     * BUG-003 fix: 取消语义由 OkDownloadManager.taskEnd 在 cause==CANCELLED 时抛
+     * CancellationException，让协程 catch 接住并标 CANCELLED。这里不再维护 cancelRequests map。
+     */
     fun cancel(id: String) {
-        cancelRequests[id] = true
         val record = historyManager.getRecord(id) ?: return
         val key = record.dedupKey ?: return
         activeDownloads.remove(key)
@@ -213,7 +235,6 @@ class DownloadCenter @Inject constructor(
         // 重试前清除可能损坏的 okdownload 断点，避免 offset 不匹配错误
         okDownloadManager.clearBreakpoint(record.url)
         historyManager.updateStatus(id, DownloadStatus.PENDING, progress = 0, errorMessage = null)
-        cancelRequests.remove(id)
         launchDownload(record)
         return id
     }

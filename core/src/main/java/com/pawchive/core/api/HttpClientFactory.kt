@@ -60,6 +60,31 @@ class HttpClientFactory {
     }
 
     /**
+     * 构建大文件下载专用客户端（okdownload / 直连流式保存）。
+     *
+     * 与 [createApiClient] 的关键差异，均与"不能中断长连接"有关：
+     * - **不设置 callTimeout**：OkHttp 的 callTimeout 涵盖"读取响应体"的全过程，
+     *   而下载是单个 Call 流式读取整个文件。沿用 API 客户端的 60s 总超时会让任何
+     *   60 秒内传不完的文件被 OkHttp 看门狗取消（IOException: timeout）——
+     *   这正是大附件下载必失败、小图片却正常的原因。
+     * - **不挂 ApiMemoryCache**：该拦截器只对 JSON 响应生效，对二进制下载无意义，
+     *   徒增一次拦截开销。
+     * - readTimeout 放宽到 60s：弱网下单个 read 可能长时间无数据返回。
+     */
+    fun createDownloadClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor(ClearanceRetryInterceptor.intercept())
+            .addInterceptor(ClearanceInterceptor.intercept())
+            .addInterceptor(buildSanitizedLogger())
+            .build()
+    }
+
+    /**
      * 构建轻量客户端（图片 / 本地文件等无需过盾重试的场景）：
      * 仅基础超时与日志，不注入 CF 拦截器与内存缓存。
      */
