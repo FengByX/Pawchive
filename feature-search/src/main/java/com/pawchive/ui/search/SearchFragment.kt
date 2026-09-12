@@ -114,7 +114,7 @@ class SearchFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (creatorAdapter.isInSelectionMode()) {
+                    if (postAdapter.isSelectionMode() || creatorAdapter.isInSelectionMode()) {
                         exitSelectionMode()
                     } else {
                         isEnabled = false
@@ -207,7 +207,16 @@ class SearchFragment : Fragment() {
             onCreatorClicked = { service, creatorId ->
                 (activity as? AppNavigator)?.openCreatorProfile(service, creatorId)
             },
-            onBookmarkChanged = { _, _ -> }
+            onBookmarkChanged = { _, _ -> },
+            // FEATURE 搜索页帖子批量屏蔽：与创作者 Tab 多选交互对齐（长按进入多选）
+            onPostLongClicked = {
+                if (isSearchingPosts) enterSelectionMode()
+            },
+            onSelectionCountChanged = {
+                if (postAdapter.isSelectionMode()) {
+                    updateSelectionActionBar()
+                }
+            }
         )
 
         creatorAdapter = CreatorAdapter(
@@ -278,64 +287,127 @@ class SearchFragment : Fragment() {
 
     /**
      * 多选 ActionBar：退出/全选/批量屏蔽。
-     * 仅创作者 Tab 可用（帖子 Tab 数据来自网络，屏蔽后需重新请求不适合批量）。
+     * 创作者 Tab 与帖子 Tab 共用同一 ActionBar，交互与反馈保持一致（FEATURE 搜索页批量屏蔽）：
+     * - 创作者 Tab：屏蔽选中的创作者
+     * - 帖子 Tab：从选中帖子提取去重创作者后批量屏蔽（与首页批量屏蔽语义一致）
      */
     private fun setupSelectionActionBar() {
         binding.btnExitSelection.setOnClickListener {
             exitSelectionMode()
         }
         binding.btnSelectAll.setOnClickListener {
-            creatorAdapter.selectAll()
+            if (postAdapter.isSelectionMode()) {
+                // 帖子 Tab：全选/取消全选切换
+                if (postAdapter.isAllSelected()) postAdapter.clearSelection() else postAdapter.selectAll()
+            } else {
+                creatorAdapter.selectAll()
+            }
             updateSelectionActionBar()
         }
         binding.btnBlockSelected.setOnClickListener {
-            val selected = creatorAdapter.getSelectedCreators()
-            if (selected.isEmpty()) {
-                Toast.makeText(requireContext(), R.string.batch_none_selected, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            if (postAdapter.isSelectionMode()) {
+                blockSelectedPosts()
+            } else {
+                blockSelectedCreators()
             }
-            // 确认对话框
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.block_creator_confirm_title)
-                .setMessage(getString(R.string.batch_block_confirm_message, selected.size))
-                .setPositiveButton(R.string.block_creator) { _, _ ->
-                    viewModel.blockCreators(selected)
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.batch_blocked_count, selected.size),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    exitSelectionMode()
-                    // 屏蔽后重新过滤创作者列表
-                    val query = binding.searchView.query.toString()
-                    if (query.isNotEmpty()) {
-                        viewModel.filterCreatorsLocal(query)
-                    }
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
         }
     }
 
+    /** 创作者 Tab：批量屏蔽选中的创作者（原有流程） */
+    private fun blockSelectedCreators() {
+        val selected = creatorAdapter.getSelectedCreators()
+        if (selected.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.batch_none_selected, Toast.LENGTH_SHORT).show()
+            return
+        }
+        // 确认对话框
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.block_creator_confirm_title)
+            .setMessage(getString(R.string.batch_block_confirm_message, selected.size))
+            .setPositiveButton(R.string.block_creator) { _, _ ->
+                viewModel.blockCreators(selected)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.batch_blocked_count, selected.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+                exitSelectionMode()
+                // 屏蔽后重新过滤创作者列表
+                val query = binding.searchView.query.toString()
+                if (query.isNotEmpty()) {
+                    viewModel.filterCreatorsLocal(query)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** 帖子 Tab：从选中帖子提取去重创作者后批量屏蔽（提示反馈与创作者流程一致） */
+    private fun blockSelectedPosts() {
+        val selectedPosts = postAdapter.getSelectedPosts()
+        if (selectedPosts.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.batch_none_selected, Toast.LENGTH_SHORT).show()
+            return
+        }
+        // 批量屏蔽的语义是屏蔽帖子作者：按 service+id 去重（与首页批量屏蔽一致）
+        val creators = selectedPosts
+            .map { post ->
+                com.pawchive.core.model.Creator(
+                    id = post.user,
+                    name = post.user,
+                    service = post.service,
+                    favorited = null,
+                    indexed = null,
+                    updated = null
+                )
+            }
+            .distinctBy { "${it.service}|${it.id}" }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.block_creator_confirm_title)
+            .setMessage(getString(R.string.batch_block_confirm_message, creators.size))
+            .setPositiveButton(R.string.block_creator) { _, _ ->
+                // blockCreators 内部完成后会自动重新过滤帖子结果（refreshBlockedFilter）
+                viewModel.blockCreators(creators)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.batch_blocked_count, creators.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+                exitSelectionMode()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun enterSelectionMode() {
-        if (isSearchingPosts) return // 帖子 Tab 不支持
-        creatorAdapter.setSelectionMode(true)
+        // 注意：PostAdapter 长按处理是先自行置位 selectionMode=true 再回调
+        // onPostLongClicked（CreatorAdapter 顺序相反：先回调再置位）。因此这里
+        // 不能以"已处于多选模式"为由提前返回，否则帖子 Tab 长按后卡片会进入
+        // 选中视觉但顶部 ActionBar 永远不出现。置位本身是幂等的，直接按 Tab 调用。
+        if (isSearchingPosts) {
+            if (!postAdapter.isSelectionMode()) postAdapter.setSelectionMode(true)
+        } else {
+            creatorAdapter.setSelectionMode(true)
+        }
         binding.selectionActionBar.visibility = View.VISIBLE
         binding.searchSortRow.visibility = View.GONE
         updateSelectionActionBar()
     }
 
     private fun exitSelectionMode() {
+        if (postAdapter.isSelectionMode()) postAdapter.setSelectionMode(false)
         creatorAdapter.exitSelection()
         binding.selectionActionBar.visibility = View.GONE
         binding.searchSortRow.visibility = View.VISIBLE
     }
 
     private fun updateSelectionActionBar() {
-        val count = creatorAdapter.getSelectedCount()
+        val postSelection = postAdapter.isSelectionMode()
+        val count = if (postSelection) postAdapter.getSelectedCount() else creatorAdapter.getSelectedCount()
+        val allSelected = if (postSelection) postAdapter.isAllSelected() else creatorAdapter.isAllSelected()
         binding.tvSelectedCount.text = getString(R.string.batch_selected_count, count)
         binding.btnSelectAll.text = getString(
-            if (creatorAdapter.isAllSelected()) R.string.select_none else R.string.select_all
+            if (allSelected) R.string.select_none else R.string.select_all
         )
         binding.btnBlockSelected.isEnabled = count > 0
     }

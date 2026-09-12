@@ -51,6 +51,9 @@ class PostAdapter(
     /** 当前选中帖子数 */
     fun getSelectedCount(): Int = selectedKeys.size
 
+    /** 当前列表是否已全选（用于"全选/取消全选"按钮状态切换，与 CreatorAdapter.isAllSelected 语义一致） */
+    fun isAllSelected(): Boolean = selectedKeys.size == posts.size && posts.isNotEmpty()
+
     /** 进入/退出多选模式；退出时清空选中 */
     fun setSelectionMode(mode: Boolean) {
         if (selectionMode == mode) return
@@ -317,6 +320,38 @@ class PostAdapter(
             binding.ivSelection.visibility =
                 if (selectionMode && isSelected) View.VISIBLE else View.GONE
 
+            // FEATURE 搜索页批量屏蔽：选中视觉与创作者列表（CreatorAdapter）保持一致——
+            // 多选模式统一由卡片描边+底色表达选中态；普通模式恢复 XML 默认值
+            // （item_post.xml：cardBackgroundColor=colorSurface，strokeColor=colorOutline）。
+            val card = binding.root as com.google.android.material.card.MaterialCardView
+            if (selectionMode) {
+                card.strokeColor = getThemeColor(
+                    binding.root.context,
+                    if (isSelected) com.google.android.material.R.attr.colorPrimary
+                    else com.google.android.material.R.attr.colorOutline
+                )
+                card.setCardBackgroundColor(
+                    android.content.res.ColorStateList.valueOf(
+                        getThemeColor(
+                            binding.root.context,
+                            if (isSelected) com.google.android.material.R.attr.colorPrimaryContainer
+                            else com.google.android.material.R.attr.colorSurface
+                        )
+                    )
+                )
+            } else {
+                card.strokeColor = getThemeColor(
+                    binding.root.context, com.google.android.material.R.attr.colorOutline
+                )
+                card.setCardBackgroundColor(
+                    android.content.res.ColorStateList.valueOf(
+                        getThemeColor(
+                            binding.root.context, com.google.android.material.R.attr.colorSurface
+                        )
+                    )
+                )
+            }
+
             binding.root.setOnClickListener {
                 if (selectionMode) {
                     val position = posts.indexOfFirst {
@@ -379,6 +414,13 @@ class PostAdapter(
             binding.btnBookmark.setImageResource(
                 if (isBookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark_outline
             )
+        }
+
+        /** 主题属性取色（与 CreatorAdapter.getThemeColor 实现一致） */
+        private fun getThemeColor(context: Context, attr: Int): Int {
+            val tv = android.util.TypedValue()
+            context.theme.resolveAttribute(attr, tv, true)
+            return tv.data
         }
 
         /**
