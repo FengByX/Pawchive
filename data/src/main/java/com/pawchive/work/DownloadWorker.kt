@@ -20,7 +20,7 @@ import com.pawchive.core.model.DownloadStatus
 import com.pawchive.core.model.DownloadType
 import com.pawchive.data.repository.DownloadHistoryManager
 import com.pawchive.data.repository.DownloadRepository
-import com.pawchive.data.repository.OkDownloadManager
+import com.pawchive.data.repository.HttpDownloadManager
 import com.pawchive.core.error.ErrorMessageHelper
 import androidx.hilt.work.HiltWorker
 import dagger.assisted.Assisted
@@ -50,7 +50,7 @@ class DownloadWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val historyManager: DownloadHistoryManager,
     private val downloadRepository: DownloadRepository,
-    private val okDownloadManager: OkDownloadManager
+    private val httpDownloadManager: HttpDownloadManager
 ) : CoroutineWorker(appContext, params) {
     companion object {
         private const val TAG = "DownloadWorker"
@@ -101,7 +101,7 @@ class DownloadWorker @AssistedInject constructor(
                     setForeground(buildForegroundInfo(context, fileName, 0, downloadTypeStr))
                 }
 
-                // 使用 okdownload 下载（断点续传 + OkHttp 集成）
+                // 使用 HttpDownloadManager 流式下载（单连接直连 OkHttp）
                 val mimeType = inputData.getString(KEY_MIME_TYPE) ?: inferMimeType(fileName)
                 val repoType = parseRepoType(downloadTypeStr, fileName)
                 val target = DownloadRepository.DownloadTarget(repoType, fileName, mimeType)
@@ -109,9 +109,10 @@ class DownloadWorker @AssistedInject constructor(
                 opened = stream
                 var lastReported = -1
 
-                val totalRead = okDownloadManager.download(url, stream.outputStream) { currentBytes, totalBytes ->
+                val totalRead = httpDownloadManager.download(url, stream.outputStream) { currentBytes, totalBytes ->
                     if (totalBytes > 0) {
-                        val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
+                        // 与 DownloadCenter 一致：RUNNING 阶段封顶 99，100 只在 COMPLETED 写入
+                        val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 99)
                         if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
                             lastReported = percent
                             if (hasNotifyPermission) notifyProgress(context, fileName, percent, downloadTypeStr)

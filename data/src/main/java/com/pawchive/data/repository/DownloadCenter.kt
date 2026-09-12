@@ -8,10 +8,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
@@ -41,7 +44,7 @@ class DownloadCenter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val historyManager: DownloadHistoryManager,
     private val downloadRepository: DownloadRepository,
-    private val okDownloadManager: OkDownloadManager
+    private val httpDownloadManager: HttpDownloadManager
 ) : DownloadEnqueuer {
 
     companion object {
@@ -85,9 +88,17 @@ class DownloadCenter @Inject constructor(
     // 正在执行的下载任务（dedupKey -> true）
     private val activeDownloads = ConcurrentHashMap<String, Boolean>()
 
-    // BUG-003 fix: 取消语义统一由 OkDownloadManager 抛 CancellationException 走协程结构化并发，
-    // 不再维护 cancelRequests map——之前的实现无法识别"okdownload 内部主动 cancel"，
-    // 导致 taskEnd(CANCELLED) 被 catch 块当成 FAILED，文案"Download failed: CANCELLED"。
+    /**
+     * 正在执行的下载协程（recordId -> Job）。
+     *
+     * 协程级取消（Job.cancel）覆盖任务全生命周期（下载阶段 + 临时文件→目标流写出阶段）；
+     * 协程退出时在 finally 中按 Job 身份条件移除，与 activeDownloads 一样
+     * 以 finally 为唯一清理点。
+     */
+    private val activeJobs = ConcurrentHashMap<String, Job>()
+
+    // 取消语义：取消协程 + 取消在飞 HTTP Call，HttpDownloadManager 将 Call 中断映射为
+    // CancellationException 走协程结构化并发，catch 块据此标 CANCELLED 而非 FAILED。
 
     override suspend fun enqueueImageDownload(
         url: String, fileName: String, mimeType: String
@@ -147,15 +158,15 @@ class DownloadCenter @Inject constructor(
         val key = record.dedupKey ?: return
         activeDownloads[key] = true
 
-        scope.launch {
+        val job = scope.launch {
             // 并发上限：同一时刻最多 5 个下载同时进行（文件服务器运维方要求）。
             // 超过上限的任务在此挂起等待，有下载完成释放许可后才继续。
             downloadSemaphore.withPermit {
                 try {
                     executeDownload(record)
                 } catch (e: CancellationException) {
-                    // BUG-003 fix: 取消路径走协程结构化并发，不再依赖 cancelRequests map。
-                    // 这样"用户点取消"和"okdownload 内部主动 cancel"都能正确标 CANCELLED。
+                    // 取消路径走协程结构化并发：用户点取消（Job.cancel + Call.cancel）
+                    // 都会以 CancellationException 到达这里，正确标 CANCELLED。
                     Log.d(TAG, "Download cancelled: record=${record.id}")
                     historyManager.updateStatus(record.id, DownloadStatus.CANCELLED)
                 } catch (e: Exception) {
@@ -167,9 +178,16 @@ class DownloadCenter @Inject constructor(
                     )
                 } finally {
                     activeDownloads.remove(key)
+                    // BUG-004 fix: 按 Job 身份条件移除——若协程退出后同记录已重新入队
+                    // （retry/再点下载），新 Job 已占位，这里不能误删。
+                    activeJobs.remove(record.id, currentCoroutineContext().job)
                 }
             }
         }
+        activeJobs[record.id] = job
+        // 防御：协程可能在首次挂起前就同步失败退出，且 finally 先于上一行执行，
+        // 此时上面写入的是已完成的 Job，补一次条件清理。
+        if (job.isCompleted) activeJobs.remove(record.id, job)
     }
 
     private suspend fun executeDownload(record: DownloadRecord) {
@@ -193,17 +211,17 @@ class DownloadCenter @Inject constructor(
         val opened = downloadRepository.openDownloadStream(target)
 
         try {
-            // 使用 okdownload 下载
+            // 使用 HttpDownloadManager 流式下载（BUG-005：已替换 okdownload）
             var lastReported = -1
-            val totalRead = okDownloadManager.download(url, opened.outputStream) { currentBytes, totalBytes ->
+            val totalRead = httpDownloadManager.download(url, opened.outputStream) { currentBytes, totalBytes ->
                 if (totalBytes > 0) {
                     val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 99)
                     if (percent - lastReported >= PROGRESS_STEP) {
                         lastReported = percent
                         Log.d(TAG, "Download progress: $recordId $percent% / $totalBytes")
                         // 用 runBlocking 直接写 Room。
-                        // 此 lambda 在 OkDownloadManager.progressScope（Dispatchers.IO）执行，
-                        // 不会阻塞 UI。OkDownloadManager.download() 在返回前会先 join
+                        // 此 lambda 在 HttpDownloadManager.progressScope（Dispatchers.IO）执行，
+                        // 不会阻塞 UI。HttpDownloadManager.download() 在返回前会先 join
                         // progressJob（即等此 lambda 执行完毕），保证 COMPLETED 写入前
                         // 所有进度 UPDATE 已落盘，彻底消除"COMPLETED 被 RUNNING 覆盖"的竞态。
                         runBlocking {
@@ -250,22 +268,23 @@ class DownloadCenter @Inject constructor(
     /**
      * 取消指定下载任务。
      *
-     * BUG-003 fix: 取消语义由 OkDownloadManager.taskEnd 在 cause==CANCELLED 时抛
-     * CancellationException，让协程 catch 接住并标 CANCELLED。这里不再维护 cancelRequests map。
+     * 取消语义：协程级取消（Job.cancel）覆盖包括"临时文件→目标流写出阶段"在内的
+     * 所有执行阶段；同时取消在飞的 HTTP Call，解除阻塞中的 socket 读，
+     * HttpDownloadManager 会将其映射为 CancellationException → 记录标 CANCELLED。
+     * 不在这里提前清 activeDownloads：提前清掉去重标记会在"点了取消但协程尚未退出"
+     * 的窗口期内放行同记录二次入队，第二路 RUNNING 进度会把已落盘的 COMPLETED/100
+     * 覆盖回 RUNNING/99。标记的清理统一交给协程 finally。
      */
     fun cancel(id: String) {
         val record = historyManager.getRecord(id) ?: return
-        val key = record.dedupKey ?: return
-        activeDownloads.remove(key)
-        okDownloadManager.cancel(record.url)
+        activeJobs.remove(id)?.cancel()
+        httpDownloadManager.cancel(record.url)
         Log.i(TAG, "cancel: record=$id")
     }
 
     /** 重试下载任务。 */
     suspend fun retry(id: String): String? {
         val record = historyManager.getRecord(id) ?: return null
-        // 重试前清除可能损坏的 okdownload 断点，避免 offset 不匹配错误
-        okDownloadManager.clearBreakpoint(record.url)
         historyManager.updateStatus(id, DownloadStatus.PENDING, progress = 0, errorMessage = null)
         launchDownload(record)
         return id

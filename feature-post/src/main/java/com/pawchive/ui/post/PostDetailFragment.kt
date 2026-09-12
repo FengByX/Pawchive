@@ -1080,7 +1080,17 @@ class PostDetailFragment : Fragment() {
                 downloadCenter.enqueueVideoDownload(url, fileName, "video/mp4")
             }
                 // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
-                .onSuccess { id -> trackingRecordIds.add(id) }
+                .onSuccess { id ->
+                    trackingRecordIds.add(id)
+                    // 入队即时反馈：DownloadCenter 协程路径没有进度通知，下载进行中
+                    // 唯一反馈是终态 Toast，此前点击按钮后表现为"无反应"。
+                    // 对齐附件下载路径（downloadFileByUrl）的 download_queued 提示。
+                    Toast.makeText(
+                        context,
+                        getString(R.string.download_queued, fileName),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
                 .onFailure { e ->
                     Log.w("PostDetailFragment", "enqueue video download failed: $url", e)
                     Toast.makeText(
