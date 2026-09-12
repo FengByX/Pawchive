@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
@@ -194,23 +195,19 @@ class DownloadCenter @Inject constructor(
         try {
             // 使用 okdownload 下载
             var lastReported = -1
-            // BUG-004 fix: 用于阻止 progress 回调在 COMPLETED 后继续写 RUNNING，
-            // 避免 scope.launch 排队的异步回写把 COMPLETED 覆盖回 RUNNING 100%。
-            val completed = AtomicBoolean(false)
             val totalRead = okDownloadManager.download(url, opened.outputStream) { currentBytes, totalBytes ->
-                if (totalBytes > 0 && !completed.get()) {
+                if (totalBytes > 0) {
                     val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 99)
-                    // 注意：上限是 99，不允许 progress 回调写 100% —— 100% 只能由
-                    // 下方 historyManager.updateStatus(COMPLETED) 独占标记，
-                    // 确保"下载中 100%"永远不会卡住。
                     if (percent - lastReported >= PROGRESS_STEP) {
                         lastReported = percent
-                        Log.d(TAG, "Download progress: $recordId $percent%")
-                        scope.launch {
-                            // 双重检查：COMPLETED 标志已设则不再写 Room
-                            if (!completed.get()) {
-                                historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent)
-                            }
+                        Log.d(TAG, "Download progress: $recordId $percent% / $totalBytes")
+                        // 用 runBlocking 直接写 Room。
+                        // 此 lambda 在 OkDownloadManager.progressScope（Dispatchers.IO）执行，
+                        // 不会阻塞 UI。OkDownloadManager.download() 在返回前会先 join
+                        // progressJob（即等此 lambda 执行完毕），保证 COMPLETED 写入前
+                        // 所有进度 UPDATE 已落盘，彻底消除"COMPLETED 被 RUNNING 覆盖"的竞态。
+                        runBlocking {
+                            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent)
                         }
                     }
                 }
@@ -218,14 +215,9 @@ class DownloadCenter @Inject constructor(
 
             // 完成。顺序不可颠倒：必须先 flush + close 输出流，再把 IS_PENDING 置 0。
             // IS_PENDING 归零的瞬间文件立刻对系统/图库/文件管理器可见，若此时数据
-            // 还留在缓冲区未落盘，用户看到的就是 0 字节或损坏文件——这正是
-            // "图片保存成功但打不开"的表现。
+            // 还留在缓冲区未落盘，用户看到的就是 0 字节或损坏文件。
             opened.outputStream.flush()
             opened.outputStream.close()
-
-            // BUG-004 fix: 在写 COMPLETED 之前先设标志位，阻止后续（包括排队中的）
-            // progress 回调继续写 Room。
-            completed.set(true)
 
             if (opened.requiresFinalize) downloadRepository.finalizeDownload(opened.uri)
             historyManager.updateStatus(

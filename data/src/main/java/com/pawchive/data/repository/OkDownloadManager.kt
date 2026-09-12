@@ -21,7 +21,12 @@ import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Singleton
@@ -51,6 +56,12 @@ class OkDownloadManager @Inject constructor(
 
     // 正在运行的下载任务（url -> task），用于外部取消
     private val runningTasks = ConcurrentHashMap<String, DownloadTask>()
+
+    /**
+     * 内部协程作用域，专用于进度 Channel 消费。
+     * @Singleton + SupervisorJob 保证整个 App 生命周期内存活，不会因 Activity/Fragment 销毁被取消。
+     */
+    private val progressScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Synchronized
     fun init() {
@@ -182,19 +193,47 @@ class OkDownloadManager @Inject constructor(
     /**
      * 下载并写入 [outputStream]，返回写入字节数。
      * 输出流由调用方负责关闭；本方法保证临时文件被清理。
+     *
+     * 进度回调解耦：
+     * - okdownload 线程只做 channel.trySend，不阻塞下载循环
+     * - 独立协程消费 Channel，串行回调 onProgress
+     * - download() 在返回前 await 最后一个进度处理完毕
+     *   → 调用方继续执行时，所有进度 UPDATE 已落盘，不会再覆盖后续的 COMPLETED
      */
     suspend fun download(
         url: String,
         outputStream: OutputStream,
         onProgress: (currentBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): Long {
-        val file = downloadToFile(url, onProgress)
-        return try {
+        // Channel.CONFLATED：只保留最新进度，okdownload 快速回调时不会堆队列阻塞
+        val progressChannel = Channel<Pair<Long, Long>>(capacity = Channel.CONFLATED)
+
+        // 启动独立协程消费进度 Channel，串行回调 onProgress
+        val progressJob = progressScope.launch {
+            for ((current, total) in progressChannel) {
+                onProgress(current, total)
+            }
+        }
+
+        var tempFileRef: File? = null
+        try {
+            val file = downloadToFile(url) { current, total ->
+                progressChannel.trySend(current to total)
+            }
+            tempFileRef = file
+
+            // okdownload COMPLETED → 关闭 Channel → progressJob 消费完积压的最后一个进度后退出
+            progressChannel.close()
+            progressJob.join()  // 关键：等所有进度写 Room 完成再继续
+
             file.inputStream().use { input -> input.copyTo(outputStream) }
             outputStream.flush()
-            file.length()
+            return file.length()
         } finally {
-            if (!file.delete()) Log.w(TAG, "Failed to delete temp file: ${file.absolutePath}")
+            // 异常路径也要收尾
+            if (!progressChannel.isClosedForSend) progressChannel.close()
+            if (!progressJob.isCompleted) { progressJob.cancel(); progressJob.join() }
+            tempFileRef?.let { if (!it.delete()) Log.w(TAG, "Failed to delete temp file: ${it.absolutePath}") }
         }
     }
 
