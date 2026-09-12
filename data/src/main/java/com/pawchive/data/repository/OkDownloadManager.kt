@@ -59,14 +59,17 @@ class OkDownloadManager @Inject constructor(
         // 会在流式读取大文件时中断下载（详见 HttpClientFactory.createDownloadClient）。
         val factory = DownloadOkHttp3Connection.Factory()
             .setBuilder(ApiClient.downloadOkHttpClient.newBuilder())
-        // okdownload 默认 maxParallelRunningCount=5，此处显式设置以与运维方要求一致，
-        // 同时与 DownloadCenter 的 Semaphore(5) 形成双重约束。
-        DownloadDispatcher.setMaxParallelRunningCount(MAX_PARALLEL_COUNT)
+        // 注意顺序：setSingletonInstance 必须在任何 OkDownload.with() 之前，
+        // 否则 OkDownload.with() 会触发默认单例初始化，导致 setSingletonInstance 报
+        // "OkDownload must be null"。setMaxParallelRunningCount 内部会调 OkDownload.with()，
+        // 所以必须放在 setSingletonInstance 之后。
         OkDownload.setSingletonInstance(
             OkDownload.Builder(context)
                 .connectionFactory(factory)
                 .build()
         )
+        // okdownload 默认 maxParallelRunningCount=5，此处显式设置确保与运维方要求一致。
+        DownloadDispatcher.setMaxParallelRunningCount(MAX_PARALLEL_COUNT)
         initialized = true
         Log.i(TAG, "okdownload initialized")
     }
