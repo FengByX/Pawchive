@@ -12,7 +12,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlin.coroutines.cancellation.CancellationException
 import java.io.OutputStream
@@ -20,6 +22,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -68,6 +71,13 @@ class DownloadCenter @Inject constructor(
     /** 并发下载信号量：限制同时运行的下载不超过 5 个。 */
     private val downloadSemaphore = Semaphore(MAX_CONCURRENT_DOWNLOADS)
 
+    /**
+     * enqueue 串行化锁。防止快速连续点击下载按钮时两个并发的
+     * enqueueDownload 因 Room upsert 尚未 commit 而互相漏查，
+     * 导致同 URL 生成两条独立记录（id 不同但 dedupKey 相同）。
+     */
+    private val enqueueMutex = Mutex()
+
     // 下载协程作用域
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -95,19 +105,23 @@ class DownloadCenter @Inject constructor(
         fileName: String,
         mimeType: String,
         type: DownloadType
-    ): String {
+    ): String = enqueueMutex.withLock {
+        // 加锁保证 find → create → upsert 三段为原子操作。
+        // 否则快速连续点击时，两个 enqueueDownload 交错执行，
+        // 第二个在第一个 upsert 完成前就查 findActiveByDedupKey，
+        // 会互相漏查，生成两条 dedupKey 相同但 id 不同的记录。
         val key = dedupFingerprint(url, fileName, mimeType, type)
 
         // 去重：相同指纹且正在下载的任务不重复入队
         historyManager.findActiveByDedupKey(key)?.let { record ->
             if (activeDownloads.containsKey(key)) {
                 Log.d(TAG, "enqueueDownload: dedup hit, returning existing record ${record.id}")
-                return record.id
+                return@withLock record.id
             }
             // 记录存在但没有活跃下载 → 重新启动下载
             Log.i(TAG, "enqueueDownload: restarting stale record ${record.id}")
             launchDownload(record)
-            return record.id
+            return@withLock record.id
         }
 
         // 创建新下载记录
@@ -125,7 +139,7 @@ class DownloadCenter @Inject constructor(
         Log.i(TAG, "enqueueDownload: new record=${record.id} url=$url file=$fileName")
 
         launchDownload(record)
-        return record.id
+        record.id
     }
 
     private fun launchDownload(record: DownloadRecord) {
@@ -180,17 +194,23 @@ class DownloadCenter @Inject constructor(
         try {
             // 使用 okdownload 下载
             var lastReported = -1
+            // BUG-004 fix: 用于阻止 progress 回调在 COMPLETED 后继续写 RUNNING，
+            // 避免 scope.launch 排队的异步回写把 COMPLETED 覆盖回 RUNNING 100%。
+            val completed = AtomicBoolean(false)
             val totalRead = okDownloadManager.download(url, opened.outputStream) { currentBytes, totalBytes ->
-                if (totalBytes > 0) {
-                    val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
-                    if (percent - lastReported >= PROGRESS_STEP || percent == 100) {
+                if (totalBytes > 0 && !completed.get()) {
+                    val percent = (currentBytes * 100 / totalBytes).toInt().coerceIn(0, 99)
+                    // 注意：上限是 99，不允许 progress 回调写 100% —— 100% 只能由
+                    // 下方 historyManager.updateStatus(COMPLETED) 独占标记，
+                    // 确保"下载中 100%"永远不会卡住。
+                    if (percent - lastReported >= PROGRESS_STEP) {
                         lastReported = percent
                         Log.d(TAG, "Download progress: $recordId $percent%")
-                        // BUG-003 fix: progress 回调此前只 Log.d，从未写回 Room，
-                        // 导致 UI 永远显示"下载中 0%"。此处通过 scope.launch 异步回写
-                        // （Room 在 IO 调度执行单条 UPDATE），5% 节流已避免频繁写。
                         scope.launch {
-                            historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent)
+                            // 双重检查：COMPLETED 标志已设则不再写 Room
+                            if (!completed.get()) {
+                                historyManager.updateStatus(recordId, DownloadStatus.RUNNING, progress = percent)
+                            }
                         }
                     }
                 }
@@ -202,6 +222,10 @@ class DownloadCenter @Inject constructor(
             // "图片保存成功但打不开"的表现。
             opened.outputStream.flush()
             opened.outputStream.close()
+
+            // BUG-004 fix: 在写 COMPLETED 之前先设标志位，阻止后续（包括排队中的）
+            // progress 回调继续写 Room。
+            completed.set(true)
 
             if (opened.requiresFinalize) downloadRepository.finalizeDownload(opened.uri)
             historyManager.updateStatus(
