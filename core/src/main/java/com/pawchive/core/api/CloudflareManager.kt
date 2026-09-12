@@ -39,6 +39,16 @@ object CloudflareManager {
     private const val HOST = "pawchive.pw"
     private const val CF_CLEARANCE = "cf_clearance"
 
+    /**
+     * 应用专属 User-Agent。
+     *
+     * 文件服务器（file.pawchive.pw / img.pawchive.pw）运维方明确要求：
+     * - 使用可识别的 UA（最好带联系方式），不要伪装成浏览器；
+     * - cf_clearance 与过盾时使用的 UA 强绑定，因此 WebView 过盾前必须把 UA 设为该值，
+     *   后续 OkHttp 注入的也是同一个 UA，过盾与请求保持一致。
+     */
+    const val APP_USER_AGENT = "Pawchive-Android (https://github.com/FengByX/Pawchive)"
+
     // 过盾超时时间（毫秒）
     private const val CHALLENGE_TIMEOUT_MS = 30_000L
     // 轮询 cookie 的间隔（毫秒）
@@ -171,9 +181,13 @@ object CloudflareManager {
     fun currentCookie(): String? = cachedCookie
 
     /**
-     * 返回过盾时使用的 User-Agent；若尚未过盾成功则为 null。
+     * 返回当前应注入请求的 User-Agent。
+     *
+     * 过盾成功后使用与 cf_clearance 绑定的 UA（即 APP_USER_AGENT）；
+     * 过盾前也返回 APP_USER_AGENT 作为兜底，确保文件/图片服务器始终收到可识别的 UA，
+     * 而非 OkHttp 默认 UA 或浏览器 UA。
      */
-    fun currentUserAgent(): String? = cachedUserAgent
+    fun currentUserAgent(): String = cachedUserAgent ?: APP_USER_AGENT
 
     /**
      * 是否已有可用的 Cloudflare 通行凭据（且未过期）。
@@ -249,8 +263,9 @@ object CloudflareManager {
                 settings.domStorageEnabled = true
                 settings.databaseEnabled = true
 
-                // 直接读取 WebView 默认 User-Agent；cf_clearance 与该 UA 强绑定，
-                // 后续 OkHttp 请求必须使用同一个 UA（由 currentUserAgent() 注入）。
+                // 使用应用专属 UA 过盾（而非 WebView 默认的浏览器 UA）。
+                // cf_clearance 与过盾 UA 强绑定，后续 OkHttp 注入同一个 UA，过盾与请求一致。
+                settings.userAgentString = APP_USER_AGENT
                 val userAgent = settings.userAgentString
 
                 var finished = false

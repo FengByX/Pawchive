@@ -5,6 +5,7 @@ import android.util.Log
 import com.liulishuo.okdownload.DownloadListener
 import com.liulishuo.okdownload.DownloadTask
 import com.liulishuo.okdownload.OkDownload
+import com.liulishuo.okdownload.core.dispatcher.DownloadDispatcher
 import com.liulishuo.okdownload.core.breakpoint.BreakpointInfo
 import com.liulishuo.okdownload.core.cause.EndCause
 import com.liulishuo.okdownload.core.cause.ResumeFailedCause
@@ -32,6 +33,20 @@ class OkDownloadManager @Inject constructor(
         @Volatile private var initialized = false
         private const val MAX_RETRY = 3
         private const val TEMP_DIR_NAME = "okdownload"
+
+        /**
+         * okdownload 内部调度器的最大并行下载数。
+         * 与 DownloadCenter 的 Semaphore(5) 形成双重约束：协程层排队后，
+         * okdownload 自身也不会同时启动超过 5 个连接。
+         */
+        private const val MAX_PARALLEL_COUNT = 5
+
+        /**
+         * 同一文件两次请求的最小间隔（毫秒）。
+         * 文件服务器运维方要求：不要每秒对同一文件发起超过 1 次请求。
+         * 重试时至少等待 1 秒再发起下一次请求。
+         */
+        private const val MIN_RETRY_INTERVAL_MS = 1000L
     }
 
     // 正在运行的下载任务（url -> task），用于外部取消
@@ -44,8 +59,13 @@ class OkDownloadManager @Inject constructor(
         // 会在流式读取大文件时中断下载（详见 HttpClientFactory.createDownloadClient）。
         val factory = DownloadOkHttp3Connection.Factory()
             .setBuilder(ApiClient.downloadOkHttpClient.newBuilder())
+        // okdownload 默认 maxParallelRunningCount=5，此处显式设置以与运维方要求一致，
+        // 同时与 DownloadCenter 的 Semaphore(5) 形成双重约束。
+        DownloadDispatcher.setMaxParallelRunningCount(MAX_PARALLEL_COUNT)
         OkDownload.setSingletonInstance(
-            OkDownload.Builder(context).connectionFactory(factory).build()
+            OkDownload.Builder(context)
+                .connectionFactory(factory)
+                .build()
         )
         initialized = true
         Log.i(TAG, "okdownload initialized")
@@ -134,7 +154,9 @@ class OkDownloadManager @Inject constructor(
 
             if (attempt > 1) {
                 Log.w(TAG, "Retry attempt $attempt for $url (last error: ${lastError?.message})")
-                delay(300L * attempt)
+                // 同一文件两次请求至少间隔 1 秒（文件服务器运维方要求），
+                // 并随重试次数线性退避，避免瞬时密集重试。
+                delay(MIN_RETRY_INTERVAL_MS * attempt)
             }
 
             try {

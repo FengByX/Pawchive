@@ -49,8 +49,9 @@ class CloudflareManagerTest {
     }
 
     @Test
-    fun `currentUserAgent is null before challenge`() {
-        assertFalse(CloudflareManager.currentUserAgent() != null)
+    fun `currentUserAgent returns app UA before challenge`() {
+        // 未过盾时回退到 APP_USER_AGENT，确保文件服务器始终收到可识别的 UA
+        assertEquals(CloudflareManager.APP_USER_AGENT, CloudflareManager.currentUserAgent())
     }
 
     @Test
@@ -58,7 +59,8 @@ class CloudflareManagerTest {
         CloudflareManager.clear()
         assertFalse(CloudflareManager.hasClearance())
         assertFalse(CloudflareManager.currentCookie() != null)
-        assertFalse(CloudflareManager.currentUserAgent() != null)
+        // clear 后仍回退到 APP_USER_AGENT
+        assertEquals(CloudflareManager.APP_USER_AGENT, CloudflareManager.currentUserAgent())
     }
 
     @Test

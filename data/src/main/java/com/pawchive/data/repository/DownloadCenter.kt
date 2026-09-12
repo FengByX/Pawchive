@@ -12,6 +12,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlin.coroutines.cancellation.CancellationException
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
@@ -43,6 +45,13 @@ class DownloadCenter @Inject constructor(
         private const val BUFFER_SIZE = 8192
         private const val PROGRESS_STEP = 5
 
+        /**
+         * 同时进行的下载任务上限。
+         * 文件服务器运维方要求：不要同时进行超过 5 个下载任务，避免占用过多带宽。
+         * 超过上限的任务会挂起等待，直至有下载完成释放许可。
+         */
+        private const val MAX_CONCURRENT_DOWNLOADS = 5
+
         fun dedupFingerprint(
             url: String,
             fileName: String,
@@ -55,6 +64,9 @@ class DownloadCenter @Inject constructor(
             return digest.joinToString("") { "%02x".format(it) }
         }
     }
+
+    /** 并发下载信号量：限制同时运行的下载不超过 5 个。 */
+    private val downloadSemaphore = Semaphore(MAX_CONCURRENT_DOWNLOADS)
 
     // 下载协程作用域
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -121,22 +133,26 @@ class DownloadCenter @Inject constructor(
         activeDownloads[key] = true
 
         scope.launch {
-            try {
-                executeDownload(record)
-            } catch (e: CancellationException) {
-                // BUG-003 fix: 取消路径走协程结构化并发，不再依赖 cancelRequests map。
-                // 这样"用户点取消"和"okdownload 内部主动 cancel"都能正确标 CANCELLED。
-                Log.d(TAG, "Download cancelled: record=${record.id}")
-                historyManager.updateStatus(record.id, DownloadStatus.CANCELLED)
-            } catch (e: Exception) {
-                Log.e(TAG, "Download failed: record=${record.id}", e)
-                historyManager.updateStatus(
-                    record.id,
-                    DownloadStatus.FAILED,
-                    errorMessage = e.message ?: "Download failed"
-                )
-            } finally {
-                activeDownloads.remove(key)
+            // 并发上限：同一时刻最多 5 个下载同时进行（文件服务器运维方要求）。
+            // 超过上限的任务在此挂起等待，有下载完成释放许可后才继续。
+            downloadSemaphore.withPermit {
+                try {
+                    executeDownload(record)
+                } catch (e: CancellationException) {
+                    // BUG-003 fix: 取消路径走协程结构化并发，不再依赖 cancelRequests map。
+                    // 这样"用户点取消"和"okdownload 内部主动 cancel"都能正确标 CANCELLED。
+                    Log.d(TAG, "Download cancelled: record=${record.id}")
+                    historyManager.updateStatus(record.id, DownloadStatus.CANCELLED)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Download failed: record=${record.id}", e)
+                    historyManager.updateStatus(
+                        record.id,
+                        DownloadStatus.FAILED,
+                        errorMessage = e.message ?: "Download failed"
+                    )
+                } finally {
+                    activeDownloads.remove(key)
+                }
             }
         }
     }

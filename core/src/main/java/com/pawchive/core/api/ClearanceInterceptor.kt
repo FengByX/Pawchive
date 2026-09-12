@@ -25,9 +25,8 @@ object ClearanceInterceptor {
 
         if (isMainDomain || isCdnSubdomain) {
             val builder = original.newBuilder()
-            CloudflareManager.currentUserAgent()?.let { ua ->
-                builder.header("User-Agent", ua)
-            }
+            // 始终注入应用专属 UA（过盾前为 APP_USER_AGENT，过盾后为与 cf_clearance 绑定的同一 UA）
+            builder.header("User-Agent", CloudflareManager.currentUserAgent())
 
             if (isMainDomain) {
                 // 仅主域注入 Referer 和 Cookie
