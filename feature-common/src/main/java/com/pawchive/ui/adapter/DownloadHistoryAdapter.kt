@@ -49,9 +49,9 @@ class DownloadHistoryAdapter(
             binding.tvStatus.text = formatStatus(record)
             binding.ivTypeIcon.setImageResource(typeIcon(record.type))
 
-            // 进度条仅在进行中/等待中显示
+            // 进度条仅在进行中/等待中/已暂停显示
             when (record.status) {
-                DownloadStatus.PENDING, DownloadStatus.RUNNING -> {
+                DownloadStatus.PENDING, DownloadStatus.RUNNING, DownloadStatus.PAUSED -> {
                     binding.progressBar.visibility = View.VISIBLE
                     binding.progressBar.progress = record.progress
                 }
@@ -71,6 +71,18 @@ class DownloadHistoryAdapter(
                     binding.btnOpen.visibility = View.GONE
                     binding.btnShare.visibility = View.GONE
                     binding.btnDelete.visibility = View.GONE
+                }
+                DownloadStatus.PAUSED -> {
+                    // 继续按钮（复用 retry 回调：暂停标志在位时 HttpDownloadManager
+                    // 会以临时文件长度为起点走 Range 续传）+ 删除
+                    binding.btnAction.visibility = View.VISIBLE
+                    binding.btnAction.setImageResource(R.drawable.ic_retry)
+                    binding.btnAction.contentDescription = context.getString(R.string.action_resume)
+                    binding.btnAction.setOnClickListener { onRetry(record) }
+                    binding.btnOpen.visibility = View.GONE
+                    binding.btnShare.visibility = View.GONE
+                    binding.btnDelete.visibility = View.VISIBLE
+                    binding.btnDelete.setOnClickListener { onDelete(record) }
                 }
                 DownloadStatus.COMPLETED -> {
                     // 打开 / 分享 / 删除
@@ -101,6 +113,7 @@ class DownloadHistoryAdapter(
             return when (record.status) {
                 DownloadStatus.PENDING -> ctx.getString(R.string.status_pending)
                 DownloadStatus.RUNNING -> ctx.getString(R.string.status_running, record.progress)
+                DownloadStatus.PAUSED -> ctx.getString(R.string.status_paused, record.progress)
                 DownloadStatus.COMPLETED -> ctx.getString(R.string.status_completed)
                 DownloadStatus.FAILED -> {
                     val base = ctx.getString(R.string.status_failed)

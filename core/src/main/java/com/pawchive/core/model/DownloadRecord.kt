@@ -54,6 +54,8 @@ enum class DownloadType {
 enum class DownloadStatus {
     PENDING,
     RUNNING,
+    /** 用户主动暂停。临时文件保留，继续时走 HTTP Range 断点续传。 */
+    PAUSED,
     COMPLETED,
     FAILED,
     CANCELLED

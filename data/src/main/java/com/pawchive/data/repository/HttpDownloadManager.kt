@@ -53,10 +53,13 @@ import okhttp3.Request
  */
 @Singleton
 class HttpDownloadManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settingsManager: com.pawchive.core.store.SettingsManager
 ) {
     companion object {
         private const val TAG = "HttpDownloadManager"
+
+        /** 旧硬编码重试次数，现为 SettingsManager 默认值（3），保留作文档。 */
         private const val MAX_RETRY = 3
         private const val TEMP_DIR_NAME = "download_tmp"
 
@@ -85,6 +88,15 @@ class HttpDownloadManager @Inject constructor(
 
     /** 正在执行的请求（url -> Call），用于外部取消。 */
     private val runningCalls = ConcurrentHashMap<String, okhttp3.Call>()
+
+    /**
+     * 已暂停（临时文件保留待续传）的 URL 集合。
+     * 语义：标志在 pause() 时写入、在下一次 downloadToFile() 开始时消费——
+     * 消费后以临时文件长度作为 HTTP Range 续传起点。
+     * cancel() 会移除标志并删除临时文件（取消 = 放弃续传）。
+     */
+    private val pausedUrls: MutableSet<String> =
+        java.util.Collections.newSetFromMap(ConcurrentHashMap())
 
     /**
      * 内部协程作用域，专用于进度 Channel 消费。
@@ -194,20 +206,28 @@ class HttpDownloadManager @Inject constructor(
         onProgress: (currentBytes: Long, totalBytes: Long) -> Unit = { _, _ -> }
     ): File {
         var lastError: Exception? = null
-        for (attempt in 1..MAX_RETRY) {
-            // 每次尝试前取消可能残留的旧请求并删除残片
+        // 消费暂停标记：上次是暂停收尾的 → 从临时文件长度处 HTTP Range 续传；否则清除残片从头开始
+        var resumeOffset = if (pausedUrls.remove(url)) currentTempSize(url) else 0L
+        if (resumeOffset <= 0L) deleteTempFile(url)
+
+        // 自动重试次数可在设置页调整（1–3；1 = 不自动重试）
+        val maxRetry = settingsManager.getDownloadMaxRetry()
+        for (attempt in 1..maxRetry) {
+            // 每次尝试前取消可能残留的旧请求
             runningCalls.remove(url)?.cancel()
-            deleteTempFile(url)
 
             if (attempt > 1) {
                 Log.w(TAG, "Retry attempt $attempt for $url (last error: ${lastError?.message})")
                 // 同一文件两次请求至少间隔 1 秒（文件服务器运维方要求），
                 // 并随重试次数线性退避，避免瞬时密集重试。
                 delay(MIN_RETRY_INTERVAL_MS * attempt)
+                // 失败重试一律从头开始：失败路径已删除临时文件，
+                // 且无 ETag 校验的续传对"服务端文件已变更"场景不安全
+                resumeOffset = 0L
             }
 
             try {
-                return doDownloadToFile(url, onProgress)
+                return doDownloadToFile(url, resumeOffset, onProgress)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -216,8 +236,12 @@ class HttpDownloadManager @Inject constructor(
                 // 可恢复错误（网络 IO / 5xx / 响应截断），继续循环重试
             }
         }
-        throw lastError ?: IOException("Download failed after $MAX_RETRY attempts")
+        throw lastError ?: IOException("Download failed after $maxRetry attempts")
     }
+
+    /** 临时文件当前大小（不存在为 0），作为续传起点。 */
+    private fun currentTempSize(url: String): Long =
+        File(tempDir(), tempFileName(url)).takeIf { it.exists() }?.length() ?: 0L
 
     /** 网络层 IO 错误与服务端 5xx 可重试；4xx（鉴权/不存在/CF 拦截）重试无意义，直接失败。 */
     private fun isRetryable(e: Exception): Boolean {
@@ -225,64 +249,97 @@ class HttpDownloadManager @Inject constructor(
         return e is IOException
     }
 
-    /** 单次下载执行（不含重试逻辑）。 */
+    /**
+     * 单次下载执行（不含重试逻辑）。
+     *
+     * @param resumeOffset 续传起点（字节）。>0 且临时文件长度一致时携带
+     *   `Range: bytes=N-` 请求头做断点续传；否则从头下载。
+     */
     private suspend fun doDownloadToFile(
         url: String,
+        resumeOffset: Long,
         onProgress: (currentBytes: Long, totalBytes: Long) -> Unit
     ): File = withContext(Dispatchers.IO) {
         val tempFile = File(tempDir(), tempFileName(url))
-        // 清掉上一次失败留下的残片，避免与本次写入混叠
-        if (tempFile.exists() && !tempFile.delete()) {
-            Log.w(TAG, "Failed to delete stale temp file: ${tempFile.absolutePath}")
+
+        // 续传前提：临时文件存在且长度与偏移一致。
+        // 不一致（被系统清理/损坏/服务端文件已变更）时放弃续传，从头下载。
+        val canResume = resumeOffset > 0L && tempFile.exists() && tempFile.length() == resumeOffset
+        val offset = if (canResume) resumeOffset else 0L
+        if (resumeOffset > 0L && !canResume && tempFile.exists() && !tempFile.delete()) {
+            Log.w(TAG, "Failed to delete unusable temp file: ${tempFile.absolutePath}")
         }
 
-        val call = ApiClient.downloadOkHttpClient
-            .newCall(Request.Builder().url(url).get().build())
+        val request = Request.Builder().url(url).get()
+            .apply { if (offset > 0L) header("Range", "bytes=$offset-") }
+            .build()
+        val call = ApiClient.downloadOkHttpClient.newCall(request)
         runningCalls[url] = call
 
         try {
             call.execute().use { response ->
                 if (!response.isSuccessful) {
+                    // 416 Range Not Satisfiable：临时文件比服务端文件还长（服务端文件已变更），
+                    // 上层 isRetryable 判定 4xx 不可重试 → 直接失败；用户重试时
+                    // pausedUrls 已清空，downloadToFile 会删残片从头开始。
                     throw HttpDownloadException(response.code, url)
                 }
                 val body = response.body ?: throw IOException("Empty response body: $url")
-                val total = body.contentLength()
+
+                // 206 Partial Content → 追加续传；200（服务器忽略 Range 返回全量）→ 从头写。
+                // 服务器不支持 Range 时静默降级为全量下载，不报错。
+                val resumed = offset > 0L && response.code == 206
+                val startOffset = if (resumed) offset else 0L
+                if (!resumed && tempFile.exists() && !tempFile.delete()) {
+                    Log.w(TAG, "Failed to delete temp file before fresh write: ${tempFile.absolutePath}")
+                }
+
+                // 续传时 Content-Length 是"剩余字节数"，总大小 = 起点偏移 + 剩余长度；
+                // chunked 响应（Content-Length 缺失）时 total = -1，进度走不确定模式。
+                val declared = body.contentLength()
+                val total = if (declared > 0) declared + startOffset else -1L
                 var read = 0L
 
                 body.byteStream().use { input ->
-                    FileOutputStream(tempFile).use { out ->
+                    FileOutputStream(tempFile, resumed).use { out ->
                         val buffer = ByteArray(READ_BUFFER_SIZE)
                         while (true) {
-                            // 每块之间检查协程活跃性：取消可即时打断
+                            // 每块之间检查协程活跃性：取消/暂停可即时打断
                             currentCoroutineContext().ensureActive()
                             val n = input.read(buffer)
                             if (n == -1) break
                             out.write(buffer, 0, n)
                             read += n
-                            onProgress(read, total)
+                            onProgress(startOffset + read, total)
                         }
                         out.flush()
                     }
                 }
 
-                // 截断检测：响应声明的 Content-Length 与实际读取字节数不一致时快速失败。
+                // 截断检测（续传时按"剩余长度"比对）。
                 // 旧 okdownload 实现对这种情况只能在最后抛出
                 // "block-info isn't update correct" 这类隐晦错误。
-                if (total > 0 && read != total) {
-                    throw IOException("Connection closed prematurely: $read != $total")
+                if (declared > 0 && read != declared) {
+                    throw IOException("Connection closed prematurely: ${startOffset + read} != $total")
                 }
             }
             tempFile
         } catch (e: IOException) {
-            runCatching { tempFile.delete() }
-            // 外部 cancel(url) 或协程取消导致的中断 → 统一走 CancellationException，
-            // 让 DownloadCenter 标 CANCELLED 而不是 FAILED。
+            // 暂停请求（pause() 已把 url 写入 pausedUrls）：保留临时文件供续传；
+            // 其余失败路径删除残片，避免与重试写入混叠。
+            if (!pausedUrls.contains(url)) {
+                runCatching { tempFile.delete() }
+            }
+            // 外部 cancel(url)/pause(url) 或协程取消导致的中断 → 统一走 CancellationException，
+            // 让 DownloadCenter 标 CANCELLED/PAUSED 而不是 FAILED。
             if (call.isCanceled() || !currentCoroutineContext().isActive) {
                 throw CancellationException("Download cancelled")
             }
             throw e
         } catch (e: Exception) {
-            runCatching { tempFile.delete() }
+            if (!pausedUrls.contains(url)) {
+                runCatching { tempFile.delete() }
+            }
             throw e
         } finally {
             runningCalls.remove(url)
@@ -300,10 +357,23 @@ class HttpDownloadManager @Inject constructor(
      * 取消指定 URL 的下载。
      * Call.cancel() 会让阻塞中的 socket 读立即抛 IOException，
      * doDownloadToFile 捕获后映射为 CancellationException。
+     * 取消 = 放弃续传：清除暂停标志并删除临时文件。
      */
     fun cancel(url: String) {
+        pausedUrls.remove(url)
         runningCalls.remove(url)?.cancel()
         deleteTempFile(url)
+    }
+
+    /**
+     * 暂停指定 URL 的下载（区别于取消：保留临时文件待续传）。
+     * 先写入暂停标志再 cancel 在飞请求——doDownloadToFile 的异常路径
+     * 检测到 pausedUrls 含 url 时会跳过临时文件删除；下次 downloadToFile
+     * 消费该标志后以临时文件长度作为 Range 续传起点。
+     */
+    fun pause(url: String) {
+        pausedUrls.add(url)
+        runningCalls.remove(url)?.cancel()
     }
 
     /** 服务端返回非 2xx 时抛出；用于区分"可重试的 5xx"与"重试无意义的 4xx"。 */

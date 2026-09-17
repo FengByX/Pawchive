@@ -45,7 +45,10 @@ class ContentUpdateWorker @AssistedInject constructor(
 
         const val WORK_NAME = "content_update_sync"
 
-        /** 周期同步间隔（分钟）。 */
+        /**
+         * 周期同步间隔（分钟）——已改为设置页可配置（SettingsManager.getSyncIntervalMinutes），
+         * 本常量仅保留作为文档化默认值，不再被调度处引用。
+         */
         const val SYNC_INTERVAL_MINUTES = 30L
     }
 }

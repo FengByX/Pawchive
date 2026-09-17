@@ -6,4 +6,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <application>
+        <!-- 下载前台服务：持有 dataSync 前台状态保活 + 承载通知栏暂停/继续/取消动作。
+             由 DownloadNotificationController 按活跃任务数启停，不对外暴露。 -->
+        <service
+            android:name="com.pawchive.data.download.DownloadNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+
 </manifest>

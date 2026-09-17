@@ -6,6 +6,8 @@
     <string name="update_latest_version">Latest: %1$s</string>
     <string name="update_go_download">Go to Download</string>
     <string name="update_later">Later</string>
+    <string name="update_ignore_version">Skip this version</string>
+    <string name="update_version_ignored">Version skipped. You will be prompted again when a newer version is released</string>
 
     <!-- Download notification (DownloadWorker) -->
     <string name="download_channel_name">Download progress</string>
@@ -18,6 +20,18 @@
     <string name="download_notification_complete_image">Image saved to gallery</string>
     <string name="download_notification_complete_video">Video saved to gallery</string>
     <string name="download_notification_complete_attachment">Attachment saved to Downloads</string>
+
+    <!-- Download progress notification (DownloadNotificationController): per-task notification + pause/resume/cancel -->
+    <string name="notif_action_pause">Pause</string>
+    <string name="notif_action_resume">Resume</string>
+    <string name="notif_action_cancel">Cancel</string>
+    <string name="notif_downloading_summary">Downloading %1$d files</string>
+    <string name="notif_progress_detail">%1$s of %2$s · %3$s · %4$s left</string>
+    <string name="notif_speed">%1$s/s</string>
+    <string name="notif_paused_detail">Paused · %1$d%%</string>
+    <string name="notif_completed_detail">Download completed · %1$s</string>
+    <string name="notif_error_unknown">Unknown error</string>
+    <string name="notif_eta_unknown">calculating</string>
 
     <!-- Content update notification (ContentUpdateNotifier) -->
     <string name="content_update_channel_name">Content updates</string>

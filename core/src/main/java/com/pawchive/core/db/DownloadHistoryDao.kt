@@ -45,10 +45,11 @@ interface DownloadHistoryDao {
     suspend fun getAll(): List<DownloadRecord>
 
     /**
-     * 按去重指纹查询进行中（PENDING/RUNNING）的任务。
+     * 按去重指纹查询进行中（PENDING/RUNNING/PAUSED）的任务。
      * 用于 ARCH-005 去重：相同"账号|url|文件名|类型"且未完成的任务不重复入队。
+     * PAUSED 计入"活跃"：重复点击已暂停任务的下载 = 继续下载，而非产生重复记录。
      */
-    @Query("SELECT * FROM download_records WHERE dedupKey = :dedupKey AND status IN ('PENDING', 'RUNNING') LIMIT 1")
+    @Query("SELECT * FROM download_records WHERE dedupKey = :dedupKey AND status IN ('PENDING', 'RUNNING', 'PAUSED') LIMIT 1")
     suspend fun findActiveByDedupKey(dedupKey: String): DownloadRecord?
 
     /** 插入或覆盖指定记录（主键冲突时替换）。 */

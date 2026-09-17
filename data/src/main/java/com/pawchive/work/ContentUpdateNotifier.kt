@@ -30,7 +30,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class ContentUpdateNotifier @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settingsManager: com.pawchive.core.store.SettingsManager
 ) {
 
     /**
@@ -39,6 +40,8 @@ class ContentUpdateNotifier @Inject constructor(
      */
     fun notifyNewUpdates(updates: List<ContentUpdateEntity>) {
         if (updates.isEmpty()) return
+        // 设置页"新帖通知"开关：关闭后同步照常进行，仅不再弹系统通知
+        if (!settingsManager.isNewPostNotificationEnabled()) return
         if (!hasNotificationPermission()) return
         ensureChannel()
 

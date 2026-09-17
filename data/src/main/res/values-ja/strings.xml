@@ -6,6 +6,8 @@
     <string name="update_latest_version">最新バージョン：%1$s</string>
     <string name="update_go_download">ダウンロードへ</string>
     <string name="update_later">後で</string>
+    <string name="update_ignore_version">このバージョンをスキップ</string>
+    <string name="update_version_ignored">このバージョンをスキップしました。次の新バージョンで再度通知します</string>
 
     <!-- ダウンロード通知（DownloadWorker） -->
     <string name="download_channel_name">ダウンロード進捗</string>
@@ -18,6 +20,18 @@
     <string name="download_notification_complete_image">画像をアルバムに保存しました</string>
     <string name="download_notification_complete_video">動画をアルバムに保存しました</string>
     <string name="download_notification_complete_attachment">添付ファイルをダウンロードフォルダに保存しました</string>
+
+    <!-- ダウンロード進捗通知（DownloadNotificationController）：タスクごとの通知 + 一時停止/再開/キャンセル -->
+    <string name="notif_action_pause">一時停止</string>
+    <string name="notif_action_resume">再開</string>
+    <string name="notif_action_cancel">キャンセル</string>
+    <string name="notif_downloading_summary">%1$d 件をダウンロード中</string>
+    <string name="notif_progress_detail">%1$s/%2$s · %3$s · 残り %4$s</string>
+    <string name="notif_speed">%1$s/s</string>
+    <string name="notif_paused_detail">一時停止中 · %1$d%%</string>
+    <string name="notif_completed_detail">ダウンロード完了 · %1$s</string>
+    <string name="notif_error_unknown">不明なエラー</string>
+    <string name="notif_eta_unknown">計算中</string>
 
     <!-- コンテンツ更新通知（ContentUpdateNotifier） -->
     <string name="content_update_channel_name">コンテンツ更新</string>

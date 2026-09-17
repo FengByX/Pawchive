@@ -67,9 +67,11 @@ class DownloadsViewModel @Inject constructor(
     private fun applyFilter(records: List<DownloadRecord>, status: DownloadStatus?): List<DownloadRecord> {
         return when (status) {
             null -> records
-            // 进行中：包含等待中和下载中
+            // 进行中：包含等待中、下载中和已暂停
             DownloadStatus.RUNNING -> records.filter {
-                it.status == DownloadStatus.PENDING || it.status == DownloadStatus.RUNNING
+                it.status == DownloadStatus.PENDING ||
+                    it.status == DownloadStatus.RUNNING ||
+                    it.status == DownloadStatus.PAUSED
             }
             // 失败：包含失败和已取消
             DownloadStatus.FAILED -> records.filter {
