@@ -38,7 +38,8 @@ data class PostDetailUiState(
 class PostDetailViewModel @Inject constructor(
     application: Application,
     private val memoryCache: AppMemoryCache,
-    private val bookmarkManager: BookmarkManager
+    private val bookmarkManager: BookmarkManager,
+    private val settingsManager: com.pawchive.core.store.SettingsManager
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(PostDetailUiState())
@@ -190,7 +191,7 @@ class PostDetailViewModel @Inject constructor(
         val fileName = post.file?.name
         if (isVideo(filePath, fileName)) {
             val fullUrl = buildFileUrl(filePath)
-            videoList.add(Pair(fullUrl, fileName ?: "video.mp4"))
+            videoList.add(Pair(fullUrl, formatDownloadName(post, fileName ?: "video.mp4")))
         }
 
         val attachments = post.attachments
@@ -198,7 +199,7 @@ class PostDetailViewModel @Inject constructor(
             for (attachment in attachments) {
                 if (isVideo(attachment.path, attachment.name)) {
                     val fullUrl = buildFileUrl(attachment.path)
-                    videoList.add(Pair(fullUrl, attachment.name ?: "video.mp4"))
+                    videoList.add(Pair(fullUrl, formatDownloadName(post, attachment.name ?: "video.mp4")))
                 }
             }
         }
@@ -211,5 +212,17 @@ class PostDetailViewModel @Inject constructor(
      */
     private fun buildFileUrl(path: String?): String {
         return "https://file.pawchive.pw/data${Uri.encode(path.orEmpty(), "/")}"
+    }
+
+    /**
+     * 按用户设置的命名格式生成下载文件名（FEATURE 设置项扩展批次三）。
+     * TITLE_TIME 使用帖子标题；ORIGINAL/TIMESTAMP 语义见 DownloadFileNameFormatter。
+     */
+    private fun formatDownloadName(post: Post, originalName: String): String {
+        return com.pawchive.core.util.DownloadFileNameFormatter.format(
+            settingsManager.getFilenameFormat(),
+            originalName = originalName,
+            title = post.title
+        )
     }
 }

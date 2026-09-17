@@ -50,6 +50,71 @@
     <string name="appearance_light">ライト</string>
     <string name="appearance_dark">ダーク</string>
     <string name="appearance_system">システム設定に従う</string>
+    <string name="display_section">表示とズーム</string>
+    <string name="ui_scale_label">画面の拡大率</string>
+    <string name="font_scale_label">文字サイズ</string>
+    <string name="reset_default">デフォルトに戻す</string>
+    <string name="scale_value_percent">%1$d%%</string>
+
+    <!-- FEATURE 設定項目拡張（バッチ1） -->
+    <string name="lang_follow_system">システム設定に従う</string>
+    <string name="media_section">メディア再生</string>
+    <string name="video_resume_label">続きから再生</string>
+    <string name="video_resume_desc">動画を前回の位置から再開します</string>
+    <string name="remember_speed_label">再生速度を記憶</string>
+    <string name="remember_speed_desc">新しい動画は前回選択した速度で再生します</string>
+    <string name="list_original_image_label">一覧でオリジナル画像を読み込む</string>
+    <string name="list_original_image_desc">より鮮明ですが通信量が増加します（既定はサムネイル）</string>
+    <string name="download_complete_notification_label">ダウンロード完了通知</string>
+    <string name="download_complete_notification_desc">ダウンロード完了時に通知バーでお知らせします</string>
+    <string name="new_post_notification_label">新着通知</string>
+    <string name="new_post_notification_desc">フォロー中のクリエイターの新着投稿を通知します</string>
+    <string name="sync_interval_label">新着同期間隔</string>
+    <string name="sync_interval_15">15分ごと</string>
+    <string name="sync_interval_30">30分ごと</string>
+    <string name="sync_interval_60">1時間ごと</string>
+    <string name="home_default_sort_label">ホームの既定の並び順</string>
+    <string name="network_privacy_section">ネットワークとプライバシー</string>
+    <string name="search_history_limit_label">検索履歴の保存件数</string>
+    <string name="history_limit_value_fmt">%1$d 件</string>
+    <string name="update_frequency_label">更新確認の頻度</string>
+    <string name="update_freq_every_launch">起動時毎回</string>
+    <string name="update_freq_daily">毎日</string>
+    <string name="update_freq_weekly">毎週</string>
+
+    <!-- FEATURE 設定拡張（バッチ3） -->
+    <string name="filename_format_label">ダウンロードファイル名</string>
+    <string name="filename_format_original">オリジナルのファイル名</string>
+    <string name="filename_format_timestamp">タイムスタンプ形式</string>
+    <string name="filename_format_title_time">タイトル+日時</string>
+    <string name="accent_theme_label">アクセントカラー</string>
+    <string name="accent_default">デフォルト（青）</string>
+    <string name="accent_violet">バイオレット</string>
+    <string name="accent_ocean">オーシャン</string>
+    <string name="accent_forest">フォレスト</string>
+    <string name="accent_sunset">サンセット</string>
+    <string name="accent_rose">ローズ</string>
+    <string name="reduce_animations_label">アニメーションを減らす</string>
+    <string name="reduce_animations_desc">スケルトン・トランジション・画像フェードを無効化</string>
+    <string name="grid_columns_label">グリッド列数</string>
+    <string name="grid_columns_1">1列</string>
+    <string name="grid_columns_2">2列</string>
+    <string name="grid_columns_3">3列</string>
+    <string name="update_channel_label">更新チャネル</string>
+    <string name="update_channel_stable">安定版</string>
+    <string name="update_channel_beta">Beta（プレリリース含む）</string>
+    <string name="wipe_data_label">ローカルデータを全消去</string>
+    <string name="wipe_data_desc">ブックマーク・履歴・ブロックリスト・進捗・全設定を削除し、サインアウトします</string>
+    <string name="wipe_data_continue">続行</string>
+    <string name="wipe_data_execute">すべて消去</string>
+    <string name="wipe_data_confirm_first">この端末のローカルデータ（ブックマーク・履歴・設定など）をすべて削除します。続行しますか？</string>
+    <string name="wipe_data_confirm_second">最終確認：この操作は取り消せません。すべてのデータを削除し、サインアウトします。</string>
+    <string name="wipe_data_done">ローカルデータをすべて削除しました</string>
+    <string name="auto_backup_label">自動バックアップ</string>
+    <string name="auto_backup_desc">ブックマークと設定のバックアップを毎日選択したフォルダへ書き出します</string>
+    <string name="auto_backup_location_label">バックアップ先</string>
+    <string name="auto_backup_location_not_set">未設定</string>
+    <string name="auto_backup_need_folder">先にバックアップ先を選択してください</string>
 
     <!-- Account -->
     <string name="login">ログイン</string>
@@ -282,11 +347,16 @@
     <string name="retry">再試行</string>
     <string name="open">開く</string>
     <string name="share">共有</string>
+    <string name="copy">コピー</string>
+    <string name="copied_to_clipboard">クリップボードにコピーしました</string>
+    <string name="crash_log_share_title">クラッシュログを共有</string>
     <string name="status_pending">待機中</string>
     <string name="status_running">ダウンロード中 %1$d%%</string>
     <string name="status_completed">完了</string>
     <string name="status_failed">ダウンロード失敗</string>
     <string name="status_cancelled">キャンセル済み</string>
+    <string name="status_paused">一時停止中 %1$d%%</string>
+    <string name="action_resume">再開</string>
     <string name="download_cancelled">ダウンロードをキャンセルしました</string>
     <string name="download_retried">ダウンロードを再試行中</string>
     <string name="confirm_clear_history">すべてのダウンロード履歴を消去しますか？</string>
@@ -444,4 +514,12 @@
     <string name="download_queued">ダウンロードキューに追加しました：%1$s</string>
     <string name="download_file_title">ファイルをダウンロードしますか？</string>
     <string name="invalid_file_link">無効なファイルリンク</string>
+
+    <!-- FEATURE 設定項目拡張（バッチ2：ダウンロードパラメータ） -->
+    <string name="wifi_only_label">Wi-Fi のみダウンロード</string>
+    <string name="wifi_only_desc">Wi-Fi 接続を待機し、モバイルデータを使用しません</string>
+    <string name="max_concurrent_label">最大同時ダウンロード数</string>
+    <string name="max_concurrent_value_fmt">%1$d 件</string>
+    <string name="download_retry_label">自動リトライ回数</string>
+    <string name="download_retry_value_fmt">%1$d 回</string>
 </resources>

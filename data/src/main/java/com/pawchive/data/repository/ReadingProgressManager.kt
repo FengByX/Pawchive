@@ -126,6 +126,18 @@ class ReadingProgressManager @Inject constructor(@ApplicationContext context: Co
         }
     }
 
+    /**
+     * 清除全部阅读进度与视频播放位置（FEATURE：清除本地全部数据）。
+     * 同步清空内存快照，DataStore 落盘在 IO 线程异步完成。
+     */
+    fun clearAll() {
+        videoPositions = emptyMap()
+        cache = androidx.datastore.preferences.core.emptyPreferences()
+        progressIoScope.launch {
+            runCatching { dataStore.edit { it.clear() } }
+        }
+    }
+
     // ---------- ARCH-FEATURE-005 备份导出/导入 ----------
 
     /**

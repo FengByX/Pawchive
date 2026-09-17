@@ -50,6 +50,71 @@
     <string name="appearance_light">日间</string>
     <string name="appearance_dark">夜间</string>
     <string name="appearance_system">跟随系统</string>
+    <string name="display_section">显示与缩放</string>
+    <string name="ui_scale_label">界面缩放</string>
+    <string name="font_scale_label">文字大小</string>
+    <string name="reset_default">恢复默认</string>
+    <string name="scale_value_percent">%1$d%%</string>
+
+    <!-- FEATURE 设置项扩展（批次一） -->
+    <string name="lang_follow_system">跟随系统</string>
+    <string name="media_section">媒体播放</string>
+    <string name="video_resume_label">断点续播</string>
+    <string name="video_resume_desc">重新打开视频时从上次位置继续播放</string>
+    <string name="remember_speed_label">记住上次倍速</string>
+    <string name="remember_speed_desc">新视频以上次选择的播放速度开始</string>
+    <string name="list_original_image_label">列表加载原图</string>
+    <string name="list_original_image_desc">更清晰，但消耗更多流量（默认加载缩略图）</string>
+    <string name="download_complete_notification_label">下载完成通知</string>
+    <string name="download_complete_notification_desc">下载完成后在通知栏提醒</string>
+    <string name="new_post_notification_label">新帖通知</string>
+    <string name="new_post_notification_desc">订阅的创作者有新帖时推送系统通知</string>
+    <string name="sync_interval_label">新帖同步周期</string>
+    <string name="sync_interval_15">每 15 分钟</string>
+    <string name="sync_interval_30">每 30 分钟</string>
+    <string name="sync_interval_60">每 1 小时</string>
+    <string name="home_default_sort_label">首页默认排序</string>
+    <string name="network_privacy_section">网络与隐私</string>
+    <string name="search_history_limit_label">搜索历史保留条数</string>
+    <string name="history_limit_value_fmt">%1$d 条</string>
+    <string name="update_frequency_label">更新检查频率</string>
+    <string name="update_freq_every_launch">每次启动</string>
+    <string name="update_freq_daily">每天</string>
+    <string name="update_freq_weekly">每周</string>
+
+    <!-- FEATURE 设置项扩展（批次三） -->
+    <string name="filename_format_label">下载文件命名</string>
+    <string name="filename_format_original">原始文件名</string>
+    <string name="filename_format_timestamp">时间戳命名</string>
+    <string name="filename_format_title_time">标题+时间</string>
+    <string name="accent_theme_label">主题强调色</string>
+    <string name="accent_default">默认（蓝）</string>
+    <string name="accent_violet">紫罗兰</string>
+    <string name="accent_ocean">海洋</string>
+    <string name="accent_forest">森林</string>
+    <string name="accent_sunset">落日</string>
+    <string name="accent_rose">玫瑰</string>
+    <string name="reduce_animations_label">减少动画</string>
+    <string name="reduce_animations_desc">关闭骨架屏、过渡与图片淡入动画</string>
+    <string name="grid_columns_label">列表网格列数</string>
+    <string name="grid_columns_1">单列</string>
+    <string name="grid_columns_2">双列</string>
+    <string name="grid_columns_3">三列</string>
+    <string name="update_channel_label">更新通道</string>
+    <string name="update_channel_stable">稳定版</string>
+    <string name="update_channel_beta">Beta（含预发布）</string>
+    <string name="wipe_data_label">清除本地全部数据</string>
+    <string name="wipe_data_desc">删除收藏、历史、屏蔽名单、进度与全部设置，并退出登录</string>
+    <string name="wipe_data_continue">继续</string>
+    <string name="wipe_data_execute">全部清除</string>
+    <string name="wipe_data_confirm_first">即将清除本机上的全部本地数据（收藏、历史、设置等），确定继续吗？</string>
+    <string name="wipe_data_confirm_second">再次确认：此操作不可恢复，将清除所有数据并退出登录。</string>
+    <string name="wipe_data_done">已清除全部本地数据</string>
+    <string name="auto_backup_label">定时自动备份</string>
+    <string name="auto_backup_desc">每天自动导出收藏与设置的备份文件到所选目录</string>
+    <string name="auto_backup_location_label">备份目录</string>
+    <string name="auto_backup_location_not_set">未设置</string>
+    <string name="auto_backup_need_folder">请先选择备份目录</string>
 
     <!-- Account -->
     <string name="login">登录</string>
@@ -282,11 +347,16 @@
     <string name="retry">重试</string>
     <string name="open">打开</string>
     <string name="share">分享</string>
+    <string name="copy">复制</string>
+    <string name="copied_to_clipboard">已复制到剪贴板</string>
+    <string name="crash_log_share_title">分享崩溃日志</string>
     <string name="status_pending">等待中</string>
     <string name="status_running">下载中 %1$d%%</string>
     <string name="status_completed">已完成</string>
     <string name="status_failed">下载失败</string>
     <string name="status_cancelled">已取消</string>
+    <string name="status_paused">已暂停 %1$d%%</string>
+    <string name="action_resume">继续</string>
     <string name="download_cancelled">下载已取消</string>
     <string name="download_retried">正在重试下载</string>
     <string name="confirm_clear_history">确定清空所有下载历史吗？</string>
@@ -444,4 +514,12 @@
     <string name="download_queued">已加入下载队列：%1$s</string>
     <string name="download_file_title">下载附件？</string>
     <string name="invalid_file_link">文件链接无效</string>
+
+    <!-- FEATURE 设置项扩展（批次二：下载参数） -->
+    <string name="wifi_only_label">仅 Wi-Fi 下载</string>
+    <string name="wifi_only_desc">无 Wi-Fi 时等待，不消耗移动流量</string>
+    <string name="max_concurrent_label">最大并发下载数</string>
+    <string name="max_concurrent_value_fmt">%1$d 个</string>
+    <string name="download_retry_label">自动重试次数</string>
+    <string name="download_retry_value_fmt">%1$d 次</string>
 </resources>

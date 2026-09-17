@@ -73,9 +73,20 @@ class HomeViewModel @Inject constructor(
 
     private val loadedPosts = mutableListOf<Post>()
     private var currentOffset = 0
-    private var currentSort = HomePostSortOption.NEWEST_PUBLISHED
+
+    /**
+     * 当前排序（FEATURE：首页默认排序可配置）。
+     * 初始值来自设置页"首页默认排序"；未设置过则保持旧行为（最新发布）。
+     */
+    private var currentSort: HomePostSortOption =
+        settingsManager.getHomeDefaultSort()
+            ?.let { stored -> HomePostSortOption.entries.find { it.name == stored } }
+            ?: HomePostSortOption.NEWEST_PUBLISHED
     private var showBookmarksOnly = false
     private var initialized = false
+
+    /** 当前排序（供 Fragment 同步按钮文字/对话框选中项，含设置页默认排序）。 */
+    val currentSortOption: HomePostSortOption get() = currentSort
 
     /**
      * 云端收藏创作者缓存（ARCH-FEATURE-006 联动遗留项）。

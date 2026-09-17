@@ -12,7 +12,14 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.pawchive.core.api.ApiClient
 
-class VideoPlayerManager(private val context: Context) {
+class VideoPlayerManager(
+    private val context: Context,
+    /**
+     * 初始播放倍速（FEATURE：记住上次倍速）。
+     * 调用方传入设置页记忆的"上次倍速"；默认 1.0x 保持旧行为。
+     */
+    initialSpeed: Float = 1.0f
+) {
 
     interface VideoPlayerListener {
         fun onPlaybackStateChanged(state: Int)
@@ -32,7 +39,7 @@ class VideoPlayerManager(private val context: Context) {
         private set
     var duration: Long = 0
         private set
-    var playbackSpeed: Float = 1.0f
+    var playbackSpeed: Float = initialSpeed
         private set
 
     private var listener: VideoPlayerListener? = null
@@ -171,6 +178,8 @@ class VideoPlayerManager(private val context: Context) {
         player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
+        // 应用初始倍速（默认 1.0x；"记住上次倍速"开启时由调用方传入上次值）
+        player?.setPlaybackSpeed(playbackSpeed)
 
         playerView?.let {
             it.player = player

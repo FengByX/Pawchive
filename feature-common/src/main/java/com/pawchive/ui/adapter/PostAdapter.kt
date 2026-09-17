@@ -97,6 +97,24 @@ class PostAdapter(
     private val bookmarkMutexes = ConcurrentHashMap<String, Mutex>()
 
     companion object {
+        /**
+         * 列表原图加载判定（FEATURE：省流量加载）。
+         * 由 app 层在启动时注入 provider（读 SettingsManager），适配器与设置存储解耦；
+         * 默认 false＝缩略图 CDN 优先（省流量）。
+         */
+        @Volatile
+        var preferOriginalImagesProvider: () -> Boolean = { false }
+
+        /**
+         * 减少动画（FEATURE 设置项扩展批次三）。
+         * 开启时缩略图不做交叉淡入（crossfade=0），由 app 层在启动时注入。
+         */
+        @Volatile
+        var reduceAnimationsProvider: () -> Boolean = { false }
+
+        private fun reduceAnimations(): Boolean =
+            runCatching { reduceAnimationsProvider() }.getOrDefault(false)
+
         private const val TYPE_POST = 0
         private const val TYPE_FOOTER = 1
         private const val TAG = "PostAdapter"
@@ -424,10 +442,15 @@ class PostAdapter(
         }
 
         /**
-         * 构建候选 URL 列表，按优先级依次尝试：
+         * 构建候选 URL 列表，按优先级依次尝试。
+         * 省流量模式（默认）：
          *  1. img.pawchive.pw/thumbnail/data...  （缩略图 CDN）
          *  2. img.pawchive.pw/data...            （原图标清 CDN）
          *  3. file.pawchive.pw/data...           （file 下载域名原图）
+         * 高清模式（设置开启）：
+         *  1. img.pawchive.pw/data...            （原图标清 CDN）
+         *  2. file.pawchive.pw/data...           （file 下载域名原图）
+         *  3. img.pawchive.pw/thumbnail/data...  （缩略图兜底）
          *
          * 若 [imagePath] 已是完整的 https URL，则直接返回单元素列表。
          */
@@ -437,11 +460,19 @@ class PostAdapter(
                 return listOf(trimmed)
             }
             val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
-            return listOf(
-                "https://img.pawchive.pw/thumbnail/data$normalized",
-                "https://img.pawchive.pw/data$normalized",
-                "https://file.pawchive.pw/data$normalized"
-            )
+            return if (runCatching { preferOriginalImagesProvider() }.getOrDefault(false)) {
+                listOf(
+                    "https://img.pawchive.pw/data$normalized",
+                    "https://file.pawchive.pw/data$normalized",
+                    "https://img.pawchive.pw/thumbnail/data$normalized"
+                )
+            } else {
+                listOf(
+                    "https://img.pawchive.pw/thumbnail/data$normalized",
+                    "https://img.pawchive.pw/data$normalized",
+                    "https://file.pawchive.pw/data$normalized"
+                )
+            }
         }
 
         /**
@@ -460,7 +491,7 @@ class PostAdapter(
             val isLast = index == urls.size - 1
             binding.ivThumbnail.load(url) {
                 size(THUMBNAIL_SIZE_PX)
-                crossfade(150)
+                crossfade(if (reduceAnimations()) 0 else 150)
                 placeholder(R.color.thumbnail_placeholder)
                 error(if (isLast) R.color.thumbnail_placeholder else R.color.thumbnail_placeholder)
                 listener(

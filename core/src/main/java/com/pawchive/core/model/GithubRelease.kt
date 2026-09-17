@@ -18,6 +18,12 @@ data class GithubRelease(
     @SerializedName("published_at")
     val publishedAt: String,
 
+    @SerializedName("prerelease")
+    val prerelease: Boolean = false,
+
+    @SerializedName("draft")
+    val draft: Boolean = false,
+
     @SerializedName("assets")
     val assets: List<GithubAsset>?
 )

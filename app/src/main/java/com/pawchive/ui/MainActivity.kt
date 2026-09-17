@@ -57,9 +57,22 @@ class MainActivity : AppCompatActivity(), AppNavigator {
         // ARCH-007：改读轻量启动缓存（SharedPreferences），启动路径不再读取 DataStore。
         val settingsManager = PawchiveApplication.getSettingsManager()
         val language = settingsManager.getStartupLanguage()
-        val locale = Locale.forLanguageTag(language.code)
         val config = Configuration(newBase.resources.configuration)
-        config.setLocale(locale)
+        // "跟随系统"：不覆盖 locale，保留系统语言（AppCompat 的空 locale 列表同样如此）
+        if (language != SettingsManager.Language.SYSTEM) {
+            val locale = Locale.forLanguageTag(language.code)
+            config.setLocale(locale)
+        }
+        // 显示与缩放（FEATURE）：全局 UI 缩放 + 全局文字大小。
+        // - densityDpi：dp/sp 等比缩放，等同系统"显示大小"，文本与容器同步缩放，布局不错位；
+        // - fontScale：仅缩放 sp 文本，叠加在系统字号（无障碍）之上；
+        //   两者均从启动缓存同步读取（SettingsManager 双写保证重启后立即生效）。
+        // 单 Activity 架构下所有页面/对话框/Toast 共用 Activity context，此处覆盖即全局生效。
+        val baseDensityDpi = newBase.resources.configuration.densityDpi
+        config.densityDpi = (baseDensityDpi * settingsManager.getStartupUiScale()).toInt()
+            .coerceAtLeast(1)
+        config.fontScale = newBase.resources.configuration.fontScale *
+            settingsManager.getStartupFontScale()
         val context = newBase.createConfigurationContext(config)
         super.attachBaseContext(context)
     }
@@ -67,6 +80,8 @@ class MainActivity : AppCompatActivity(), AppNavigator {
     override fun onCreate(savedInstanceState: Bundle?) {
         // 应用外观模式：settingsManager 由 Hilt 注入，但 onCreate 时已可用
         PawchiveApplication.getSettingsManager().applyAppearance()
+        // FEATURE 设置项扩展（批次三）：主题强调色——setTheme 必须在 setContentView 之前
+        applyAccentTheme()
         super.onCreate(savedInstanceState)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -437,8 +452,29 @@ class MainActivity : AppCompatActivity(), AppNavigator {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         finish()
         startActivity(intent)
-        @Suppress("DEPRECATION")
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        // FEATURE 设置项扩展（批次三）：减少动画——关闭窗口过渡淡入淡出
+        if (!PawchiveApplication.getSettingsManager().isReduceAnimationsEnabled()) {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
+    }
+
+    /**
+     * 应用主题强调色（FEATURE 设置项扩展批次三）。
+     * 必须在 setContentView 之前调用；读轻量启动缓存（ARCH-007），无阻塞。
+     */
+    private fun applyAccentTheme() {
+        val theme = PawchiveApplication.getSettingsManager().getStartupAccentTheme()
+        setTheme(
+            when (theme) {
+                SettingsManager.AccentTheme.VIOLET -> R.style.Theme_Pawchive_Violet
+                SettingsManager.AccentTheme.OCEAN -> R.style.Theme_Pawchive_Ocean
+                SettingsManager.AccentTheme.FOREST -> R.style.Theme_Pawchive_Forest
+                SettingsManager.AccentTheme.SUNSET -> R.style.Theme_Pawchive_Sunset
+                SettingsManager.AccentTheme.ROSE -> R.style.Theme_Pawchive_Rose
+                SettingsManager.AccentTheme.DEFAULT -> R.style.Theme_Pawchive
+            }
+        )
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

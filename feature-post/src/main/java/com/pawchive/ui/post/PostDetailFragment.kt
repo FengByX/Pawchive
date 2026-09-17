@@ -75,6 +75,8 @@ class PostDetailFragment : Fragment() {
     private lateinit var videoPlayerManager: VideoPlayerManager
     @Inject
     lateinit var readingProgressManager: com.pawchive.data.repository.ReadingProgressManager
+    @Inject
+    lateinit var settingsManager: com.pawchive.core.store.SettingsManager
 
     private var service: String = ""
     private var creatorId: String = ""
@@ -128,7 +130,11 @@ class PostDetailFragment : Fragment() {
     @OptIn(UnstableApi::class)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        videoPlayerManager = VideoPlayerManager(requireContext())
+        // FEATURE：记住上次倍速——设置开启时以上次使用的倍速起步
+        videoPlayerManager = VideoPlayerManager(
+            requireContext(),
+            if (settingsManager.isRememberPlaybackSpeedEnabled()) settingsManager.getLastPlaybackSpeed() else 1.0f
+        )
 
         binding.btnBack.setOnClickListener {
             parentFragmentManager.popBackStack()
@@ -1040,6 +1046,8 @@ class PostDetailFragment : Fragment() {
             .setTitle(getString(R.string.speed))
             .setSingleChoiceItems(speeds, currentIndex) { dialog, which ->
                 videoPlayerManager.setPlaybackSpeed(speedValues[which])
+                // FEATURE：记住上次倍速——用户手动选速即持久化，新播放器以此起步
+                settingsManager.setLastPlaybackSpeed(speedValues[which])
                 dialog.dismiss()
             }
             .show()
@@ -1126,11 +1134,13 @@ class PostDetailFragment : Fragment() {
         videoPlayerManager.attachPlayerView(binding.playerView)
         videoPlayerManager.play(url)
 
-        // 恢复上次播放位置（FEATURE-005 视频记忆）
-        val savedPos = readingProgressManager.getVideoPosition(url)
-        if (savedPos > 1000) {
-            videoPlayerManager.seekTo(savedPos)
-            Toast.makeText(context, R.string.video_resume_position, Toast.LENGTH_SHORT).show()
+        // 恢复上次播放位置（FEATURE-005 视频记忆；设置页"断点续播"关闭则从头播放）
+        if (settingsManager.isVideoResumeEnabled()) {
+            val savedPos = readingProgressManager.getVideoPosition(url)
+            if (savedPos > 1000) {
+                videoPlayerManager.seekTo(savedPos)
+                Toast.makeText(context, R.string.video_resume_position, Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.nestedScrollView.post {
@@ -1157,7 +1167,9 @@ class PostDetailFragment : Fragment() {
         videoPlayerManager.pause()
         isFullscreen = true
 
-        val dialog = FullscreenVideoDialog.newInstance(url, fileName, position, isPlaying)
+        val dialog = FullscreenVideoDialog.newInstance(
+            url, fileName, position, isPlaying, videoPlayerManager.playbackSpeed
+        )
         dialog.setListener(object : FullscreenVideoDialog.FullscreenVideoListener {
             override fun onFullscreenClosed(position: Long, isPlaying: Boolean) {
                 // 退出全屏：从退出位置继续播放

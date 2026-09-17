@@ -110,6 +110,21 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
         scheduleAutoCacheCleanIfNeeded()
         // 内容更新订阅周期同步（ARCH-FEATURE-003）
         scheduleContentUpdateSync()
+        // FEATURE：省流量加载——把"列表加载原图"判定注入 PostAdapter（读内存快照，零阻塞）
+        com.pawchive.ui.adapter.PostAdapter.preferOriginalImagesProvider = {
+            settingsManager.isListOriginalImageEnabled()
+        }
+        // FEATURE 设置项扩展（批次三）：减少动画——注入骨架屏与适配器的动画开关 provider
+        com.pawchive.ui.widget.SkeletonHelper.reducedAnimationsProvider = {
+            settingsManager.isReduceAnimationsEnabled()
+        }
+        com.pawchive.ui.adapter.PostAdapter.reduceAnimationsProvider = {
+            settingsManager.isReduceAnimationsEnabled()
+        }
+        // FEATURE 设置项扩展（批次三）：定时自动备份——开启状态下按日调度（UPDATE 幂等）
+        if (settingsManager.isAutoBackupEnabled()) {
+            com.pawchive.work.AutoBackupWorker.schedule(this, enabled = true)
+        }
     }
 
     /**
@@ -147,13 +162,15 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
 
     /**
      * 调度内容更新订阅周期同步（ARCH-FEATURE-003）。
-     * - 周期 30 分钟（WorkManager 最小 15 分钟）
+     * - 周期可在设置页调整（WorkManager 最小 15 分钟）
      * - 联网约束：无网络时跳过本次运行
-     * - 唯一周期任务：多次启动不重复排队（KEEP 策略）
+     * - UPDATE 策略：保留既有排队时间并应用最新周期设置（KEEP 无法更新周期，
+     *   REPLACE 会重置排队计时，UPDATE 兼顾两者，WorkManager 2.8+ 支持）
      */
     private fun scheduleContentUpdateSync() {
+        val intervalMinutes = settingsManager.getSyncIntervalMinutes().toLong()
         val request = PeriodicWorkRequestBuilder<ContentUpdateWorker>(
-            ContentUpdateWorker.SYNC_INTERVAL_MINUTES,
+            intervalMinutes,
             TimeUnit.MINUTES
         ).setConstraints(
             Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
@@ -161,7 +178,7 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ContentUpdateWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }

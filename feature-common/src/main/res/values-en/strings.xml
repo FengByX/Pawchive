@@ -50,6 +50,71 @@
     <string name="appearance_light">Light</string>
     <string name="appearance_dark">Dark</string>
     <string name="appearance_system">Follow System</string>
+    <string name="display_section">Display &amp; Zoom</string>
+    <string name="ui_scale_label">UI Scale</string>
+    <string name="font_scale_label">Text Size</string>
+    <string name="reset_default">Reset Default</string>
+    <string name="scale_value_percent">%1$d%%</string>
+
+    <!-- FEATURE settings extension (batch 1) -->
+    <string name="lang_follow_system">Follow System</string>
+    <string name="media_section">Media Playback</string>
+    <string name="video_resume_label">Resume Playback</string>
+    <string name="video_resume_desc">Continue videos from where you left off</string>
+    <string name="remember_speed_label">Remember Playback Speed</string>
+    <string name="remember_speed_desc">New videos start at the last speed you chose</string>
+    <string name="list_original_image_label">Load Original Images in Lists</string>
+    <string name="list_original_image_desc">Sharper but uses more data (thumbnails by default)</string>
+    <string name="download_complete_notification_label">Download Complete Notification</string>
+    <string name="download_complete_notification_desc">Notify in the notification bar when a download finishes</string>
+    <string name="new_post_notification_label">New Post Notifications</string>
+    <string name="new_post_notification_desc">Push a system notification when followed creators post</string>
+    <string name="sync_interval_label">Post Sync Interval</string>
+    <string name="sync_interval_15">Every 15 minutes</string>
+    <string name="sync_interval_30">Every 30 minutes</string>
+    <string name="sync_interval_60">Every hour</string>
+    <string name="home_default_sort_label">Default Home Sort</string>
+    <string name="network_privacy_section">Network &amp; Privacy</string>
+    <string name="search_history_limit_label">Search History Limit</string>
+    <string name="history_limit_value_fmt">%1$d items</string>
+    <string name="update_frequency_label">Update Check Frequency</string>
+    <string name="update_freq_every_launch">Every launch</string>
+    <string name="update_freq_daily">Daily</string>
+    <string name="update_freq_weekly">Weekly</string>
+
+    <!-- FEATURE settings extension (batch 3) -->
+    <string name="filename_format_label">Download file naming</string>
+    <string name="filename_format_original">Original file name</string>
+    <string name="filename_format_timestamp">Timestamp-based</string>
+    <string name="filename_format_title_time">Title + time</string>
+    <string name="accent_theme_label">Accent color</string>
+    <string name="accent_default">Default (blue)</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_ocean">Ocean</string>
+    <string name="accent_forest">Forest</string>
+    <string name="accent_sunset">Sunset</string>
+    <string name="accent_rose">Rose</string>
+    <string name="reduce_animations_label">Reduce animations</string>
+    <string name="reduce_animations_desc">Disable skeleton, transition and image fade animations</string>
+    <string name="grid_columns_label">Grid columns</string>
+    <string name="grid_columns_1">Single column</string>
+    <string name="grid_columns_2">Two columns</string>
+    <string name="grid_columns_3">Three columns</string>
+    <string name="update_channel_label">Update channel</string>
+    <string name="update_channel_stable">Stable</string>
+    <string name="update_channel_beta">Beta (incl. pre-releases)</string>
+    <string name="wipe_data_label">Clear all local data</string>
+    <string name="wipe_data_desc">Deletes bookmarks, history, blocklist, progress and all settings, and signs out</string>
+    <string name="wipe_data_continue">Continue</string>
+    <string name="wipe_data_execute">Clear everything</string>
+    <string name="wipe_data_confirm_first">All local data on this device (bookmarks, history, settings, etc.) will be cleared. Continue?</string>
+    <string name="wipe_data_confirm_second">Final confirmation: this action cannot be undone. All data will be cleared and you will be signed out.</string>
+    <string name="wipe_data_done">All local data cleared</string>
+    <string name="auto_backup_label">Scheduled backup</string>
+    <string name="auto_backup_desc">Automatically export a backup of bookmarks and settings to the selected folder daily</string>
+    <string name="auto_backup_location_label">Backup folder</string>
+    <string name="auto_backup_location_not_set">Not set</string>
+    <string name="auto_backup_need_folder">Select a backup folder first</string>
 
     <!-- Account -->
     <string name="login">Login</string>
@@ -282,11 +347,16 @@
     <string name="retry">Retry</string>
     <string name="open">Open</string>
     <string name="share">Share</string>
+    <string name="copy">Copy</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="crash_log_share_title">Share crash log</string>
     <string name="status_pending">Pending</string>
     <string name="status_running">Downloading %1$d%%</string>
     <string name="status_completed">Completed</string>
     <string name="status_failed">Download failed</string>
     <string name="status_cancelled">Cancelled</string>
+    <string name="status_paused">Paused %1$d%%</string>
+    <string name="action_resume">Resume</string>
     <string name="download_cancelled">Download cancelled</string>
     <string name="download_retried">Retrying download</string>
     <string name="confirm_clear_history">Clear all download history?</string>
@@ -444,4 +514,12 @@
     <string name="download_queued">Added to download queue: %1$s</string>
     <string name="download_file_title">Download attachment?</string>
     <string name="invalid_file_link">Invalid file link</string>
+
+    <!-- FEATURE settings extension (batch 2: download parameters) -->
+    <string name="wifi_only_label">Wi-Fi Only Downloads</string>
+    <string name="wifi_only_desc">Wait for Wi-Fi to avoid using mobile data</string>
+    <string name="max_concurrent_label">Max Concurrent Downloads</string>
+    <string name="max_concurrent_value_fmt">%1$d tasks</string>
+    <string name="download_retry_label">Auto-Retry Attempts</string>
+    <string name="download_retry_value_fmt">%1$d times</string>
 </resources>

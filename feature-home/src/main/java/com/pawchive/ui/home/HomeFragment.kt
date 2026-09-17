@@ -42,6 +42,7 @@ class HomeFragment : Fragment() {
     @Inject
     lateinit var bookmarkManager: BookmarkManager
     @Inject lateinit var authRepository: AuthRepository
+    @Inject lateinit var settingsManager: com.pawchive.core.store.SettingsManager
 
     private var showBookmarksOnly = false
     // 当前排序（用于按钮文字与对话框索引，ViewModel 持有实际排序状态）
@@ -167,8 +168,22 @@ class HomeFragment : Fragment() {
             onSelectionCountChanged = { updateBatchHint(it) }
         )
 
-        binding.rvPosts.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvPosts.layoutManager = buildListLayoutManager(requireContext())
         binding.rvPosts.adapter = postAdapter
+    }
+
+    /**
+     * 列表网格列数（FEATURE 设置项扩展批次三）：
+     * 1＝单列列表（默认，旧行为）；2/3＝GridLayoutManager 网格。
+     * onResume 时重新应用，设置页修改后返回本页即生效。
+     */
+    private fun buildListLayoutManager(context: android.content.Context): androidx.recyclerview.widget.RecyclerView.LayoutManager {
+        val columns = settingsManager.getGridColumns()
+        return if (columns > 1) {
+            androidx.recyclerview.widget.GridLayoutManager(context, columns)
+        } else {
+            androidx.recyclerview.widget.LinearLayoutManager(context)
+        }
     }
 
     // ---------- FEATURE 首页批量屏蔽 ----------
@@ -239,6 +254,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupSortButton() {
+        // 与 ViewModel 同步初始排序（FEATURE：设置页"首页默认排序"，未设置时为最新发布）
+        currentSort = viewModel.currentSortOption
         binding.btnSort.text = getString(currentSort.displayNameRes)
         binding.btnSort.setOnClickListener {
             showSortDialog()
@@ -265,6 +282,8 @@ class HomeFragment : Fragment() {
         if (!showBookmarksOnly) {
             viewModel.refreshBlockedFilter()
         }
+        // 网格列数可能已在设置页修改：重新应用
+        binding.rvPosts.layoutManager = buildListLayoutManager(requireContext())
     }
 
     override fun onDestroyView() {

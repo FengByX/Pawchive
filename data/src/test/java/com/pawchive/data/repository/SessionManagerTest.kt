@@ -49,9 +49,14 @@ class SessionManagerTest {
         localDataCleaner = LocalDataCleaner(
             context,
             BookmarkManager(context, OfflineArchiveRepository(db.offlineArchiveDao(), Gson())),
-            SearchHistoryManager(context),
+            SearchHistoryManager(context, SettingsManager(context)),
             DownloadHistoryManager(context, db.downloadHistoryDao()),
-            CacheRepository(context, SettingsManager(context))
+            CacheRepository(context, SettingsManager(context)),
+            BlockedCreatorManager(context),
+            ReadingProgressManager(context),
+            OfflineArchiveRepository(db.offlineArchiveDao(), Gson()),
+            sessionManager,
+            SettingsManager(context)
         )
     }
 

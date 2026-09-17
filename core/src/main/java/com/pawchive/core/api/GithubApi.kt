@@ -13,6 +13,10 @@ interface GithubApi {
     @GET("repos/FengByX/Pawchive/releases/latest")
     suspend fun getLatestRelease(): GithubRelease
 
+    /** 全量发布列表（FEATURE：更新通道——Beta 通道需要在预发布版本中选取最新）。 */
+    @GET("repos/FengByX/Pawchive/releases")
+    suspend fun getReleases(): List<GithubRelease>
+
     companion object {
         private const val BASE_URL = "https://api.github.com/"
         private const val TIMEOUT_SECONDS = 10L

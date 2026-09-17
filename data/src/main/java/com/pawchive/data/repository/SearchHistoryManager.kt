@@ -37,7 +37,10 @@ private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
  * 搜索历史管理器（ARCH-003：已迁移至 Hilt 构造函数注入）。
  */
 @Singleton
-class SearchHistoryManager @Inject constructor(@ApplicationContext private val context: Context) {
+class SearchHistoryManager @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val settingsManager: com.pawchive.core.store.SettingsManager
+) {
 
     private val dataStore = context.searchHistoryDataStore
     private val writeMutex = Mutex()
@@ -99,7 +102,9 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
         val current = getHistory().toMutableList()
         current.remove(query)
         current.add(0, query)
-        val trimmed = if (current.size > MAX_HISTORY) current.subList(0, MAX_HISTORY) else current
+        // 保留条数可在设置页调整（SettingsManager 钳制 5–50）
+        val limit = settingsManager.getSearchHistoryLimit()
+        val trimmed = if (current.size > limit) current.subList(0, limit) else current
         saveHistory(trimmed)
     }
 
@@ -147,6 +152,8 @@ class SearchHistoryManager @Inject constructor(@ApplicationContext private val c
 
     companion object {
         private val KEY_HISTORY = stringPreferencesKey("search_history")
+
+        /** 旧硬编码上限，现为 SettingsManager 默认值（30），保留作文档。 */
         private const val MAX_HISTORY = 30
         private const val MIGRATION_DONE_KEY = "datastore_migration_done"
         private const val OLD_PREFS_NAME = "search_history_prefs"

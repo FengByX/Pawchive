@@ -13,6 +13,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -59,20 +60,41 @@ class UpdateChecker @Inject constructor(
     @Volatile
     private var lastCheckTime: Long = 0L
 
+    /** 用户选择"忽略此版本"的 tag（如 "v1.7.2"）。null 表示未忽略。 */
+    @Volatile
+    private var ignoredVersion: String? = null
+
     init {
         ioScope.launch {
-            runCatching { lastCheckTime = dataStore.data.first()[KEY_LAST_CHECK_TIME] ?: 0L }
-                .onFailure { it.printStackTrace() }
+            runCatching {
+                lastCheckTime = dataStore.data.first()[KEY_LAST_CHECK_TIME] ?: 0L
+                ignoredVersion = dataStore.data.first()[KEY_IGNORED_VERSION]
+            }.onFailure { it.printStackTrace() }
         }
     }
 
     /**
      * 检查是否有新版本更新
      * 返回检查结果，由调用方决定是否显示弹窗
+     *
+     * 通道语义（FEATURE：设置项扩展批次三·更新通道）：
+     * - STABLE：GitHub releases/latest（最新正式版）；
+     * - BETA：全量发布列表（剔除草稿）中语义化版本最新的一条（含 beta/rc 预发布）。
      */
     suspend fun check(currentVersion: String): UpdateResult {
         return try {
-            val release = githubApi.getLatestRelease()
+            val release = when (settingsManager.getUpdateChannel()) {
+                SettingsManager.UpdateChannel.STABLE -> githubApi.getLatestRelease()
+                SettingsManager.UpdateChannel.BETA -> githubApi.getReleases()
+                    .filter { !it.draft && it.tagName.isNotBlank() }
+                    .maxWithOrNull { a, b ->
+                        compareSemver(
+                            a.tagName.removePrefix("v"),
+                            b.tagName.removePrefix("v")
+                        )
+                    }
+            } ?: return UpdateResult.Error
+
             val latestVersion = release.tagName.removePrefix("v")
             val current = currentVersion.removePrefix("v")
 
@@ -113,6 +135,8 @@ class UpdateChecker @Inject constructor(
             val result = check(currentVersion)
 
             if (result is UpdateResult.UpdateAvailable) {
+                // 用户对该版本点了"忽略此版本"：静默跳过（手动"检查更新"不受影响，仍会提示）
+                if (result.latestVersion == ignoredVersion) return@launch
                 showUpdateDialog(context, result)
             }
         }
@@ -127,29 +151,32 @@ class UpdateChecker @Inject constructor(
      */
     @JvmSynthetic
     internal fun isNewerVersion(latest: String, current: String): Boolean {
-        val latestVer = parseSemver(latest)
-        val currentVer = parseSemver(current)
+        return compareSemver(latest, current) > 0
+    }
 
-        // 逐段比较数字部分
-        val maxLength = maxOf(latestVer.numeric.size, currentVer.numeric.size)
+    /**
+     * 语义化版本号比较（FEATURE：Beta 通道需要从全量发布中选取最新）。
+     * 返回正数表示 a 更新，负数表示 b 更新，0 表示相等。
+     * 预发布后缀（-beta / -rc.1）比同号正式版旧（语义化版本约定）。
+     */
+    @JvmSynthetic
+    internal fun compareSemver(a: String, b: String): Int {
+        val av = parseSemver(a)
+        val bv = parseSemver(b)
+
+        val maxLength = maxOf(av.numeric.size, bv.numeric.size)
         for (i in 0 until maxLength) {
-            val l = latestVer.numeric.getOrNull(i) ?: 0
-            val c = currentVer.numeric.getOrNull(i) ?: 0
-            if (l > c) return true
-            if (l < c) return false
+            val x = av.numeric.getOrNull(i) ?: 0
+            val y = bv.numeric.getOrNull(i) ?: 0
+            if (x > y) return 1
+            if (x < y) return -1
         }
 
-        // 数字部分完全相等时，按预发布后缀判定：
-        //  - 都无后缀：相等，不算新版本
-        //  - latest 无后缀、current 有后缀：latest 是正式版，current 是预发布，latest 更新
-        //  - latest 有后缀、current 无后缀：latest 是预发布，不算更新
-        //  - 都有后缀：按字符串比较（保守起见）
         return when {
-            latestVer.preRelease.isNullOrEmpty() && !currentVer.preRelease.isNullOrEmpty() -> true
-            !latestVer.preRelease.isNullOrEmpty() && currentVer.preRelease.isNullOrEmpty() -> false
-            !latestVer.preRelease.isNullOrEmpty() && !currentVer.preRelease.isNullOrEmpty() ->
-                latestVer.preRelease > currentVer.preRelease
-            else -> false
+            av.preRelease.isNullOrEmpty() && bv.preRelease.isNullOrEmpty() -> 0
+            av.preRelease.isNullOrEmpty() -> 1   // a 为正式版，b 为预发布 → a 更新
+            bv.preRelease.isNullOrEmpty() -> -1  // a 为预发布，b 为正式版 → b 更新
+            else -> av.preRelease.compareTo(bv.preRelease)
         }
     }
 
@@ -171,11 +198,19 @@ class UpdateChecker @Inject constructor(
     }
 
     /**
-     * 检查是否应该跳过（24 小时间隔）
+     * 检查是否应该跳过（间隔由设置页"更新检查频率"决定）。
+     * - 每次启动：从不跳过
+     * - 每天（默认）：24 小时
+     * - 每周：7 天
      */
     private fun shouldSkipCheck(): Boolean {
         if (lastCheckTime == 0L) return false
-        return (System.currentTimeMillis() - lastCheckTime) < CHECK_INTERVAL_MS
+        val intervalMs = when (settingsManager.getUpdateFrequency()) {
+            SettingsManager.UpdateFrequency.EVERY_LAUNCH -> return false
+            SettingsManager.UpdateFrequency.DAILY -> CHECK_INTERVAL_DAILY_MS
+            SettingsManager.UpdateFrequency.WEEKLY -> CHECK_INTERVAL_WEEKLY_MS
+        }
+        return (System.currentTimeMillis() - lastCheckTime) < intervalMs
     }
 
     /**
@@ -242,6 +277,20 @@ class UpdateChecker @Inject constructor(
             .setView(scrollView)
             .setPositiveButton(R.string.update_go_download) { _, _ ->
                 openDownloadPage(context, result.downloadUrl)
+            }
+            // FEATURE：忽略此版本——之后该版本的启动自动检查不再提示（手动检查不受限）
+            .setNeutralButton(R.string.update_ignore_version) { _, _ ->
+                ignoredVersion = result.latestVersion
+                ioScope.launch {
+                    runCatching {
+                        dataStore.edit { it[KEY_IGNORED_VERSION] = result.latestVersion }
+                    }.onFailure { it.printStackTrace() }
+                }
+                android.widget.Toast.makeText(
+                    context,
+                    R.string.update_version_ignored,
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
             .setNegativeButton(R.string.update_later, null)
             .show()
@@ -348,6 +397,11 @@ class UpdateChecker @Inject constructor(
 
     companion object {
         private val KEY_LAST_CHECK_TIME = longPreferencesKey("last_check_time")
-        private const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 小时
+
+        /** 用户选择"忽略此版本"的版本 tag。 */
+        private val KEY_IGNORED_VERSION = stringPreferencesKey("ignored_version")
+
+        private const val CHECK_INTERVAL_DAILY_MS = 24 * 60 * 60 * 1000L   // 24 小时（默认）
+        private const val CHECK_INTERVAL_WEEKLY_MS = 7 * CHECK_INTERVAL_DAILY_MS // 每周
     }
 }

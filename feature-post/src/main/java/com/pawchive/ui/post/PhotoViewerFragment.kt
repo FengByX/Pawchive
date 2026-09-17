@@ -29,6 +29,8 @@ class PhotoViewerFragment : Fragment() {
 
     @Inject
     lateinit var downloadRepository: DownloadRepository
+    @Inject
+    lateinit var settingsManager: com.pawchive.core.store.SettingsManager
 
     private var imageUrl: String = ""
     private var imageName: String = ""
@@ -140,7 +142,11 @@ class PhotoViewerFragment : Fragment() {
 
     private suspend fun saveImageStreamToGallery(inputStream: java.io.InputStream, mimeType: String) {
         try {
-            val fileName = "Pawchive_${System.currentTimeMillis()}_${imageName.takeLast(30)}"
+            // FEATURE 设置项扩展（批次三）：文件命名格式（原硬编码 Pawchive_时间戳_原名尾，现为可配置默认值）
+            val fileName = com.pawchive.core.util.DownloadFileNameFormatter.format(
+                settingsManager.getFilenameFormat(),
+                originalName = imageName
+            )
 
             // 统一下载入口：优先用 SAF 树 URI，未配置时回退 MediaStore（P1）
             val target = DownloadRepository.DownloadTarget(

@@ -22,6 +22,16 @@ object SkeletonHelper {
     private const val SHIMMER_DURATION_MS = 1200L
 
     /**
+     * 减少动画（FEATURE 设置项扩展批次三）。
+     * 由 app 层在启动时注入 provider（读 SettingsManager），工具类与设置存储解耦。
+     */
+    @Volatile
+    var reducedAnimationsProvider: () -> Boolean = { false }
+
+    private fun reduced(): Boolean =
+        runCatching { reducedAnimationsProvider() }.getOrDefault(false)
+
+    /**
      * 显示骨架屏并启动 shimmer 动画。
      *
      * @param skeletonView 骨架屏根 View（通常是 include 的骨架布局）
@@ -30,7 +40,9 @@ object SkeletonHelper {
     fun show(skeletonView: View, contentView: View) {
         skeletonView.visibility = View.VISIBLE
         contentView.visibility = View.INVISIBLE
-        startShimmer(skeletonView)
+        if (!reduced()) {
+            startShimmer(skeletonView)
+        }
     }
 
     /**
@@ -38,11 +50,11 @@ object SkeletonHelper {
      *
      * @param skeletonView 骨架屏根 View
      * @param contentView  内容 View
-     * @param animate      是否使用动画过渡
+     * @param animate      是否使用动画过渡（"减少动画"开启时强制无动画直切）
      */
     fun hide(skeletonView: View, contentView: View, animate: Boolean = true) {
         stopShimmer(skeletonView)
-        if (animate) {
+        if (animate && !reduced()) {
             skeletonView.animate()
                 .alpha(0f)
                 .setDuration(200)

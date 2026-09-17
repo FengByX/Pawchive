@@ -58,6 +58,7 @@ class SearchFragment : Fragment() {
     private lateinit var searchHistoryAdapter: SearchHistoryAdapter
     @Inject
     lateinit var searchHistoryManager: SearchHistoryManager
+    @Inject lateinit var settingsManager: com.pawchive.core.store.SettingsManager
 
     private var isSearchingPosts = true
     private var currentPostSort = PostSortOption.RELEVANCE
@@ -235,8 +236,22 @@ class SearchFragment : Fragment() {
             }
         )
 
-        binding.rvResults.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvResults.layoutManager = buildResultLayoutManager(requireContext())
         binding.rvResults.adapter = postAdapter
+    }
+
+    /**
+     * 列表网格列数（FEATURE 设置项扩展批次三）：
+     * 1＝单列列表（默认）；2/3＝GridLayoutManager 网格。
+     * onResume 时重新应用，设置页修改后返回本页即生效。
+     */
+    private fun buildResultLayoutManager(context: android.content.Context): androidx.recyclerview.widget.RecyclerView.LayoutManager {
+        val columns = settingsManager.getGridColumns()
+        return if (columns > 1) {
+            androidx.recyclerview.widget.GridLayoutManager(context, columns)
+        } else {
+            androidx.recyclerview.widget.LinearLayoutManager(context)
+        }
     }
 
     private fun setupSearchView() {
@@ -651,6 +666,8 @@ class SearchFragment : Fragment() {
         super.onResume()
         // 屏蔽状态可能变化，触发 ViewModel 重新过滤已加载数据
         viewModel.refreshBlockedFilter()
+        // 网格列数可能已在设置页修改：重新应用
+        binding.rvResults.layoutManager = buildResultLayoutManager(requireContext())
     }
 
     override fun onPause() {

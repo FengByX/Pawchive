@@ -54,14 +54,24 @@ class FullscreenVideoDialog : DialogFragment() {
 
     private var videoPlayerManager: VideoPlayerManager? = null
 
+    /** 进入全屏前的播放倍速（FEATURE：记住上次倍速，全屏恢复不重置）。 */
+    private var initialSpeed: Float = 1.0f
+
     companion object {
-        fun newInstance(url: String, title: String, position: Long, isPlaying: Boolean): FullscreenVideoDialog {
+        fun newInstance(
+            url: String,
+            title: String,
+            position: Long,
+            isPlaying: Boolean,
+            speed: Float = 1.0f
+        ): FullscreenVideoDialog {
             val fragment = FullscreenVideoDialog()
             val args = Bundle().apply {
                 putString("url", url)
                 putString("title", title)
                 putLong("position", position)
                 putBoolean("isPlaying", isPlaying)
+                putFloat("speed", speed)
             }
             fragment.arguments = args
             return fragment
@@ -75,6 +85,7 @@ class FullscreenVideoDialog : DialogFragment() {
             videoTitle = it.getString("title", "")
             currentPosition = it.getLong("position", 0)
             isPlaying = it.getBoolean("isPlaying", false)
+            initialSpeed = it.getFloat("speed", 1.0f)
         }
         setStyle(STYLE_NO_TITLE, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
     }
@@ -112,7 +123,7 @@ class FullscreenVideoDialog : DialogFragment() {
 
     @OptIn(UnstableApi::class)
     private fun setupVideoPlayer() {
-        videoPlayerManager = VideoPlayerManager(requireContext())
+        videoPlayerManager = VideoPlayerManager(requireContext(), initialSpeed)
         videoPlayerManager?.attachPlayerView(playerView)
         videoPlayerManager?.setListener(object : VideoPlayerManager.VideoPlayerListener {
             override fun onPlaybackStateChanged(state: Int) {
