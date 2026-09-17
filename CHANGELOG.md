@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- CI Lint `MissingPermission` 报错：`DownloadNotificationController.updateSummary()` 改为复用已显式
+  捕获 `SecurityException` 的 `notify()` 通道（Lint 无法识别 `runCatching` 的异常处理），
+  并移除该文件未使用的 `PackageManager` 导入
+
 ## [1.7.1] - 2026-09-17
 
 ### Added

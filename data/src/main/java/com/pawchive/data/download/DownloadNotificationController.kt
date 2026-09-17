@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
@@ -303,11 +302,9 @@ class DownloadNotificationController @Inject constructor(
 
     private fun updateSummary(count: Int) {
         if (!notificationsEnabled()) return
-        runCatching {
-            // 前台服务未运行时不能更新它的通知（会抛 IllegalStateException 的场景仅在服务
-            // 未 startForeground 前），这里直接按普通通知更新汇总条目即可。
-            NotificationManagerCompat.from(context).notify(SUMMARY_NOTIFICATION_ID, buildSummaryNotification())
-        }
+        // 走统一的 notify() 通道：它显式捕获 SecurityException（权限被中途撤销的场景），
+        // 让 Lint 的 MissingPermission 检查能被满足，而不是依赖 Lint 看不见的 runCatching。
+        runCatching { notify(SUMMARY_NOTIFICATION_ID, buildSummaryNotification()) }
         if (count <= 0) stopForegroundService()
     }
 
