@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/Target_API-36-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Target API" />
-  <img src="https://img.shields.io/badge/Release-v1.6.6-blue?style=for-the-badge&logo=android" alt="Release" />
+  <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=android&label=Release&color=blue" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
@@ -57,8 +57,8 @@
 - **Local bookmarks**: Manage bookmarks locally without login
 
 ### Download Center
-- **okdownload resumable engine**: Auto-resume from breakpoint after network interruption
-- **Progress notifications**: Real-time download progress in notification bar
+- **HTTP Range resumable download**: Temp file kept on pause, resumed via Range request; falls back to a full download when the server ignores Range
+- **Progress notifications**: Real-time progress, size, speed and ETA in the notification bar; pause / resume / cancel actions
 - **Background downloads**: Continues when app is in background
 - **Download rules**: Auto-download by creator / service / file type
 - **History management**: Cancel, retry, and clear download records
@@ -84,20 +84,21 @@
 | **Modularization** | Multi Gradle modules | `app` / `feature-*` / `data` / `core` |
 | **DI** | Hilt + KSP | `@HiltAndroidApp` / `@AndroidEntryPoint` |
 | **Storage** | Room + DataStore | Room for history/archive, DataStore for settings |
-| **Download** | okdownload 1.0.7 | Resumable, progress callbacks, OkHttp integration |
+| **Download** | OkHttp streaming (since 1.7.0) | Single connection, HTTP Range resume, truncation detection |
 | **Network** | Retrofit + OkHttp | Type-safe HTTP client |
 | **Images** | Coil 2.6 | Kotlin-first, coroutine-native |
 | **Video** | AndroidX Media3 | ExoPlayer + OkHttp data source |
-| **Build** | Gradle 9.4.1 + AGP 9.2.1 | Version catalog dependency management |
+| **Build** | Gradle 9.5 + AGP 9.3.2 | Version catalog dependency management |
 
 ---
 
 ## Key Technical Highlights
 
-### 1. okdownload Resumable Download Engine
-Integrates [lingochamp/okdownload](https://github.com/lingochamp/okdownload) as the download core:
-- **Resumable**: Auto-resume from breakpoint after network drops
-- **Coroutine-driven**: Runs directly in CoroutineScope
+### 1. Direct OkHttp Streaming Download Engine
+okdownload was removed in 1.7.0 in favor of OkHttp single-connection streaming (rationale in [CHANGELOG.md](CHANGELOG.md)):
+- **HTTP Range resume**: Temp file is kept on pause and resumed with `Range: bytes=N-`; a 200 response falls back to a full download
+- **Pause / resume / cancel**: Available from both the notification and the download center; cancel interrupts the read loop and the write-out phase immediately
+- **Truncation detection**: Compares `Content-Length` against bytes actually read; a truncated response fails fast and retries with backoff
 - **Cloudflare credential injection**: Reuses `sharedOkHttpClient` with cf_clearance / User-Agent
 
 ### 2. Automatic Cloudflare Challenge Bypass
@@ -142,8 +143,8 @@ Pawchive/
 
 ### Requirements
 - **Android Studio** Meerkat (2024.3+) or higher
-- **JDK** 17+
-- **Gradle** 9.2+ (wrapper included)
+- **JDK** 17+ (CI uses 21)
+- **Gradle** 9.5 (wrapper included, with SHA-256 verification)
 
 ### Clone & Build
 
@@ -153,7 +154,8 @@ cd Pawchive
 ./gradlew assembleRelease
 ```
 
-> APK output: `app/build/outputs/apk/release/Pawchive-v1.6.6.apk`
+> APK output: `app/build/outputs/apk/release/Pawchive-v<version>.apk`
+> (the file name comes from `VERSION_NAME` in `gradle.properties`, the single source of the version; the build fails if it is missing)
 
 ### Install
 
@@ -169,6 +171,18 @@ Download the latest APK from [Releases](https://github.com/FengByX/Pawchive/rele
 | `ACCESS_NETWORK_STATE` | Network status detection |
 | `POST_NOTIFICATIONS` | Download progress notifications (Android 13+) |
 | `FOREGROUND_SERVICE` | Download foreground service |
+| `FOREGROUND_SERVICE_DATA_SYNC` | Foreground service type (required on Android 14+ so background downloads survive) |
+
+---
+
+## Support & Security
+
+| Document | Content |
+|----------|---------|
+| [SUPPORT.md](SUPPORT.md) | Support window, release cadence, requirements, known limits, EOL policy |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting channel and response times |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [NOTICE.md](NOTICE.md) | Third-party components and licenses |
 
 ---
 

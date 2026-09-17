@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/Target_API-36-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Target API" />
-  <img src="https://img.shields.io/badge/Release-v1.6.6-blue?style=for-the-badge&logo=android" alt="Release" />
+  <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=android&label=Release&color=blue" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
@@ -57,7 +57,7 @@
 - **本地离线收藏**：无需登录也可本地管理收藏
 
 ### 下载中心
-- **okdownload 断点续传引擎**：网络中断后自动从断点恢复
+- **HTTP Range 断点续传**：暂停保留临时文件，继续时从断点续传；服务端不支持 Range 时自动降级为全量下载
 - **进度通知**：通知栏实时展示下载进度，完成/失败状态反馈
 - **后台持续下载**：应用切后台不中断下载
 - **下载规则**：按创作者 / 服务 / 文件类型设置自动下载规则
@@ -84,20 +84,21 @@
 | **模块化** | 多 Gradle 模块 | `app` / `feature-*` / `data` / `core` |
 | **依赖注入** | Hilt + KSP | `@HiltAndroidApp` / `@AndroidEntryPoint` |
 | **本地存储** | Room + DataStore | 下载历史 / 归档 Room，设置 DataStore |
-| **下载引擎** | okdownload 1.0.7 | 断点续传、进度回调、OkHttp 集成 |
+| **下载引擎** | OkHttp 流式下载（1.7.0 起） | 单连接单请求、HTTP Range 断点续传、截断检测 |
 | **网络层** | Retrofit + OkHttp | 类型安全 HTTP 客户端 |
 | **图片加载** | Coil 2.6 | Kotlin 优先、协程原生支持 |
 | **视频播放** | AndroidX Media3 | ExoPlayer + OkHttp 数据源 |
-| **构建工具** | Gradle 9.4.1 + AGP 9.2.1 | 版本目录管理依赖 |
+| **构建工具** | Gradle 9.5 + AGP 9.3.2 | 版本目录管理依赖 |
 
 ---
 
 ## 核心技术亮点
 
-### 1. okdownload 断点续传下载引擎
-集成 [lingochamp/okdownload](https://github.com/lingochamp/okdownload) 作为下载核心：
-- **断点续传**：网络中断后自动从断点恢复
-- **协程驱动**：直接在 CoroutineScope 中执行下载
+### 1. 直连 OkHttp 流式下载引擎
+1.7.0 起移除 okdownload，改以 OkHttp 单连接流式下载为核心（移除原因见 [CHANGELOG.md](CHANGELOG.md)）：
+- **HTTP Range 断点续传**：暂停时保留临时文件，继续时以 `Range: bytes=N-` 从断点续传；服务端忽略 Range 返回 200 时自动降级为全量下载
+- **暂停 / 继续 / 取消**：通知栏与下载中心均可操作；取消可即时打断读循环与写出阶段
+- **截断检测**：按 `Content-Length` 与实际读取字节数比对，响应被截断时快速失败并退避重试
 - **Cloudflare 凭据注入**：复用 `sharedOkHttpClient`，自动携带 cf_clearance / User-Agent
 
 ### 2. Cloudflare 托管挑战自动过盾
@@ -142,8 +143,8 @@ Pawchive/
 
 ### 环境要求
 - **Android Studio** Meerkat (2024.3+) 或更高
-- **JDK** 17+
-- **Gradle** 9.2+（项目内置 wrapper）
+- **JDK** 17+（CI 使用 21）
+- **Gradle** 9.5（项目内置 wrapper，含 SHA-256 校验）
 
 ### 克隆 & 构建
 
@@ -153,7 +154,8 @@ cd Pawchive
 ./gradlew assembleRelease
 ```
 
-> APK 输出路径：`app/build/outputs/apk/release/Pawchive-v1.6.6.apk`
+> APK 输出路径：`app/build/outputs/apk/release/Pawchive-v<版本号>.apk`
+> （文件名取自 `gradle.properties` 的 `VERSION_NAME`；该文件是版本号唯一来源，缺失时构建会直接失败）
 
 ### 安装
 
@@ -169,6 +171,18 @@ cd Pawchive
 | `ACCESS_NETWORK_STATE` | 网络状态检测 |
 | `POST_NOTIFICATIONS` | 下载进度通知（Android 13+） |
 | `FOREGROUND_SERVICE` | 下载前台服务 |
+| `FOREGROUND_SERVICE_DATA_SYNC` | 下载前台服务类型（Android 14+ 强制声明，保证后台下载不被中断） |
+
+---
+
+## 支持与安全
+
+| 文档 | 内容 |
+|------|------|
+| [SUPPORT.md](SUPPORT.md) | 支持窗口、更新节奏、系统要求、已知边界、EOL 政策 |
+| [SECURITY.md](SECURITY.md) | 漏洞报告渠道与响应时限 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
+| [NOTICE.md](NOTICE.md) | 第三方组件与许可声明 |
 
 ---
 

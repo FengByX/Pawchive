@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/Target_API-36-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Target API" />
-  <img src="https://img.shields.io/badge/Release-v1.6.6-blue?style=for-the-badge&logo=android" alt="Release" />
+  <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=android&label=Release&color=blue" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
@@ -57,8 +57,8 @@
 - **ローカルブックマーク**：ログインなしでもローカルで管理可能
 
 ### ダウンロードセンター
-- **okdownload レジュームエンジン**：ネットワーク切断後にブレークポイントから自動再開
-- **進捗通知**：通知バーにリアルタイムでダウンロード進捗を表示
+- **HTTP Range レジューム**：一時停止時は一時ファイルを保持し、Range リクエストで再開。サーバーが Range を無視した場合は全量ダウンロードに自動降格
+- **進捗通知**：通知バーに進捗・サイズ・速度・残り時間をリアルタイム表示、一時停止 / 再開 / キャンセル操作に対応
 - **バックグラウンド継続**：アプリがバックグラウンドに入ってもダウンロードを継続
 - **ダウンロードルール**：クリエイター / サービス / ファイル種別ごとに自動ダウンロードルールを設定
 - **履歴管理**：キャンセル、再試行、ダウンロード記録の消去に対応
@@ -84,20 +84,21 @@
 | **モジュール化** | マルチ Gradle モジュール | `app` / `feature-*` / `data` / `core` |
 | **DI** | Hilt + KSP | `@HiltAndroidApp` / `@AndroidEntryPoint` |
 | **ストレージ** | Room + DataStore | 履歴/アーカイブは Room、設定は DataStore |
-| **ダウンロード** | okdownload 1.0.7 | レジューム、進捗コールバック、OkHttp 連携 |
+| **ダウンロード** | OkHttp ストリーミング（1.7.0 以降） | 単一接続、HTTP Range レジューム、切断検知 |
 | **ネットワーク** | Retrofit + OkHttp | 型安全 HTTP クライアント |
 | **画像** | Coil 2.6 | Kotlin ファースト、コルーチンネイティブ |
 | **動画** | AndroidX Media3 | ExoPlayer + OkHttp データソース |
-| **ビルド** | Gradle 9.4.1 + AGP 9.2.1 | バージョンカタログで依存管理 |
+| **ビルド** | Gradle 9.5 + AGP 9.3.2 | バージョンカタログで依存管理 |
 
 ---
 
 ## 主な技術的ハイライト
 
-### 1. okdownload レジュームダウンロードエンジン
-[lingochamp/okdownload](https://github.com/lingochamp/okdownload) をダウンロードコアとして統合：
-- **レジューム**：ネットワーク切断後にブレークポイントから自動再開
-- **コルーチン駆動**：CoroutineScope 内で直接ダウンロードを実行
+### 1. OkHttp 直結ストリーミングダウンロードエンジン
+1.7.0 で okdownload を撤去し、OkHttp の単一接続ストリーミングを中核に変更しました（撤去理由は [CHANGELOG.md](CHANGELOG.md) 参照）：
+- **HTTP Range レジューム**：一時停止時は一時ファイルを保持し、`Range: bytes=N-` で再開。200 応答時は全量ダウンロードに自動降格
+- **一時停止 / 再開 / キャンセル**：通知バーとダウンロードセンターの両方から操作可能。キャンセルは読み取りループと書き出しフェーズを即座に中断
+- **切断検知**：`Content-Length` と実読み取りバイト数を比較し、応答が途中で切れた場合は即座に失敗してバックオフ再試行
 - **Cloudflare 認証情報注入**：`sharedOkHttpClient` を再利用し、cf_clearance / User-Agent を自動付与
 
 ### 2. Cloudflare チャレンジ自動回避
@@ -142,8 +143,8 @@ Pawchive/
 
 ### 要件
 - **Android Studio** Meerkat (2024.3+) 以上
-- **JDK** 17+
-- **Gradle** 9.2+（ラッパー同梱）
+- **JDK** 17+（CI は 21 を使用）
+- **Gradle** 9.5（ラッパー同梱、SHA-256 検証あり）
 
 ### クローン & ビルド
 
@@ -153,7 +154,8 @@ cd Pawchive
 ./gradlew assembleRelease
 ```
 
-> APK 出力先：`app/build/outputs/apk/release/Pawchive-v1.6.6.apk`
+> APK 出力先：`app/build/outputs/apk/release/Pawchive-v<バージョン>.apk`
+> （ファイル名は `gradle.properties` の `VERSION_NAME` に由来。同ファイルがバージョンの唯一の情報源で、未設定の場合はビルドが失敗します）
 
 ### インストール
 
@@ -169,6 +171,18 @@ cd Pawchive
 | `ACCESS_NETWORK_STATE` | ネットワーク状態検出 |
 | `POST_NOTIFICATIONS` | ダウンロード進捗通知（Android 13+） |
 | `FOREGROUND_SERVICE` | ダウンロードフォアグラウンドサービス |
+| `FOREGROUND_SERVICE_DATA_SYNC` | フォアグラウンドサービスの種別（Android 14+ で必須。バックグラウンドのダウンロード継続に必要） |
+
+---
+
+## サポートとセキュリティ
+
+| ドキュメント | 内容 |
+|------|------|
+| [SUPPORT.md](SUPPORT.md) | サポート期間、更新サイクル、要件、既知の制限、EOL ポリシー |
+| [SECURITY.md](SECURITY.md) | 脆弱性の報告窓口と対応期限 |
+| [CHANGELOG.md](CHANGELOG.md) | バージョン変更履歴 |
+| [NOTICE.md](NOTICE.md) | サードパーティコンポーネントとライセンス |
 
 ---
 
