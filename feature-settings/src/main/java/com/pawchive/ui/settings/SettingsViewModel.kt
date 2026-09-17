@@ -52,6 +52,32 @@ data class SettingsUiState(
     val versionName: String = "",
     val unreadCount: Int = 0,
     val isCleaningCache: Boolean = false,
+    // 显示与缩放（FEATURE）：整体 UI 缩放 / 全局文字大小，1.0 = 100%
+    val uiScale: Float = SettingsManager.DEFAULT_SCALE,
+    val fontScale: Float = SettingsManager.DEFAULT_SCALE,
+    // FEATURE 设置项扩展（批次一）
+    val downloadCompleteNotificationEnabled: Boolean = true,
+    val videoResumeEnabled: Boolean = true,
+    val rememberPlaybackSpeedEnabled: Boolean = true,
+    val listOriginalImageEnabled: Boolean = false,
+    val newPostNotificationEnabled: Boolean = true,
+    val syncIntervalMinutes: Int = SettingsManager.DEFAULT_SYNC_INTERVAL_MINUTES,
+    val homeDefaultSort: String? = null,
+    val searchHistoryLimit: Int = SettingsManager.DEFAULT_SEARCH_HISTORY_LIMIT,
+    val updateFrequency: SettingsManager.UpdateFrequency = SettingsManager.UpdateFrequency.DAILY,
+    // FEATURE 设置项扩展（批次二：下载参数）
+    val maxConcurrentDownloads: Int = SettingsManager.DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+    val downloadMaxRetry: Int = SettingsManager.DEFAULT_DOWNLOAD_MAX_RETRY,
+    val wifiOnlyDownloadEnabled: Boolean = false,
+    // FEATURE 设置项扩展（批次三）
+    val filenameFormat: SettingsManager.FilenameFormat = SettingsManager.FilenameFormat.TIMESTAMP,
+    val updateChannel: SettingsManager.UpdateChannel = SettingsManager.UpdateChannel.STABLE,
+    val accentTheme: SettingsManager.AccentTheme = SettingsManager.AccentTheme.DEFAULT,
+    val reduceAnimationsEnabled: Boolean = false,
+    val gridColumns: Int = SettingsManager.DEFAULT_GRID_COLUMNS,
+    val autoBackupEnabled: Boolean = false,
+    val autoBackupLocationSet: Boolean = false,
+    val autoBackupLocationText: String = "",
     val toastMessage: String? = null
 )
 
@@ -73,7 +99,8 @@ class SettingsViewModel @Inject constructor(
     private val settingsManager: SettingsManager,
     private val blockedCreatorManager: BlockedCreatorManager,
     private val cacheRepository: CacheRepository,
-    private val subscriptionRepository: CreatorSubscriptionRepository
+    private val subscriptionRepository: CreatorSubscriptionRepository,
+    private val localDataCleaner: com.pawchive.data.repository.LocalDataCleaner
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(SettingsUiState(versionName = BuildConfig.VERSION_NAME))
@@ -96,7 +123,29 @@ class SettingsViewModel @Inject constructor(
                 hideBookmarkedCreatorsEnabled = settingsManager.isHideBookmarkedCreatorsEnabled(),
                 dedupeByCreatorEnabled = settingsManager.isDedupeByCreatorEnabled(),
                 autoSubscribeOnBookmarkEnabled = settingsManager.isAutoSubscribeOnBookmarkEnabled(),
-                downloadLocationText = buildDownloadLocationText()
+                downloadLocationText = buildDownloadLocationText(),
+                uiScale = settingsManager.getUiScale(),
+                fontScale = settingsManager.getFontScale(),
+                downloadCompleteNotificationEnabled = settingsManager.isDownloadCompleteNotificationEnabled(),
+                videoResumeEnabled = settingsManager.isVideoResumeEnabled(),
+                rememberPlaybackSpeedEnabled = settingsManager.isRememberPlaybackSpeedEnabled(),
+                listOriginalImageEnabled = settingsManager.isListOriginalImageEnabled(),
+                newPostNotificationEnabled = settingsManager.isNewPostNotificationEnabled(),
+                syncIntervalMinutes = settingsManager.getSyncIntervalMinutes(),
+                homeDefaultSort = settingsManager.getHomeDefaultSort(),
+                searchHistoryLimit = settingsManager.getSearchHistoryLimit(),
+                updateFrequency = settingsManager.getUpdateFrequency(),
+                maxConcurrentDownloads = settingsManager.getMaxConcurrentDownloads(),
+                downloadMaxRetry = settingsManager.getDownloadMaxRetry(),
+                wifiOnlyDownloadEnabled = settingsManager.isWifiOnlyDownloadEnabled(),
+                filenameFormat = settingsManager.getFilenameFormat(),
+                updateChannel = settingsManager.getUpdateChannel(),
+                accentTheme = settingsManager.getAccentTheme(),
+                reduceAnimationsEnabled = settingsManager.isReduceAnimationsEnabled(),
+                gridColumns = settingsManager.getGridColumns(),
+                autoBackupEnabled = settingsManager.isAutoBackupEnabled(),
+                autoBackupLocationSet = settingsManager.getAutoBackupTreeUri() != null,
+                autoBackupLocationText = buildAutoBackupLocationText()
             )
         }
     }
@@ -167,6 +216,177 @@ class SettingsViewModel @Inject constructor(
     fun setAutoSubscribeOnBookmarkEnabled(enabled: Boolean) {
         settingsManager.setAutoSubscribeOnBookmarkEnabled(enabled)
         _uiState.update { it.copy(autoSubscribeOnBookmarkEnabled = enabled) }
+    }
+
+    /**
+     * 整体 UI 缩放（FEATURE）。调用方在滑杆停手/恢复默认时调用；
+     * 持久化（DataStore + 启动缓存双写）后由 Fragment 重建 Activity 使其全局生效。
+     */
+    fun setUiScale(scale: Float) {
+        val clamped = scale.coerceIn(SettingsManager.SCALE_MIN, SettingsManager.SCALE_MAX)
+        settingsManager.setUiScale(clamped)
+        _uiState.update { it.copy(uiScale = clamped) }
+    }
+
+    /** 全局文字大小（FEATURE），语义同 [setUiScale]。 */
+    fun setFontScale(scale: Float) {
+        val clamped = scale.coerceIn(SettingsManager.SCALE_MIN, SettingsManager.SCALE_MAX)
+        settingsManager.setFontScale(clamped)
+        _uiState.update { it.copy(fontScale = clamped) }
+    }
+
+    // ---------- 设置项扩展（批次一） ----------
+
+    fun setDownloadCompleteNotificationEnabled(enabled: Boolean) {
+        settingsManager.setDownloadCompleteNotificationEnabled(enabled)
+        _uiState.update { it.copy(downloadCompleteNotificationEnabled = enabled) }
+    }
+
+    fun setVideoResumeEnabled(enabled: Boolean) {
+        settingsManager.setVideoResumeEnabled(enabled)
+        _uiState.update { it.copy(videoResumeEnabled = enabled) }
+    }
+
+    fun setRememberPlaybackSpeedEnabled(enabled: Boolean) {
+        settingsManager.setRememberPlaybackSpeedEnabled(enabled)
+        _uiState.update { it.copy(rememberPlaybackSpeedEnabled = enabled) }
+    }
+
+    fun setListOriginalImageEnabled(enabled: Boolean) {
+        settingsManager.setListOriginalImageEnabled(enabled)
+        _uiState.update { it.copy(listOriginalImageEnabled = enabled) }
+    }
+
+    fun setNewPostNotificationEnabled(enabled: Boolean) {
+        settingsManager.setNewPostNotificationEnabled(enabled)
+        _uiState.update { it.copy(newPostNotificationEnabled = enabled) }
+    }
+
+    fun setSyncIntervalMinutes(minutes: Int) {
+        settingsManager.setSyncIntervalMinutes(minutes)
+        _uiState.update { it.copy(syncIntervalMinutes = settingsManager.getSyncIntervalMinutes()) }
+    }
+
+    fun setHomeDefaultSort(sortKey: String) {
+        settingsManager.setHomeDefaultSort(sortKey)
+        _uiState.update { it.copy(homeDefaultSort = sortKey) }
+    }
+
+    fun setSearchHistoryLimit(limit: Int) {
+        settingsManager.setSearchHistoryLimit(limit)
+        _uiState.update { it.copy(searchHistoryLimit = settingsManager.getSearchHistoryLimit()) }
+    }
+
+    fun setUpdateFrequency(frequency: SettingsManager.UpdateFrequency) {
+        settingsManager.setUpdateFrequency(frequency)
+        _uiState.update { it.copy(updateFrequency = frequency) }
+    }
+
+    // ---------- 设置项扩展（批次二：下载参数） ----------
+
+    fun setMaxConcurrentDownloads(count: Int) {
+        settingsManager.setMaxConcurrentDownloads(count)
+        _uiState.update { it.copy(maxConcurrentDownloads = settingsManager.getMaxConcurrentDownloads()) }
+    }
+
+    fun setDownloadMaxRetry(count: Int) {
+        settingsManager.setDownloadMaxRetry(count)
+        _uiState.update { it.copy(downloadMaxRetry = settingsManager.getDownloadMaxRetry()) }
+    }
+
+    fun setWifiOnlyDownloadEnabled(enabled: Boolean) {
+        settingsManager.setWifiOnlyDownloadEnabled(enabled)
+        _uiState.update { it.copy(wifiOnlyDownloadEnabled = enabled) }
+    }
+
+    // ---------- 设置项扩展（批次三） ----------
+
+    /** 下载文件命名格式。 */
+    fun setFilenameFormat(format: SettingsManager.FilenameFormat) {
+        settingsManager.setFilenameFormat(format)
+        _uiState.update { it.copy(filenameFormat = format) }
+    }
+
+    /** 更新通道（稳定版 / Beta）。 */
+    fun setUpdateChannel(channel: SettingsManager.UpdateChannel) {
+        settingsManager.setUpdateChannel(channel)
+        _uiState.update { it.copy(updateChannel = channel) }
+    }
+
+    /** 主题强调色（选择后由 Fragment 重建 Activity 以应用新主题）。 */
+    fun setAccentTheme(theme: SettingsManager.AccentTheme) {
+        settingsManager.setAccentTheme(theme)
+        _uiState.update { it.copy(accentTheme = theme) }
+    }
+
+    /** 减少动画开关。 */
+    fun setReduceAnimationsEnabled(enabled: Boolean) {
+        settingsManager.setReduceAnimationsEnabled(enabled)
+        _uiState.update { it.copy(reduceAnimationsEnabled = enabled) }
+    }
+
+    /** 列表网格列数（1–3）。 */
+    fun setGridColumns(columns: Int) {
+        settingsManager.setGridColumns(columns)
+        _uiState.update { it.copy(gridColumns = settingsManager.getGridColumns()) }
+    }
+
+    /**
+     * 定时自动备份开关。开启时按日调度 WorkManager 任务（幂等 UPDATE）；
+     * 关闭时取消任务。
+     */
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        settingsManager.setAutoBackupEnabled(enabled)
+        com.pawchive.work.AutoBackupWorker.schedule(getApplication(), enabled)
+        _uiState.update { it.copy(autoBackupEnabled = enabled) }
+    }
+
+    /**
+     * 用户通过 SAF 选中自动备份目录后调用（语义与下载目录一致）。
+     */
+    fun setAutoBackupTreeUri(uri: Uri) {
+        val app = getApplication<Application>()
+        try {
+            try {
+                app.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                Log.w("SettingsViewModel", "backup takePersistableUriPermission unsupported", e)
+            }
+            val displayName = queryFolderDisplayName(uri)
+            settingsManager.setAutoBackupTreeUri(uri, displayName)
+            _uiState.update { it.copy(autoBackupLocationSet = true, autoBackupLocationText = displayName) }
+        } catch (_: Exception) {
+            _uiState.update {
+                it.copy(toastMessage = app.getString(R.string.file_picker_not_available))
+            }
+        }
+    }
+
+    private fun buildAutoBackupLocationText(): String {
+        val name = settingsManager.getAutoBackupLocationName()
+        return name.ifEmpty {
+            getApplication<Application>().getString(R.string.auto_backup_location_not_set)
+        }
+    }
+
+    /**
+     * 清除本地全部数据（FEATURE：设置项扩展批次三）。
+     * 在二次确认后调用；完成后由 Fragment 重启应用使全部 UI 复位。
+     * 清理本体使用 NonCancellable 包裹：重启会结束当前 Activity/ViewModel，
+     * 避免协程随作用域取消而中断清理。
+     */
+    fun wipeAllLocalData() {
+        viewModelScope.launch {
+            withContext(kotlinx.coroutines.NonCancellable) {
+                localDataCleaner.wipeAllLocalData()
+            }
+            _uiState.update {
+                it.copy(toastMessage = getApplication<Application>().getString(R.string.wipe_data_done))
+            }
+        }
     }
 
     // ---------- 下载位置 ----------
