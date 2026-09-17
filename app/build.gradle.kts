@@ -17,10 +17,17 @@ android {
         applicationId = "com.pawchive"
         minSdk = 30
         targetSdk = 36
-        // 版本号单一来源：gradle.properties（VERSION_NAME / VERSION_CODE），
-        // 与 feature-common 模块的 BuildConfig.VERSION_NAME 保持一致
-        versionCode = project.findProperty("VERSION_CODE")?.toString()?.toIntOrNull() ?: 55
-        versionName = project.findProperty("VERSION_NAME")?.toString() ?: "1.5.5"
+        // 版本号单一来源：gradle.properties（VERSION_NAME / VERSION_CODE）。
+        // P2-1：不再提供兜底默认值——属性缺失或非法时直接构建失败，
+        // 避免静默产出低版本号（旧兜底为 55 / "1.5.5"）的构建产物。
+        versionCode = requireNotNull(project.findProperty("VERSION_CODE")?.toString()?.toIntOrNull()) {
+            "VERSION_CODE 缺失或非整数：版本号唯一来源为 gradle.properties"
+        }
+        versionName = requireNotNull(
+            project.findProperty("VERSION_NAME")?.toString()?.takeIf { it.isNotBlank() }
+        ) {
+            "VERSION_NAME 缺失或为空：版本号唯一来源为 gradle.properties"
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -93,29 +100,29 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging)
 
-    // Security - EncryptedSharedPreferences
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // Security - EncryptedSharedPreferences（1.1.0：最终稳定版，库已整体弃用，见 libs.versions.toml 说明）
+    implementation(libs.androidx.security.crypto)
 
     // Jetpack DataStore - 高性能键值存储（替代 SharedPreferences）
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.datastore.preferences)
 
     // ViewPager2 - 主页面跟手滑动切换
-    implementation("androidx.viewpager2:viewpager2:1.1.0")
+    implementation(libs.androidx.viewpager2)
 
     // WorkManager - 视频下载前台任务+通知栏进度（P2 FRONTEND-006）
     implementation(libs.androidx.work.runtime.ktx)
 
     // Chrome Custom Tabs
-    implementation("androidx.browser:browser:1.8.0")
+    implementation(libs.androidx.browser)
 
     // Coil Image Loading
     implementation(libs.coil)
 
     // AndroidX Media3 (ExoPlayer)
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    implementation("androidx.media3:media3-ui:1.4.1")
-    implementation("androidx.media3:media3-cast:1.4.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.4.1")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.cast)
+    implementation(libs.androidx.media3.datasource.okhttp)
 
     // Hilt - 依赖注入（ARCH-003）
     implementation(libs.hilt.android)

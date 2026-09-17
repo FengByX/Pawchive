@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider 可对外共享的路径白名单。
+  仅暴露应用内部 cache/crash_logs（崩溃日志）目录，避免越权访问其他文件。
+-->
+<paths>
+    <cache-path
+        name="crash_logs"
+        path="crash_logs/" />
+</paths>

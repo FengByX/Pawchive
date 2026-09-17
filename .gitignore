@@ -34,3 +34,9 @@ lint_log*.txt
 lint_log.zip
 lint_combined.txt
 lint_log_dir/
+
+# 第三方源码转储（仅用于离线根因分析，不应入库）
+.tmp-okdownload-src/
+
+# Kotlin 编译器临时目录
+.kotlin/

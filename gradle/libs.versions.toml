@@ -27,6 +27,13 @@ room = "2.8.4"
 # 代码覆盖率（ARCH-014 质量门禁）
 kover = "0.9.9"
 
+# 其余运行时依赖（P1-1 依赖单一来源：原硬编码在 app/build.gradle.kts，现统一收口到此）
+securityCrypto = "1.1.0"
+datastore = "1.1.1"
+viewpager2 = "1.1.0"
+browser = "1.8.0"
+media3 = "1.4.1"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -70,6 +77,26 @@ hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
+# 安全存储（EncryptedSharedPreferences）
+# 注意：androidx.security:security-crypto 全部 API 已在 1.1.0 稳定版中弃用，
+# 官方明示不再有新版本发布；1.1.0 是最终版本，后续需迁移到平台 API / Android Keystore。
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+# DataStore - 键值存储
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# ViewPager2 - 主页面跟手滑动切换
+androidx-viewpager2 = { group = "androidx.viewpager2", name = "viewpager2", version.ref = "viewpager2" }
+
+# Chrome Custom Tabs
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+
+# AndroidX Media3 (ExoPlayer)
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+androidx-media3-cast = { group = "androidx.media3", name = "media3-cast", version.ref = "media3" }
+androidx-media3-datasource-okhttp = { group = "androidx.media3", name = "media3-datasource-okhttp", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

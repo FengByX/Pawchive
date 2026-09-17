@@ -44,6 +44,17 @@ jobs:
           path: 'app/build/outputs/apk/**/*.apk'
           retention-days: 7
 
+      # P0-2：R8 映射文件归档。release 开启了 minify + shrinkResources，
+      # 没有 mapping.txt 就无法反混淆用户上报的崩溃堆栈（此前 CI 只上传 APK）。
+      - name: Upload R8 mapping (release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r8-mapping-release
+          path: 'app/build/outputs/mapping/release/mapping.txt'
+          retention-days: 90
+          if-no-files-found: warn
+
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -64,12 +75,26 @@ jobs:
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --console=plain
 
+      # P0-3：覆盖率门禁进 CI（此前仅存在于本地 quality-check.ps1，PR 无强制约束）。
+      # 阈值见根 build.gradle.kts 的 kover.verify.rule（只增不减的棘轮，当前 45）。
+      # 同时生成 XML/HTML 报告——koverVerify 本身只产出 verify.err，不生成可读报告。
+      - name: Coverage gate (Kover)
+        run: ./gradlew koverVerify koverXmlReport koverHtmlReport --console=plain
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
           path: '**/build/reports/tests/**'
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: 'build/reports/kover/**'
           retention-days: 7
 
   lint:
@@ -99,3 +124,23 @@ jobs:
           name: lint-report
           path: '**/build/reports/lint-results-debug.html'
           retention-days: 7
+
+  # P1-3：依赖变更风险前置拦截（仅在 PR 上运行）。
+  # 依赖 GitHub 依赖图（Dependency graph）；若仓库未开启该功能，本 job 会失败并提示开启。
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          # 出现高危及以上漏洞的依赖直接拦截合并
+          fail-on-severity: high

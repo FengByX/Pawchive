@@ -8,18 +8,15 @@ plugins {
     alias(libs.plugins.kover)
 }
 
-// 覆盖率合并（ARCH-014）：收集所有模块的类与测试数据，根项目生成聚合报告
+// 覆盖率合并（ARCH-014）：只聚合核心业务层 :core 与 :data。
+// 注意：不要把 feature/app 模块加进来——Kover 0.9.9 的 :koverVerify 聚合合并
+// 不能对全部附加模块稳定应用根级 includes 过滤器，feature/app 的类（零测试）
+// 会按"未覆盖"泄漏进 verify 口径，导致门禁永远无法达到按报告口径校准的阈值
+// （2026-09 实测：泄漏 1476 行 → 35.53%；剔除后核心层 46.5% ≥ 45 通过）。
+// feature/app 模块仍各自应用 kover 插件，可独立生成报告查看。
 dependencies {
     kover(project(":core"))
     kover(project(":data"))
-    kover(project(":feature-common"))
-    kover(project(":feature-home"))
-    kover(project(":feature-search"))
-    kover(project(":feature-post"))
-    kover(project(":feature-downloads"))
-    kover(project(":feature-settings"))
-    kover(project(":feature-account"))
-    kover(project(":app"))
 }
 
 kover {
@@ -46,8 +43,11 @@ kover {
         }
         verify {
             rule {
-                // 核心业务层 line 覆盖率下限（当前实测 ≈18.5%，随测试补充逐步提高）
-                minBound(18)
+                // 核心业务层（core + data）line 覆盖率下限——"只增不减"的棘轮：
+                // 当前实测 = 45.4%（合并报告 2163/4761 行）、koverLog 口径 47.7%。
+                // 阈值定在 45，任何使核心层覆盖率跌破该线的改动都会在 CI 被拦下。
+                // 补充测试后可上调，禁止下调。修改此值须同步更新 CHANGELOG。
+                minBound(45)
             }
         }
     }
