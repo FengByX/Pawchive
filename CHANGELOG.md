@@ -7,10 +7,47 @@
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-09-19
+
+### Added
+- 动图播放支持：新增 `coil-gif` 依赖并在全局 `ImageLoader` 注册 `ImageDecoderDecoder`
+  （minSdk 30 ≥ 28，走 ImageDecoder 通道）。作品图、图查看器与创作者头像位置的
+  GIF / 动画 WebP / 动画 HEIF 均可正常循环播放（此前一律被解成静态首帧）
+- 列表 / 网格的 GIF 帖新增「GIF」角标，在列表即可分辨动图（列表仍只加载静态缩略图、
+  不拉取原图，避免一个列表消耗数百 MB 流量）
+
+### Changed
+- 版本号提升至 1.7.2（versionCode 72）
+
 ### Fixed
+- 帖子详情页与全屏大图里的 GIF 仍不播放：上游「缩略图 CDN」对动图源只产出静态单帧
+  （实测 GIF 源返回的是仅含 `VP8 ` 块的静态 WebP，且 Content-Type 谎报为 image/gif），
+  而详情页原先把缩略图排在候选链首位、命中即停，永远走不到带动画的原图。
+  现将详情页候选链改为**原图优先、缩略图兜底**，并移除实测为死链的
+  `img.pawchive.pw/data`（GIF 与 JPEG 实测均 404）
+- 全屏大图查看器此前接收的是缩略图 URL，导致「点开看大图」看到的是缩略图，
+  长按「保存图片」落盘的也是缩略图。现改为接收候选链并以原图为准，
+  原图缺失（`has_full=false`，实测约占 4%）时自动回退缩略图
+
+- 账号收藏（帖子 / 创作者）不同步：新增或移除收藏后，收藏页最长滞后 5 分钟才更新。根因是三层叠加——
+  收藏列表走 GET 且被 `ApiMemoryCache` 缓存 5 分钟，而写入走 POST/DELETE 却从不失效该缓存；
+  收藏接口缺少 `Cache-Control` 透传，下拉刷新会命中旧缓存形成"假刷新"；
+  返回收藏页时 `ensureCurrentTabLoaded()` 在已有数据下只重排、从不重新请求。
+  现改为：写入成功后按路径精准失效缓存（`ApiMemoryCache.invalidateByPathPrefix`）并自增写入序号、
+  收藏 GET 支持 `no-cache`、返回本页时静默刷新（5 秒节流仅用于吸收重复 resume，
+  并被"期间发生过收藏写入"击穿，避免刚收藏完返回就跳过刷新；失败不打扰，分页数据不截断）
 - CI Lint `MissingPermission` 报错：`DownloadNotificationController.updateSummary()` 改为复用已显式
   捕获 `SecurityException` 的 `notify()` 通道（Lint 无法识别 `runCatching` 的异常处理），
   并移除该文件未使用的 `PackageManager` 导入
+- 系统 WebView 被替换为第三方实现（如用 Magisk 模块把系统 WebView 换成 Cromite / Bromite）
+  时，应用启动后即闪退。根因是过盾用的隐藏 WebView 两处缺少兜底：其一，WebView 构造与配置
+  跑在主线程且无 try/catch，第三方实现抛出的 `MissingWebViewPackageException` /
+  `UnsatisfiedLinkError`（native 库缺失，属 `Error`）会从 Runnable 直接逃逸到未捕获异常
+  处理器并终结进程；其二，`WebViewClient` 未覆写 `onRenderProcessGone`，按 Android 默认语义
+  渲染进程一崩溃系统就会连带终止整个应用，且该路径不产生 Java 堆栈、崩溃日志中无法留痕。
+  现改为：构造与配置整体降级保护（失败即视为过盾失败，不再传播）、覆写
+  `onRenderProcessGone` 返回 `true` 并自行回收 WebView、新增 `onReceivedError`（仅主文档，
+  子资源失败不中断）与 `onReceivedSslError` 兜底，使过盾尽早失败而非空等 30 秒超时
 
 ## [1.7.1] - 2026-09-17
 
