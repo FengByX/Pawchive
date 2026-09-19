@@ -50,6 +50,27 @@
             android:layout_marginStart="-4dp"
             tools:visibility="visible" />
 
+        <!-- 动图角标：仅 .gif 帖子显示。
+             列表刻意只加载静态缩略图（上游缩略图 CDN 对动图也只产出单帧，且原图动辄十几 MB，
+             整个列表若都取原图会吃掉几百 MB 流量），故用角标提示"这条点进去才有动画"。 -->
+        <TextView
+            android:id="@+id/tv_gif_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_gif_badge"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp"
+            android:text="@string/badge_gif"
+            android:textColor="#FFFFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="@+id/iv_thumbnail"
+            app:layout_constraintBottom_toBottomOf="@+id/iv_thumbnail"
+            tools:visibility="visible" />
+
         <!-- Content container: adapts margin when thumbnail is gone -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/content_container"

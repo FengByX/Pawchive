@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import coil.decode.ImageDecoderDecoder
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.pawchive.core.store.SettingsManager
@@ -190,6 +191,13 @@ class PawchiveApplication : Application(), ImageLoaderFactory, Configuration.Pro
             // sharedOkHttpClient 内置 cloudflareRetryInterceptor，
             // 会在 403 时自动刷新 cf_clearance 并重试一次。
             .okHttpClient(ApiClient.sharedOkHttpClient)
+            // 动图解码：minSdk 30 ≥ 28，直接走 ImageDecoder 通道，支持
+            // GIF / 动画 WebP / 动画 HEIF，产出 AnimatedImageDrawable（系统级硬件加速播放）。
+            // 作品图、图查看器与创作者头像（ShapeableImageView）全部是 Drawable 目标，
+            // 且全项目未使用任何 Coil Transformation，因此注册一次即全局生效。
+            .components {
+                add(ImageDecoderDecoder.Factory())
+            }
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)

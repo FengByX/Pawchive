@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  动图角标底：半透明黑底 + 小圆角。
+  刻意不跟随主题配色——角标叠在任意亮度的缩略图上，
+  固定深底白字才能在任何图片上都保持可读。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#B3000000" />
+    <corners android:radius="4dp" />
+</shape>

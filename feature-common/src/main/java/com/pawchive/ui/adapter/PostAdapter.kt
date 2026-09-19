@@ -271,6 +271,11 @@ class PostAdapter(
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE
 
+                // 动图角标：列表只用缩略图（上游缩略图 CDN 对动图也仅产出静态单帧，
+                // 而原图动辄十几 MB），所以这里只做标识，真正的动画留给详情页。
+                binding.tvGifBadge.visibility =
+                    if (imagePath.lowercase().endsWith(".gif")) View.VISIBLE else View.GONE
+
                 // 若后端已经返回完整 URL（如 https://.../xxx.jpg），直接使用；
                 // 否则将路径规范化，拼接到 Pawchive 的 CDN 域名上。
                 val candidateUrls = buildCandidateUrls(imagePath)
@@ -278,6 +283,7 @@ class PostAdapter(
                 loadThumbnailWithFallback(binding, candidateUrls, 0)
             } else {
                 binding.ivThumbnail.visibility = View.GONE
+                binding.tvGifBadge.visibility = View.GONE
             }
 
             // Bookmark setup

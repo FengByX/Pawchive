@@ -10,6 +10,8 @@
 
     <!-- Common -->
     <string name="thumbnail_description">帖子缩略图</string>
+    <!-- 动图角标：GIF 为格式名，三语文字一致，仍按约定三处同步声明 -->
+    <string name="badge_gif">GIF</string>
     <string name="bookmark_description">收藏此帖子</string>
     <string name="bookmark_creator_description">收藏此创作者</string>
     <string name="sort_label">排序:</string>

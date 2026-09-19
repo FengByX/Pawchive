@@ -117,6 +117,8 @@ dependencies {
 
     // Coil Image Loading
     implementation(libs.coil)
+    // Coil 动图解码：作品图与创作者头像均可能为 GIF 动图（GIF / 动画 WebP / 动画 HEIF）
+    implementation(libs.coil.gif)
 
     // AndroidX Media3 (ExoPlayer)
     implementation(libs.androidx.media3.exoplayer)

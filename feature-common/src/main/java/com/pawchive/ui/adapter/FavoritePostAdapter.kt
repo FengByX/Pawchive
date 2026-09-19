@@ -132,10 +132,16 @@ class FavoritePostAdapter(
             if (!imagePath.isNullOrEmpty()) {
                 binding.ivThumbnail.visibility = View.VISIBLE
 
+                // 动图角标：与 PostAdapter 同一策略——列表只加载静态缩略图，
+                // 动画留给详情页，这里仅作标识。
+                binding.tvGifBadge.visibility =
+                    if (imagePath.lowercase().endsWith(".gif")) View.VISIBLE else View.GONE
+
                 val candidateUrls = buildCandidateUrls(imagePath)
                 loadThumbnailWithFallback(binding, candidateUrls, 0)
             } else {
                 binding.ivThumbnail.visibility = View.GONE
+                binding.tvGifBadge.visibility = View.GONE
             }
 
             // 显示已收藏状态（账号收藏的帖子始终显示为已收藏）

@@ -10,6 +10,7 @@
 
     <!-- Common -->
     <string name="thumbnail_description">投稿サムネイル</string>
+    <string name="badge_gif">GIF</string>
     <string name="bookmark_description">この投稿をブックマーク</string>
     <string name="bookmark_creator_description">このクリエイターをブックマーク</string>
     <string name="sort_label">並び順:</string>

@@ -61,6 +61,10 @@ gson = { group = "com.google.code.gson", name = "gson", version = "2.10.1" }
 
 # Coil
 coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
+# Coil 动图解码（GIF / 动画 WebP / 动画 HEIF）。
+# 仅加依赖不够，还必须在 ImageLoader.components 中注册 ImageDecoderDecoder，
+# 见 PawchiveApplication.newImageLoader()。
+coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
 
 # Testing - Robolectric（本地 JVM 运行 Android API）
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }

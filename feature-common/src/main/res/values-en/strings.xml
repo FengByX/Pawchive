@@ -10,6 +10,7 @@
 
     <!-- Common -->
     <string name="thumbnail_description">Post thumbnail</string>
+    <string name="badge_gif">GIF</string>
     <string name="bookmark_description">Bookmark this post</string>
     <string name="bookmark_creator_description">Bookmark this creator</string>
     <string name="sort_label">Sort:</string>
