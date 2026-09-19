@@ -483,8 +483,8 @@ class PostDetailFragment : Fragment() {
                     }
                 }
                 binding.ivPostImage.setOnClickListener {
-                    val viewerUrl = mainImageUrls.firstOrNull() ?: buildFileUrl(filePath)
-                    openImageViewer(viewerUrl, post.file?.name ?: "image.jpg")
+                    // 整链交给查看器，原图 404 时由它自行回退缩略图
+                    openImageViewer(mainImageUrls, post.file?.name ?: "image.jpg")
                 }
             }
         } else {
@@ -630,8 +630,7 @@ class PostDetailFragment : Fragment() {
                             }
                         }
                         setOnClickListener {
-                            val viewerUrl = candidateUrls.firstOrNull() ?: buildFileUrl(attachment.path)
-                            openImageViewer(viewerUrl, attachment.name ?: "image.jpg")
+                            openImageViewer(candidateUrls, attachment.name ?: "image.jpg")
                         }
                     }
                     binding.layoutAttachments.addView(imageView)
@@ -667,8 +666,16 @@ class PostDetailFragment : Fragment() {
         }
     }
 
-    private fun openImageViewer(imageUrl: String, imageName: String) {
-        (activity as? AppNavigator)?.openFragment(PhotoViewerFragment.newInstance(imageUrl, imageName))
+    /**
+     * 打开全屏大图查看器。
+     *
+     * 传入的是**候选链**而非单个 URL：原图优先（动图只有原图带动画），
+     * 若原图不存在（上游 `has_full=false` 的帖子，实测约占 4%）由查看器回退缩略图，
+     * 而不是直接显示加载失败。
+     */
+    private fun openImageViewer(imageUrls: List<String>, imageName: String) {
+        if (imageUrls.isEmpty()) return
+        (activity as? AppNavigator)?.openFragment(PhotoViewerFragment.newInstance(imageUrls, imageName))
     }
 
     private fun setServiceBadgeColor(service: String) {
@@ -1619,8 +1626,18 @@ class PostDetailFragment : Fragment() {
     }
 
     /**
-     * 构建候选图片 URL 列表（与 PostAdapter 保持一致的回退策略）。
-     * 优先使用 img.pawchive.pw（缩略图 CDN），回退到 file.pawchive.pw。
+     * 构建详情页候选图片 URL 列表：**原图优先，缩略图兜底**。
+     *
+     * 与 PostAdapter 的列表策略（缩略图优先）刻意不同——详情页是"看原图"的场景。
+     * 上游实测（2026-09-19，逐字节验证）：
+     * - `img.pawchive.pw/thumbnail/...` 对动图源只产出**静态单帧**：GIF 源实测返回一个
+     *   仅含 `VP8 ` 块的静态 WebP（无 `VP8X`/`ANIM`/`ANMF`），既无动画，Content-Type
+     *   还谎报成 image/gif。缩略图优先会让 GIF 帖永远只显示首帧。
+     * - `img.pawchive.pw/data/...` 该路径**不存在**（GIF 与 JPEG 实测均 404），原先作为
+     *   第 2 级只会白白多打一次请求，故移除。
+     * - 唯一带动画的字节在 `file.pawchive.pw/data/...`（实测该 GIF 为 190 帧、无限循环），
+     *   因此置于首位。代价是动图帖首屏需要下载原图（实测样本 11 MB），这是"能看到动图"
+     *   的必然成本——上游不提供更小的动图变体（`/preview`、`/original` 均 404）。
      */
     private fun buildCandidateImageUrls(path: String?): List<String> {
         if (path.isNullOrEmpty()) return emptyList()
@@ -1630,10 +1647,9 @@ class PostDetailFragment : Fragment() {
         }
         val normalized = if (trimmed.startsWith("/")) trimmed else "/$trimmed"
         return listOf(
-            "https://img.pawchive.pw/thumbnail/data$normalized",
-            "https://img.pawchive.pw/data$normalized",
-            "https://file.pawchive.pw/data$normalized"
-        )
+            buildFileUrl(trimmed),
+            "https://img.pawchive.pw/thumbnail/data$normalized"
+        ).filter { it.isNotEmpty() }
     }
 
     /**
