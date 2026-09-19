@@ -6,11 +6,16 @@ import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.net.http.SslError
 import android.webkit.CookieManager
 import com.pawchive.core.BuildConfig
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.CompletableDeferred
@@ -253,20 +258,25 @@ object CloudflareManager {
             val mainHandler = Handler(Looper.getMainLooper())
 
             mainHandler.post {
-                val webView = WebView(context)
+                // WebView 的实现方是可以被替换的（用 Magisk 模块把系统 WebView 换成
+                // Cromite / Bromite 等第三方实现很常见）。这类实现可能缺少 native 库、
+                // 未被当前 ROM 注册为合法 provider，或与其 SELinux 策略不匹配，构造阶段
+                // 就会抛 MissingWebViewPackageException / UnsatisfiedLinkError /
+                // RuntimeException。若让异常逃逸，它会从主线程的 Runnable 直接进入
+                // UncaughtExceptionHandler 并终结进程（表现为启动后闪退），
+                // 因此这里就地降级为"过盾失败"，绝不向上传播。
+                val challengeWebView = createChallengeWebView(context)
+                if (challengeWebView == null) {
+                    if (cont.isActive) cont.resume(false)
+                    return@post
+                }
+
                 val cookieManager = CookieManager.getInstance()
                 cookieManager.setAcceptCookie(true)
-                cookieManager.setAcceptThirdPartyCookies(webView, true)
+                cookieManager.setAcceptThirdPartyCookies(challengeWebView, true)
 
-                val settings: WebSettings = webView.settings
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.databaseEnabled = true
-
-                // 使用应用专属 UA 过盾（而非 WebView 默认的浏览器 UA）。
-                // cf_clearance 与过盾 UA 强绑定，后续 OkHttp 注入同一个 UA，过盾与请求一致。
-                settings.userAgentString = APP_USER_AGENT
-                val userAgent = settings.userAgentString
+                // 与 cf_clearance 绑定的 UA：过盾与后续 OkHttp 请求必须保持一致
+                val userAgent = challengeWebView.settings.userAgentString ?: APP_USER_AGENT
 
                 var finished = false
 
@@ -275,8 +285,8 @@ object CloudflareManager {
                     finished = true
                     mainHandler.removeCallbacksAndMessages(null)
                     try {
-                        webView.stopLoading()
-                        webView.destroy()
+                        challengeWebView.stopLoading()
+                        challengeWebView.destroy()
                     } catch (e: Exception) {
                         Log.w("CloudflareManager", "webView destroy failed", e)
                     }
@@ -287,7 +297,9 @@ object CloudflareManager {
                 val pollRunnable = object : Runnable {
                     override fun run() {
                         if (finished) return
-                        val cookie = cookieManager.getCookie(BASE_URL)
+                        // 取 cookie 本身也可能抛错（第三方 WebView 实现的网络层可能只
+                        // 捕获 IOException，SecurityException 会漏出来），失败即视为未就绪
+                        val cookie = runCatching { cookieManager.getCookie(BASE_URL) }.getOrNull()
                         if (!cookie.isNullOrEmpty() && cookie.contains(CF_CLEARANCE)) {
                             val clean = stripSessionTokens(cookie)
                             cachedCookie = clean
@@ -301,7 +313,7 @@ object CloudflareManager {
                     }
                 }
 
-                webView.webViewClient = object : WebViewClient() {
+                challengeWebView.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         // 页面加载完成后开始轮询 cookie（挑战可能在页面加载后异步完成）
@@ -309,12 +321,70 @@ object CloudflareManager {
                             mainHandler.postDelayed(pollRunnable, POLL_INTERVAL_MS)
                         }
                     }
+
+                    /**
+                     * 渲染进程崩溃时必须返回 true。
+                     *
+                     * Android 的默认语义：宿主未覆写该方法（或返回 false）时，渲染进程一旦
+                     * 崩溃，系统会连带终止整个应用进程——用户看到的就是"闪退"，而且这条
+                     * 路径不产生 Java 堆栈，崩溃日志里什么都留不下。
+                     * 第三方 WebView 实现普遍强开严格站点隔离，崩溃概率明显高于系统实现，
+                     * 这里改为自行回收 WebView 并让过盾降级。
+                     */
+                    override fun onRenderProcessGone(
+                        view: WebView?,
+                        detail: RenderProcessGoneDetail?
+                    ): Boolean {
+                        Log.w(
+                            "CloudflareManager",
+                            "WebView render process gone (crashed=${detail?.didCrash()}), " +
+                                "abort challenge to keep app alive"
+                        )
+                        finish(false)
+                        return true
+                    }
+
+                    /**
+                     * 主文档加载失败立即结束，不再空等 CHALLENGE_TIMEOUT_MS。
+                     * 只对主文档生效：挑战过程中被拦掉的子资源（广告/追踪请求）失败
+                     * 不应中断过盾。
+                     */
+                    override fun onReceivedError(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                        error: WebResourceError?
+                    ) {
+                        if (request?.isForMainFrame == true) {
+                            Log.w(
+                                "CloudflareManager",
+                                "challenge page load failed: " +
+                                    "${error?.errorCode} ${error?.description}"
+                            )
+                            finish(false)
+                        }
+                    }
+
+                    /**
+                     * 证书错误无法继续挑战，显式取消并降级（绝不 proceed）。
+                     */
+                    override fun onReceivedSslError(
+                        view: WebView?,
+                        handler: SslErrorHandler?,
+                        error: SslError?
+                    ) {
+                        Log.w(
+                            "CloudflareManager",
+                            "challenge page SSL error: ${error?.primaryError}"
+                        )
+                        handler?.cancel()
+                        finish(false)
+                    }
                 }
 
                 // 超时兜底
                 mainHandler.postDelayed({
                     // 超时前再尝试取一次 cookie
-                    val cookie = cookieManager.getCookie(BASE_URL)
+                    val cookie = runCatching { cookieManager.getCookie(BASE_URL) }.getOrNull()
                     if (!cookie.isNullOrEmpty() && cookie.contains(CF_CLEARANCE)) {
                         val clean = stripSessionTokens(cookie)
                         cachedCookie = clean
@@ -327,12 +397,46 @@ object CloudflareManager {
                     }
                 }, CHALLENGE_TIMEOUT_MS)
 
-                webView.loadUrl(BASE_URL)
+                try {
+                    challengeWebView.loadUrl(BASE_URL)
+                } catch (t: Throwable) {
+                    // loadUrl 会触发渲染进程创建，第三方 WebView 实现可能在此同步抛错
+                    Log.w("CloudflareManager", "loadUrl failed, abort challenge", t)
+                    finish(false)
+                }
 
                 cont.invokeOnCancellation {
                     mainHandler.post { finish(false) }
                 }
             }
+        }
+    }
+
+    /**
+     * 创建并配置用于过盾的 WebView；当前设备无法使用 WebView 时返回 null。
+     *
+     * 刻意捕获 Throwable 而非 Exception：加载不到 native 库时抛出的
+     * UnsatisfiedLinkError 属于 Error，同样会直接终结进程。
+     */
+    private fun createChallengeWebView(context: Context): WebView? {
+        return try {
+            WebView(context).apply {
+                val webSettings: WebSettings = settings
+                webSettings.javaScriptEnabled = true
+                webSettings.domStorageEnabled = true
+                webSettings.databaseEnabled = true
+                // 使用应用专属 UA 过盾（而非 WebView 默认的浏览器 UA）。
+                // cf_clearance 与过盾 UA 强绑定，后续 OkHttp 注入同一个 UA，过盾与请求一致。
+                webSettings.userAgentString = APP_USER_AGENT
+            }
+        } catch (t: Throwable) {
+            Log.w(
+                "CloudflareManager",
+                "WebView unavailable, challenge disabled (current WebView " +
+                    "implementation may be unsupported)",
+                t
+            )
+            null
         }
     }
 
