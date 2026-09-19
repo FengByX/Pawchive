@@ -98,11 +98,14 @@ class HomeViewModel @Inject constructor(
     /**
      * 异步拉取云端收藏创作者并合并进过滤集合（仅登录态生效）。
      * 成功且集合变化时重排列表；失败静默。init/refresh/返回首页时调用。
+     *
+     * @param forceRefresh 用户主动下拉刷新时传 true，携带 no-cache 绕过 5 分钟内存缓存；
+     *   预取与返回首页场景保持 false，避免每次返回都打一次网络
      */
-    private fun refreshCloudFavoriteCreators() {
+    private fun refreshCloudFavoriteCreators(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             if (!authRepository.isLoggedIn()) return@launch
-            val result = authRepository.syncFavoriteCreators()
+            val result = authRepository.syncFavoriteCreators(forceRefresh = forceRefresh)
             if (result.isSuccess) {
                 val cloud = result.getOrNull()
                     ?.map { it.service to it.id }
@@ -146,7 +149,7 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         fetchPosts(reset = true, cacheControl = "no-cache")
-        refreshCloudFavoriteCreators()
+        refreshCloudFavoriteCreators(forceRefresh = true)
     }
 
     fun loadMore() {

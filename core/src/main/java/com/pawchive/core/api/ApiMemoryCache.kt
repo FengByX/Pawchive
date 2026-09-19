@@ -135,6 +135,31 @@ object ApiMemoryCache {
     }
 
     /**
+     * 按路径前缀精准失效缓存条目，返回被移除的条数。
+     *
+     * 使用场景：写操作（POST / DELETE）成功后，必须清掉对应读接口的陈旧缓存。
+     * 收藏列表就是典型例子——它走 GET + 5 分钟 TTL 被缓存，而新增/移除收藏走
+     * POST/DELETE（不经过本拦截器），若不显式失效，收藏页会滞后最长 5 分钟
+     * 才能看到刚写入的收藏。
+     *
+     * 相比 [clear] 只清目标资源，不会误伤首页 feed 等其它接口的缓存。
+     *
+     * 缓存键格式为 `"<namespace>|<normalizedUrl>"`（见 [intercept]），
+     * 因此只需匹配首个 `|` 之后的部分是否包含 [pathPrefix]。
+     *
+     * @param pathPrefix 目标接口路径前缀，如 `"/api/v1/account/favorites"`
+     */
+    fun invalidateByPathPrefix(pathPrefix: String): Int {
+        return synchronized(cacheLock) {
+            val matched = cache.keys.filter { key ->
+                key.substringAfter('|', missingDelimiterValue = "").contains(pathPrefix)
+            }
+            matched.forEach { cache.remove(it) }
+            matched.size
+        }
+    }
+
+    /**
      * 清空缓存（登出 / 切换账号 / 手动清理时调用）。
      */
     fun clear() {

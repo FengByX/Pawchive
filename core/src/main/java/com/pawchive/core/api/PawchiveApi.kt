@@ -121,19 +121,26 @@ interface PawchiveApi {
 
     /**
      * 获取收藏的帖子列表
+     *
+     * [cacheControl] 传 "no-cache" 可跳过 ApiMemoryCache 的 5 分钟内存缓存；
+     * 返回本页时的静默同步与下拉刷新都必须传，否则会读到陈旧列表。
      */
     @GET("account/favorites")
     suspend fun getFavoritePosts(
         @Query("type") type: String = "post",
-        @Query("o") offset: Int? = null
+        @Query("o") offset: Int? = null,
+        @Header("Cache-Control") cacheControl: String? = null
     ): List<FavoritePost>
 
     /**
      * 获取收藏的创作者列表
+     *
+     * [cacheControl] 语义同 [getFavoritePosts]。
      */
     @GET("account/favorites")
     suspend fun getFavoriteCreators(
-        @Query("type") type: String = "artist"
+        @Query("type") type: String = "artist",
+        @Header("Cache-Control") cacheControl: String? = null
     ): List<FavoriteCreator>
 
     /**

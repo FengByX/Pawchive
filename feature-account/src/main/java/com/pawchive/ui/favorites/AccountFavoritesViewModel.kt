@@ -80,6 +80,31 @@ class AccountFavoritesViewModel @Inject constructor(
 
     private val pageSize = 50
 
+    /**
+     * 静默刷新节流间隔（毫秒）。
+     *
+     * 只用于吸收**重复 resume**（Fragment 恢复抖动、Tab 快速来回等），
+     * 不承担"限制用户操作频率"的职责——因此取值必须远小于真实操作耗时。
+     *
+     * 早期曾用 30 秒，但那会吞掉"切到浏览器收藏后马上切回 App"这类场景的刷新
+     * （该场景无任何本地写入信号，只能靠返回本页时重新请求来发现），
+     * 等于网页端的同步延迟没有被真正修掉，故收紧到 5 秒。
+     */
+    private val silentRefreshIntervalMs = 5_000L
+
+    /** 上次成功拉取时间戳（用于静默刷新节流）。 */
+    private var lastPostsFetchAt = 0L
+    private var lastCreatorsFetchAt = 0L
+
+    /**
+     * 上次发起拉取时的收藏写入序号（[AuthRepository.currentFavoritesWriteTick]）。
+     *
+     * 与当前值不一致 ⇒ 期间发生过收藏写入 ⇒ 必须绕过静默刷新的节流立即重新拉取，
+     * 否则"刚收藏完就返回收藏页"会因不足节流间隔而跳过请求，看不到新条目。
+     */
+    private var lastPostsFetchTick = 0L
+    private var lastCreatorsFetchTick = 0L
+
     private val loadedPosts = mutableListOf<FavoritePost>()
     private val loadedCreators = mutableListOf<FavoriteCreator>()
     private var currentOffset = 0
@@ -111,46 +136,91 @@ class AccountFavoritesViewModel @Inject constructor(
 
     /**
      * 下拉刷新：重置 offset 并重新拉取当前 Tab 数据。
+     *
+     * 必须带 forceRefresh——收藏接口是 GET + 5 分钟内存缓存，不带 no-cache 时
+     * 这里会直接命中旧缓存，出现"下拉刷新了但列表没变"的假刷新。
      */
     fun refresh() {
         if (_uiState.value.currentTab == 0) {
-            loadPosts(isRefresh = true)
+            loadPosts(forceRefresh = true)
         } else {
-            loadCreators(isRefresh = true)
+            loadCreators(forceRefresh = true)
         }
     }
 
     /**
-     * 确保当前 Tab 数据已加载。
+     * 返回本页时（Fragment.onResume）确保当前 Tab 与云端一致。
      *
-     * 用于 Fragment.onResume / ViewPager2 切回等场景：
-     * - Activity 重建 + Cloudflare 过盾时序：onViewCreated 时过盾未完成导致请求失败，
-     *   onResume 时过盾已就绪，此时 loadedCreators 仍为空，可触发补加载
-     * - ViewPager2 切回已保留的 Fragment：onViewCreated 不重调，
-     *   若 ViewModel 新建过且加载失败，loadedCreators 为空可触发补加载
+     * 旧实现在已有数据时只做本地重排、从不重新请求，导致两类"收藏不即时同步"：
+     * - 网页端新增/移除的收藏：客户端无从感知，只有重新请求才能反映；
+     * - App 内收藏后返回本页：写操作虽已失效内存缓存，但仍需一次请求才能进列表。
      *
-     * 幂等设计：数据已加载或正在加载时直接返回，不会重复发起请求。
+     * 因此这里在已有数据时也发起**静默刷新**（带 no-cache 绕过 5 分钟内存缓存）。
+     * 三重保护避免副作用：
+     * 1. **节流**：距上次成功拉取不足 [silentRefreshIntervalMs] 时只重排、不发请求——
+     *    但被"期间发生过收藏写入"击穿（见 [lastPostsFetchTick]），否则刚收藏完返回本页仍看不到新条目；
+     * 2. **分页保护**：帖子 Tab 已加载超过一页时跳过自动刷新，防止列表被截断回第一页
+     *    （需要最新数据时下拉刷新即可，该路径不受节流与分页保护限制）；
+     * 3. **静默失败**：失败不弹 Toast、沿用现有列表，不打扰用户。
+     *
+     * 数据未变化时 Adapter 走 DiffUtil，无视觉变化、不重置滚动位置。
+     * 未加载过数据的情形（含首次过盾失败）仍走正常加载，会显示骨架屏。
      */
     fun ensureCurrentTabLoaded() {
         if (_uiState.value.isLoading) return
+        val now = System.currentTimeMillis()
+        val writeTick = authRepository.currentFavoritesWriteTick()
         if (_uiState.value.currentTab == 0) {
-            if (loadedPosts.isEmpty()) loadPosts() else applyPostSort()
+            if (loadedPosts.isEmpty()) {
+                loadPosts()
+                return
+            }
+            if (loadedPosts.size > pageSize) {
+                applyPostSort()
+                return
+            }
+            val intervalElapsed = now - lastPostsFetchAt >= silentRefreshIntervalMs
+            if (!intervalElapsed && writeTick == lastPostsFetchTick) {
+                applyPostSort()
+                return
+            }
+            loadPosts(forceRefresh = true, silent = true)
         } else {
-            if (loadedCreators.isEmpty()) loadCreators() else applyCreatorSort()
+            if (loadedCreators.isEmpty()) {
+                loadCreators()
+                return
+            }
+            val intervalElapsed = now - lastCreatorsFetchAt >= silentRefreshIntervalMs
+            if (!intervalElapsed && writeTick == lastCreatorsFetchTick) {
+                applyCreatorSort()
+                return
+            }
+            loadCreators(forceRefresh = true, silent = true)
         }
     }
 
-    fun loadPosts(isRefresh: Boolean = false) {
+    /**
+     * 拉取收藏帖子首页（重置分页）。
+     *
+     * @param forceRefresh true 时携带 `no-cache` 绕过 5 分钟内存缓存（下拉刷新 / 静默同步）
+     * @param silent true 表示后台静默同步：失败不弹 Toast，沿用现有列表
+     */
+    fun loadPosts(forceRefresh: Boolean = false, silent: Boolean = false) {
         if (_uiState.value.isLoading) return
-        if (!isRefresh && loadedPosts.isNotEmpty()) return
+        if (!forceRefresh && loadedPosts.isNotEmpty()) return
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         currentOffset = 0
+        // 发请求前记录写入序号：请求期间新发生的写入不会被误判为"已同步"，
+        // 下次返回本页仍会触发一次刷新
+        val writeTickAtRequest = authRepository.currentFavoritesWriteTick()
 
         viewModelScope.launch {
-            val result = authRepository.syncFavoritePosts()
+            val result = authRepository.syncFavoritePosts(forceRefresh = forceRefresh)
             result.onSuccess { posts ->
                 loadedPosts.clear()
                 loadedPosts.addAll(posts)
+                lastPostsFetchAt = System.currentTimeMillis()
+                lastPostsFetchTick = writeTickAtRequest
                 applyPostSort()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -161,7 +231,7 @@ class AccountFavoritesViewModel @Inject constructor(
                 if (error !is kotlinx.coroutines.CancellationException) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = friendlyMessage(error),
+                        errorMessage = if (silent) null else friendlyMessage(error),
                         emptyVisible = false
                     )
                 }
@@ -195,16 +265,26 @@ class AccountFavoritesViewModel @Inject constructor(
         }
     }
 
-    fun loadCreators(isRefresh: Boolean = false) {
+    /**
+     * 拉取收藏创作者列表（该接口无分页）。
+     *
+     * @param forceRefresh true 时携带 `no-cache` 绕过 5 分钟内存缓存（下拉刷新 / 静默同步）
+     * @param silent true 表示后台静默同步：失败不弹 Toast，沿用现有列表
+     */
+    fun loadCreators(forceRefresh: Boolean = false, silent: Boolean = false) {
         if (_uiState.value.isLoading) return
-        if (!isRefresh && loadedCreators.isNotEmpty()) return
+        if (!forceRefresh && loadedCreators.isNotEmpty()) return
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        // 同 loadPosts：发请求前记录写入序号
+        val writeTickAtRequest = authRepository.currentFavoritesWriteTick()
 
         viewModelScope.launch {
-            val result = authRepository.syncFavoriteCreators()
+            val result = authRepository.syncFavoriteCreators(forceRefresh = forceRefresh)
             result.onSuccess { creators ->
                 loadedCreators.clear()
                 loadedCreators.addAll(creators)
+                lastCreatorsFetchAt = System.currentTimeMillis()
+                lastCreatorsFetchTick = writeTickAtRequest
                 applyCreatorSort()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -214,7 +294,7 @@ class AccountFavoritesViewModel @Inject constructor(
                 if (error !is kotlinx.coroutines.CancellationException) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = friendlyMessage(error),
+                        errorMessage = if (silent) null else friendlyMessage(error),
                         emptyVisible = false
                     )
                 }

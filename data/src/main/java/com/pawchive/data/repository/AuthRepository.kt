@@ -5,6 +5,7 @@ import com.pawchive.data.R
 import com.pawchive.core.error.AppError
 import com.pawchive.core.api.ApiCallHandler
 import com.pawchive.core.api.ApiClient
+import com.pawchive.core.api.ApiMemoryCache
 import com.pawchive.core.api.ApiResult
 import com.pawchive.core.api.ClearanceCoordinator
 import com.pawchive.core.api.PawchiveApi
@@ -29,6 +30,17 @@ class AuthRepository @Inject constructor(
 
     /** 登录成功后的宽限期（毫秒）：期间单个 401 不立即清除会话，防止"登录失效"误判导致登录循环 */
     private val LOGIN_GRACE_MS = 60_000L
+
+    private companion object {
+        /** 跳过 ApiMemoryCache 的请求头值（与 HomeViewModel 下拉刷新口径一致）。 */
+        const val NO_CACHE = "no-cache"
+
+        /**
+         * 收藏列表接口路径（[ApiClient.API_BASE_URL] 之后的部分）。
+         * 写入收藏成功后按此路径前缀失效内存缓存。
+         */
+        const val FAVORITES_PATH = "/api/v1/account/favorites"
+    }
 
     /**
      * 最近一次登录成功的时间戳，用于宽限期判断。
@@ -228,11 +240,23 @@ class AuthRepository @Inject constructor(
 
     /**
      * 同步账号收藏的帖子
+     *
+     * @param offset 分页偏移；null 表示首页
+     * @param forceRefresh true 时携带 `Cache-Control: no-cache` 跳过 5 分钟内存缓存，
+     *   用于下拉刷新与返回本页时的静默同步——否则会直接命中旧缓存，看不到新收藏
      */
-    suspend fun syncFavoritePosts(offset: Int? = null): Result<List<FavoritePost>> {
+    suspend fun syncFavoritePosts(
+        offset: Int? = null,
+        forceRefresh: Boolean = false
+    ): Result<List<FavoritePost>> {
         return withContext(Dispatchers.IO) {
             ensureLoggedIn { api ->
-                val result = ApiCallHandler.safeApiCallDirect { api.getFavoritePosts(offset = offset) }
+                val result = ApiCallHandler.safeApiCallDirect {
+                    api.getFavoritePosts(
+                        offset = offset,
+                        cacheControl = if (forceRefresh) NO_CACHE else null
+                    )
+                }
                 apiResultToResult(result)
             }
         }
@@ -240,11 +264,15 @@ class AuthRepository @Inject constructor(
 
     /**
      * 同步账号收藏的创作者
+     *
+     * @param forceRefresh 语义同 [syncFavoritePosts]
      */
-    suspend fun syncFavoriteCreators(): Result<List<FavoriteCreator>> {
+    suspend fun syncFavoriteCreators(forceRefresh: Boolean = false): Result<List<FavoriteCreator>> {
         return withContext(Dispatchers.IO) {
             ensureLoggedIn { api ->
-                val result = ApiCallHandler.safeApiCallDirect { api.getFavoriteCreators() }
+                val result = ApiCallHandler.safeApiCallDirect {
+                    api.getFavoriteCreators(cacheControl = if (forceRefresh) NO_CACHE else null)
+                }
                 apiResultToResult(result)
             }
         }
@@ -252,6 +280,8 @@ class AuthRepository @Inject constructor(
 
     /**
      * 添加帖子到账号收藏
+     *
+     * 成功后失效收藏列表的内存缓存，保证收藏页能立即看到本次写入。
      */
     suspend fun addPostToFavorites(service: String, creatorId: String, postId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
@@ -259,13 +289,15 @@ class AuthRepository @Inject constructor(
                 val result = ApiCallHandler.safeApiCallUnit {
                     api.addPostToFavorites(service, creatorId, postId)
                 }
-                apiResultToResult(result)
+                apiResultToResult(result).onSuccess { invalidateFavoritesCache() }
             }
         }
     }
 
     /**
      * 从账号收藏移除帖子
+     *
+     * 成功后失效收藏列表的内存缓存（同上）。
      */
     suspend fun removePostFromFavorites(service: String, creatorId: String, postId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
@@ -273,13 +305,15 @@ class AuthRepository @Inject constructor(
                 val result = ApiCallHandler.safeApiCallUnit {
                     api.removePostFromFavorites(service, creatorId, postId)
                 }
-                apiResultToResult(result)
+                apiResultToResult(result).onSuccess { invalidateFavoritesCache() }
             }
         }
     }
 
     /**
      * 添加创作者到账号收藏
+     *
+     * 成功后失效收藏列表的内存缓存（同上）。
      */
     suspend fun addCreatorToFavorites(service: String, creatorId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
@@ -287,13 +321,15 @@ class AuthRepository @Inject constructor(
                 val result = ApiCallHandler.safeApiCallUnit {
                     api.addCreatorToFavorites(service, creatorId)
                 }
-                apiResultToResult(result)
+                apiResultToResult(result).onSuccess { invalidateFavoritesCache() }
             }
         }
     }
 
     /**
      * 从账号收藏移除创作者
+     *
+     * 成功后失效收藏列表的内存缓存（同上）。
      */
     suspend fun removeCreatorFromFavorites(service: String, creatorId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
@@ -301,9 +337,39 @@ class AuthRepository @Inject constructor(
                 val result = ApiCallHandler.safeApiCallUnit {
                     api.removeCreatorFromFavorites(service, creatorId)
                 }
-                apiResultToResult(result)
+                apiResultToResult(result).onSuccess { invalidateFavoritesCache() }
             }
         }
+    }
+
+    /**
+     * 收藏写入序号：每次成功增删收藏后自增（进程内，不持久化）。
+     *
+     * 收藏页在发起拉取时记录该值，返回本页时若发现它已变化，说明期间发生过收藏写入，
+     * 需要**绕过静默刷新的节流**立即重新拉取。
+     *
+     * 否则会出现：刚在 App 内收藏完就返回收藏页，因距上次拉取不足节流间隔而跳过请求，
+     * 依旧看不到刚写入的条目——正是本次要修的问题。
+     */
+    @Volatile
+    private var favoritesWriteTick = 0L
+
+    /**
+     * 当前收藏写入序号（语义见 [favoritesWriteTick]）。
+     * 供收藏页判断"自上次拉取以来是否发生过收藏写入"。
+     */
+    fun currentFavoritesWriteTick(): Long = favoritesWriteTick
+
+    /**
+     * 收藏写入成功后失效收藏列表的内存缓存。
+     *
+     * 收藏列表走 GET 且被 [ApiMemoryCache] 缓存 5 分钟；而增删收藏走 POST/DELETE，
+     * 不经过该缓存拦截器。若不在写入后显式失效，收藏页会滞后最长 5 分钟
+     * 才能反映本次写入（App 内收藏后返回收藏页看不到新条目即由此导致）。
+     */
+    private fun invalidateFavoritesCache() {
+        ApiMemoryCache.invalidateByPathPrefix(FAVORITES_PATH)
+        favoritesWriteTick++
     }
 
     private suspend fun <T> ensureLoggedIn(block: suspend (PawchiveApi) -> Result<T>): Result<T> {
