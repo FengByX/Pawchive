@@ -19,7 +19,7 @@
         android:background="?attr/colorSurface"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Title row -->
+        <!-- Row 1：标题 + 内容通知入口（标题独占整行宽度，避免被按钮挤压换行） -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -35,6 +35,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:maxLines="1"
                     android:text="@string/app_name"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="26sp"
@@ -49,12 +50,59 @@
                     android:layout_marginTop="1dp" />
             </LinearLayout>
 
+            <!-- 内容更新通知入口：铃铛 + 未读徽标（ARCH-FEATURE-003）。
+                 ImageView + 四边对称 padding 保证图标在圆内正中心
+                 （Material3 IconButton 样式的固定 padding 按 40dp/24dp 设计，
+                 自定义尺寸下图标会偏离圆心） -->
+            <FrameLayout
+                android:id="@+id/notification_entry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp">
+
+                <ImageView
+                    android:id="@+id/btn_notifications"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_circle_outline"
+                    android:contentDescription="@string/content_updates"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_bell"
+                    app:tint="?attr/colorPrimary" />
+
+                <TextView
+                    android:id="@+id/tv_notification_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="16dp"
+                    android:minWidth="16dp"
+                    android:layout_gravity="end|top"
+                    android:background="@drawable/bg_badge"
+                    android:gravity="center"
+                    android:paddingHorizontal="4dp"
+                    android:textColor="?attr/colorOnPrimary"
+                    android:textSize="9sp"
+                    android:visibility="gone"
+                    tools:text="3" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Row 2：排序 + 批量管理（独立成行，标题不再参与宽度分配） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="10dp">
+
             <!-- Sort button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_sort"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:text="@string/sort_label"
                 android:textSize="12sp"
                 app:icon="@drawable/ic_sort"
@@ -71,6 +119,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:text="@string/batch_manage"
                 android:textSize="12sp"
                 app:icon="@drawable/ic_shield"

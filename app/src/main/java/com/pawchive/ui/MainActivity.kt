@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity(), AppNavigator {
         intent.removeExtra(ContentUpdateConstants.EXTRA_OPEN_CONTENT_UPDATES)
         binding.root.post {
             if (!isFinishing && !isDestroyed) {
-                loadFragment(ContentUpdatesFragment())
+                openContentUpdates()
             }
         }
     }
@@ -382,6 +382,10 @@ class MainActivity : AppCompatActivity(), AppNavigator {
 
     override fun openSettings() {
         loadFragment(SettingsFragment())
+    }
+
+    override fun openContentUpdates() {
+        loadFragment(ContentUpdatesFragment())
     }
 
     override fun openFragment(fragment: Fragment) {

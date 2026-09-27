@@ -22,6 +22,9 @@ interface AppNavigator {
     /** 打开设置页 */
     fun openSettings()
 
+    /** 打开内容更新页（订阅新帖通知列表） */
+    fun openContentUpdates()
+
     /** 打开同模块内的通用 Fragment（如全屏图片查看器），加入返回栈 */
     fun openFragment(fragment: Fragment)
 

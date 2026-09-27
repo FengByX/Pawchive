@@ -76,6 +76,7 @@ class HomeFragment : Fragment() {
         setupSwipeRefresh()
         setupSortButton()
         setupBatchActions()
+        setupNotificationEntry()
         // 绑定内嵌错误页（FEATURE-006）
         errorStateView = ErrorStateViewHelper.bind(binding.root) {
             viewModel.refresh()
@@ -259,6 +260,32 @@ class HomeFragment : Fragment() {
         binding.btnSort.text = getString(currentSort.displayNameRes)
         binding.btnSort.setOnClickListener {
             showSortDialog()
+        }
+    }
+
+    /**
+     * 内容更新通知入口（ARCH-FEATURE-003）：顶栏铃铛打开内容更新页，
+     * 角标实时显示订阅新帖未读数。收藏模式实例复用本布局，直接隐藏入口。
+     */
+    private fun setupNotificationEntry() {
+        if (showBookmarksOnly) {
+            binding.notificationEntry.visibility = View.GONE
+            return
+        }
+        binding.btnNotifications.setOnClickListener {
+            (activity as? AppNavigator)?.openContentUpdates()
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.contentUpdateUnreadCount.collect { count ->
+                    if (count > 0) {
+                        binding.tvNotificationBadge.text = if (count > 99) "99+" else count.toString()
+                        binding.tvNotificationBadge.visibility = View.VISIBLE
+                    } else {
+                        binding.tvNotificationBadge.visibility = View.GONE
+                    }
+                }
+            }
         }
     }
 

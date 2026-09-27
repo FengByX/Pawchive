@@ -13,10 +13,13 @@ import com.pawchive.core.store.SettingsManager
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
+import com.pawchive.data.repository.CreatorSubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -65,7 +68,8 @@ class HomeViewModel @Inject constructor(
     private val blockedCreatorManager: BlockedCreatorManager,
     private val bookmarkManager: BookmarkManager,
     private val settingsManager: SettingsManager,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    subscriptionRepository: CreatorSubscriptionRepository
 ) : AndroidViewModel(application) {
 
     private val api = ApiClient.publicApi
@@ -120,6 +124,13 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    /**
+     * 内容更新未读数（Room 实时流，首页通知入口角标用）。
+     * WhileSubscribed：仅在首页可见时订阅，切到收藏模式实例不触发查询。
+     */
+    val contentUpdateUnreadCount: StateFlow<Int> = subscriptionRepository.observeUnreadCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /**
      * 初始化（幂等）：Fragment 在 onViewCreated 调用一次，
