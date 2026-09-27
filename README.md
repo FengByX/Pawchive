@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin" />
   <img src="https://img.shields.io/badge/API-30%2B-34A853?style=for-the-badge&logo=android&logoColor=white" alt="Min API" />
   <img src="https://img.shields.io/badge/Target_API-36-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Target API" />
   <img src="https://img.shields.io/github/v/release/FengByX/Pawchive?style=for-the-badge&logo=android&label=Release&color=blue" alt="Release" />
@@ -35,40 +35,49 @@
 ## 功能亮点
 
 ### 内容浏览
-- **首页帖子流**：分页加载最新内容，支持关键词筛选与多种排序方式
-- **创作者主页**：查看创作者的帖子、公告、粉丝卡及关联账号
-- **帖子详情**：完整正文、评论树、修订历史、文件下载
-- **多平台支持**：聚合 Patreon、Fanbox、Discord 等平台内容，平台标签使用品牌色
+- **首页信息流**：分页加载最新内容，支持关键词筛选；可选「同作者仅显示一条」与「隐藏已收藏创作者的帖子」
+- **创作者主页**：帖子、公告、粉丝卡、关联账号一览
+- **帖子详情**：完整正文（白名单 HTML 渲染）、评论、修订历史、附件下载
+- **多平台聚合**：Patreon / Fanbox / Discord 等来源，平台标签按品牌色区分
 
 ### 精准搜索
-- **关键词搜索**：同时检索帖子与创作者，Tab 切换查看结果
-- **文件哈希反查**：通过文件哈希追踪素材出处，支持 Discord 帖子结果
-- **搜索历史**：本地持久化搜索记录，支持单条删除与一键清空
+- **关键词搜索**：同时检索帖子与创作者，Tab 切换查看
+- **文件哈希反查**：通过文件哈希追踪素材出处，支持 Discord 结果
+- **离线全文搜索**：基于 Room FTS4 的中文分词索引，断网也能搜收藏内容
+- **搜索历史**：本地持久化，保留条数可配置（5–50），支持单条删除与一键清空
 
 ### 沉浸式媒体
-- **高清图片查看**：手势缩放、双击放大、自由拖拽
-- **视频播放**：基于 Media3 ExoPlayer，Bilibili 风格控制器，支持倍速播放、全屏切换、断点续播
-- **多域名回退**：缩略图 / 原图 / 下载域名三级自动降级
+- **大图查看**：双指缩放、双击缩放、边界约束拖拽
+- **动图播放**：GIF / 动画 WebP / 动画 HEIF，列表带「GIF」角标
+- **视频播放**：Media3 ExoPlayer，Bilibili 风格控制器，倍速播放、断点续播、画中画；全屏与内嵌共用播放器实例，进出全屏零重新缓冲，画面等比缩放
+- **多级回退**：原图优先，缺失时自动回退缩略图
 
 ### 收藏与账号
-- 多账号切换，独立收藏/历史/下载数据隔离
-- 收藏帖离线归档（Room FTS4）：断网可检索与阅读收藏内容
-- **账号云端收藏**：登录后同步收藏的帖子与创作者
-- **本地离线收藏**：无需登录也可本地管理收藏
+- **多账号切换**：账号间收藏 / 历史 / 下载数据隔离
+- **云端收藏**：登录后同步收藏的帖子与创作者，写入后即时失效缓存
+- **本地收藏**：无需登录，收藏即建立离线归档索引
+- **离线阅读**：收藏帖全文归档（Room FTS4），断网可检索与阅读
+
+### 内容订阅与通知
+- **订阅创作者**：关注喜欢的创作者，新帖自动周期检测（间隔可调，最小 15 分钟）；可选「收藏即订阅」
+- **系统通知**：检测到新帖即时推送，可随时关闭
+- **应用内通知中心**：首页铃铛直达，未读数角标实时刷新；支持单条/全部已读，订阅管理页可随时退订
 
 ### 下载中心
 - **HTTP Range 断点续传**：暂停保留临时文件，继续时从断点续传；服务端不支持 Range 时自动降级为全量下载
-- **进度通知**：通知栏实时展示下载进度，完成/失败状态反馈
-- **后台持续下载**：应用切后台不中断下载
-- **下载规则**：按创作者 / 服务 / 文件类型设置自动下载规则
-- **历史管理**：支持取消、重试、清除下载记录
+- **独立任务通知**：每条任务一个通知，实时显示百分比 / 已下载大小 / 速度（EMA 平滑）/ 剩余时间，通知内可暂停、继续、取消
+- **后台持续下载**：`dataSync` 前台服务保活，切后台不中断
+- **下载规则**：按创作者 / 服务 / 文件类型自动入队
+- **合规约束**：并发上限钳制 5、同文件重试间隔 ≥1 秒、自定义可识别 User-Agent
 
 ### 个性化设置
 - **多语言**：中文 / English / 日本語，实时切换
-- **外观模式**：日间 / 夜间 / 跟随系统，Material Design 3 主题
-- **下载管理**：自定义下载目录（SAF），缓存查看与清理
-- **内容更新订阅**：订阅创作者后周期检测新帖
-- **应用内更新**：自动检查 GitHub Release，语义化版本比较
+- **外观**：日间 / 夜间 / 跟随系统，6 套主题强调色，Material Design 3
+- **显示与缩放**：整体 UI 缩放与全局文字大小滑杆，实时预览、即时生效
+- **省流量**：列表默认加载缩略图，可切换为原图
+- **下载参数**：自定义下载目录（SAF）、最大并发数（1–5）、重试次数（1–3）、仅 Wi-Fi 下载、文件命名格式
+- **自动备份**：每日导出备份到所选目录
+- **应用内更新**：自动检查 GitHub Release，语义化版本比较，支持 STABLE / BETA 通道与「忽略此版本」
 
 ---
 
@@ -76,45 +85,69 @@
 
 | 类别 | 技术选型 | 说明 |
 |------|---------|------|
-| **语言** | Kotlin 2.2.10 | 现代化、空安全的 JVM 语言 |
-| **最低 SDK** | API 30 (Android 11) | 覆盖 95%+ 活跃设备 |
-| **目标 SDK** | API 36 | 最新 Android 版本 |
+| **语言** | Kotlin 2.3.20 | 由 AGP 9.3.2 内置，无需单独应用 Kotlin 插件 |
+| **最低 SDK** | API 30 (Android 11) | 覆盖绝大多数活跃设备 |
+| **目标 / 编译 SDK** | API 36 (minorApiLevel 1) | 最新 Android 版本 |
 | **UI 框架** | XML + ViewBinding | 声明式布局，类型安全访问 |
 | **设计语言** | Material Design 3 | 卡片分组、分段按钮、品牌色标签 |
-| **模块化** | 多 Gradle 模块 | `app` / `feature-*` / `data` / `core` |
-| **依赖注入** | Hilt + KSP | `@HiltAndroidApp` / `@AndroidEntryPoint` |
-| **本地存储** | Room + DataStore | 下载历史 / 归档 Room，设置 DataStore |
-| **下载引擎** | OkHttp 流式下载（1.7.0 起） | 单连接单请求、HTTP Range 断点续传、截断检测 |
-| **网络层** | Retrofit + OkHttp | 类型安全 HTTP 客户端 |
-| **图片加载** | Coil 2.6 | Kotlin 优先、协程原生支持 |
-| **视频播放** | AndroidX Media3 | ExoPlayer + OkHttp 数据源 |
-| **构建工具** | Gradle 9.5 + AGP 9.3.2 | 版本目录管理依赖 |
+| **模块化** | 10 个 Gradle 模块 | `app` / 7×`feature-*` / `data` / `core` |
+| **依赖注入** | Hilt 2.59.2 + KSP 2.3.6 | `@HiltAndroidApp` / `@AndroidEntryPoint` |
+| **本地存储** | Room 2.8.4 + DataStore 1.1.1 | 下载历史 / 离线归档 FTS4 用 Room，设置用 DataStore |
+| **下载引擎** | 自研 OkHttp 流式下载 | 1.7.0 起替换 okdownload，单连接单请求 + Range 断点续传 |
+| **网络层** | Retrofit 2.9.0 + OkHttp 4.12.0 | 类型安全 HTTP 客户端 |
+| **图片加载** | Coil 2.6.0 + coil-gif | 协程原生，注册 `ImageDecoderDecoder` 支持动图 |
+| **视频播放** | AndroidX Media3 1.4.1 | ExoPlayer + OkHttp 数据源 |
+| **后台任务** | WorkManager 2.9.0 + Hilt | 周期订阅同步、自动备份、缓存清理 |
+| **构建工具** | Gradle 9.5.0 + AGP 9.3.2 | 版本目录（`libs.versions.toml`）统一管理 |
+| **质量门禁** | Kover 0.9.9 | 核心层（core + data）行覆盖率 ≥ 45% |
 
 ---
 
 ## 核心技术亮点
 
-### 1. 直连 OkHttp 流式下载引擎
-1.7.0 起移除 okdownload，改以 OkHttp 单连接流式下载为核心（移除原因见 [CHANGELOG.md](CHANGELOG.md)）：
-- **HTTP Range 断点续传**：暂停时保留临时文件，继续时以 `Range: bytes=N-` 从断点续传；服务端忽略 Range 返回 200 时自动降级为全量下载
-- **暂停 / 继续 / 取消**：通知栏与下载中心均可操作；取消可即时打断读循环与写出阶段
-- **截断检测**：按 `Content-Length` 与实际读取字节数比对，响应被截断时快速失败并退避重试
-- **Cloudflare 凭据注入**：复用 `sharedOkHttpClient`，自动携带 cf_clearance / User-Agent
+### 1. Cloudflare 托管挑战自动过盾
 
-### 2. Cloudflare 托管挑战自动过盾
-目标站点启用 Cloudflare 防护，纯 OkHttp 请求会被拦截返回 403。`CloudflareManager` 通过隐藏 WebView 执行 JS 挑战，提取 `cf_clearance` Cookie 并绑定 User-Agent，注入到后续所有 OkHttp 请求中。
+目标站点启用 Cloudflare 防护，纯 OkHttp 请求会被拦截返回 403。`CloudflareManager` 通过隐藏 WebView 执行 JS 挑战，提取 `cf_clearance` Cookie 并**与其绑定的 User-Agent 一起**注入后续所有 OkHttp 请求：
+
+- **单飞机制**：并发调用复用同一个 `CompletableDeferred`，不会并发启动多个 WebView
+- **凭据持久化**：加密存储（EncryptedSharedPreferences）保存凭据，25 分钟 TTL 内冷启动免过盾
+- **强制剔除 `session` 段**：WebView 写入的匿名 session 会与真实登录会话叠加导致 401 误判，注入前一律剥离
+- **加固**：构造与配置整体降级保护（第三方 WebView 实现抛 `Error` 也不闪退）、覆写 `onRenderProcessGone` 防止渲染进程崩溃连带杀死应用
+
+### 2. 直连 OkHttp 流式下载引擎
+
+1.7.0 起移除 okdownload（源码级取证：sync 线程无超时阻塞、多块并发请求违反服务器限流要求、断点校验在响应截断时抛隐晦错误），改为单连接流式下载：
+
+- **暂停 / 续传**：暂停保留临时文件，继续时以 `Range: bytes=N-` 续传；服务端忽略 Range 返回 200 时静默降级为全量下载
+- **截断检测**：按 `Content-Length` 与实际读取字节数比对，响应截断时快速失败并退避重试
+- **可中断**：读循环每 64KB 检查协程活跃性，取消能即时打断下载与写出两个阶段
+- **临时文件隔离**：先落临时文件、成功后一次性拷到目标流，重试不会污染已写出的字节
+- **四类客户端分离**：下载客户端不设 `callTimeout`（否则 60 秒传不完的文件会被看门狗掐断），且不挂内存缓存拦截器
 
 ### 3. 智能拦截器链
-- **主域注入**：仅对 `pawchive.pw` 主域注入凭据，图片 CDN 子域不注入
-- **非阻塞 403 兜底**：403 时自动强制刷新重试一次
-- **双 OkHttpClient**：带 CF 拦截器的客户端与轻量级客户端分离
+
+- **凭据注入**：仅对主域 `pawchive.pw` 注入 Cookie + Referer + UA；CDN 子域只注入 UA（避免触发防盗链、避免泄露凭据）
+- **403 兜底**：`ClearanceRetryInterceptor` 在 403 时强制刷新过盾并重试一次
+- **日志脱敏**：`Authorization` / `Cookie` / `Set-Cookie` 始终以掩码输出，release 下日志级别关闭
+- **账号维度缓存**：GET JSON 响应缓存 5 分钟，键含 session hash 命名空间（杜绝跨账号复用），支持按路径精准失效
 
 ### 4. 单 Activity + 模块化导航
-- 主界面 Tab Fragment 缓存复用，切换不重建
-- **AppNavigator 接口**：各 feature 模块通过接口导航，模块间零直接依赖
 
-### 5. Skeleton 骨架屏加载
-自定义 `SkeletonHelper` 实现 shimmer 脉冲加载动画，内容加载完成后 200ms 淡入淡出过渡。
+- 底部导航与 **ViewPager2** 双向联动，主 Tab 跟随手指滑动切换
+- `offscreenPageLimit = 1`：避免首页与收藏页同时预加载、竞争同一个过盾任务
+- **AppNavigator 接口**：各 feature 通过接口导航，模块间零直接依赖
+
+### 5. 离线归档与全文检索
+
+- 收藏即写入 Room 实体表 + FTS4 影子表，事务保证两者一致
+- **CJK bigram 分词**：中文无需空格也能命中
+- **相关性加权**：标题 > 创作者 > 正文/附件，分层检索后按权重顺序合并去重
+
+### 6. 性能与体验
+
+- **骨架屏**：自定义 `SkeletonHelper` 实现 shimmer 脉冲动画，可全局关闭（减少动效）
+- **启动路径零阻塞**：语言 / 外观 / 缩放读轻量 SharedPreferences 启动缓存，不碰 DataStore
+- **内存快照 + 异步落盘**：设置与收藏读内存、写异步，UI 即时响应
 
 ---
 
@@ -122,17 +155,17 @@
 
 ```
 Pawchive/
-├── app/                          # 装配层：Application / MainActivity
-├── feature-common/               # 共享 UI：SkeletonHelper / adapter
-├── feature-home/                 # 首页
-├── feature-search/               # 搜索
-├── feature-post/                 # 帖子详情 / 图片查看 / 全屏视频
-├── feature-downloads/            # 下载中心
-├── feature-settings/             # 设置
-├── feature-account/              # 账号 / 登录 / 收藏
-├── data/                         # 业务层：Repository / Manager
-├── core/                         # 基础设施：网络 / 模型 / Room
-└── gradle/libs.versions.toml     # 版本目录
+├── app/                    # 装配层：Application / MainActivity / 主 Pager
+├── feature-common/         # 共享 UI：SkeletonHelper / ZoomableImageView / 通用 adapter / AppNavigator
+├── feature-home/           # 首页信息流
+├── feature-search/         # 搜索（在线 + 离线全文）
+├── feature-post/           # 帖子详情 / 大图查看 / 视频播放
+├── feature-downloads/      # 下载中心
+├── feature-settings/       # 设置（含下载规则、订阅、备份、缓存管理）
+├── feature-account/        # 账号 / 登录 / 收藏
+├── data/                   # 业务层：Repository / 下载引擎 / Worker / GitHub 更新检查
+├── core/                   # 基础设施：网络 / 模型 / Room / DataStore / 工具
+└── gradle/libs.versions.toml   # 版本目录（依赖单一事实来源）
 ```
 
 **依赖方向**：`:app` → `:feature-*` → `:data` → `:core`
@@ -144,7 +177,7 @@ Pawchive/
 ### 环境要求
 - **Android Studio** Meerkat (2024.3+) 或更高
 - **JDK** 17+（CI 使用 21）
-- **Gradle** 9.5（项目内置 wrapper，含 SHA-256 校验）
+- **Gradle** 9.5.0（项目内置 wrapper，含 SHA-256 完整性校验）
 
 ### 克隆 & 构建
 
@@ -155,7 +188,15 @@ cd Pawchive
 ```
 
 > APK 输出路径：`app/build/outputs/apk/release/Pawchive-v<版本号>.apk`
-> （文件名取自 `gradle.properties` 的 `VERSION_NAME`；该文件是版本号唯一来源，缺失时构建会直接失败）
+> （文件名取自 `gradle.properties` 的 `VERSION_NAME`；该文件是版本号唯一来源，缺失或非法时构建直接失败）
+
+### 常用任务
+
+```bash
+./gradlew testDebugUnitTest                       # 单元测试
+./gradlew koverVerify koverHtmlReport             # 覆盖率门禁与报告
+./gradlew lintDebug                               # Lint
+```
 
 ### 安装
 
@@ -168,10 +209,25 @@ cd Pawchive
 | 权限 | 用途 |
 |------|------|
 | `INTERNET` | 网络请求 |
-| `ACCESS_NETWORK_STATE` | 网络状态检测 |
-| `POST_NOTIFICATIONS` | 下载进度通知（Android 13+） |
+| `ACCESS_NETWORK_STATE` | 网络状态检测（仅 Wi-Fi 下载、网络可用性判断） |
+| `POST_NOTIFICATIONS` | 下载进度通知与内容更新通知（Android 13+ 运行时申请；拒绝后下载与浏览不受影响） |
 | `FOREGROUND_SERVICE` | 下载前台服务 |
 | `FOREGROUND_SERVICE_DATA_SYNC` | 下载前台服务类型（Android 14+ 强制声明，保证后台下载不被中断） |
+| `WRITE_EXTERNAL_STORAGE` | 仅 API ≤ 28 声明，新系统走 MediaStore 无需此权限 |
+| `ACCESS_MEDIA_LOCATION` | 仅 API ≤ 32 声明，读取媒体位置元数据 |
+
+---
+
+## 工程质量
+
+| 机制 | 说明 |
+|------|------|
+| **CI 流水线** | 构建（debug + R8 release）、单元测试、Lint、覆盖率门禁、依赖审查四组 job |
+| **覆盖率棘轮** | 核心层（core + data）行覆盖率下限 45%，只增不减，跌破即 CI 拦截 |
+| **R8 映射归档** | release 开启混淆与资源压缩，`mapping.txt` 随 CI 归档 90 天，线上崩溃可反混淆 |
+| **依赖审查** | PR 阶段拦截高危及以上漏洞的依赖 |
+| **崩溃诊断** | 全局 `CrashHandler` 落盘崩溃日志，经 FileProvider 分享导出 |
+| **三语完整** | 中文 / English / 日本語 三套字符串资源 key 全量对齐 |
 
 ---
 
@@ -189,9 +245,11 @@ cd Pawchive
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request。提交前请确保：
+
 1. 代码风格与现有代码保持一致
-2. 新增功能适配三种语言字符串资源
+2. 新增功能适配三种语言字符串资源（`values/`、`values-en/`、`values-ja/` key 需对齐）
 3. 遵循 Material Design 3 设计规范
+4. 核心层新增逻辑附带单元测试，不使覆盖率跌破门禁
 
 ---
 
