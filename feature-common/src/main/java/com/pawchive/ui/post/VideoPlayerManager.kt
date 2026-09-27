@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import com.pawchive.core.api.ApiClient
+import java.util.concurrent.CopyOnWriteArrayList
 
 class VideoPlayerManager(
     private val context: Context,
@@ -42,7 +43,8 @@ class VideoPlayerManager(
     var playbackSpeed: Float = initialSpeed
         private set
 
-    private var listener: VideoPlayerListener? = null
+    // 监听器列表：内嵌页与全屏页可同时监听同一播放器（全屏复用实例时各自更新各自 UI）
+    private val listeners = CopyOnWriteArrayList<VideoPlayerListener>()
 
     // 保存的播放状态，用于生命周期(onStop/onStart)间恢复播放
     private var currentUrl: String? = null
@@ -54,8 +56,19 @@ class VideoPlayerManager(
     private var isReleased: Boolean = false
     private val playerLock = Any()
 
+    /** 替换式设置监听器（兼容旧调用方：清空后仅保留当前） */
     fun setListener(listener: VideoPlayerListener?) {
-        this.listener = listener
+        listeners.clear()
+        listener?.let { listeners.add(it) }
+    }
+
+    /** 追加监听器（全屏复用播放器时叠加监听，不移除内嵌页的监听） */
+    fun addListener(listener: VideoPlayerListener) {
+        listeners.add(listener)
+    }
+
+    fun removeListener(listener: VideoPlayerListener) {
+        listeners.remove(listener)
     }
 
     @OptIn(UnstableApi::class)
@@ -73,7 +86,7 @@ class VideoPlayerManager(
     }
 
     @OptIn(UnstableApi::class)
-    fun play(url: String) {
+    fun play(url: String, startPositionMs: Long = 0) {
         if (isReleased) return
         synchronized(playerLock) {
             if (isReleased) return
@@ -82,7 +95,12 @@ class VideoPlayerManager(
             }
             currentUrl = url
             val mediaItem = MediaItem.fromUri(url)
-            player?.setMediaItem(mediaItem)
+            // 指定起始位置时直接从该处缓冲，避免先从 0 下载再 seek（全屏兜底路径）
+            if (startPositionMs > 0) {
+                player?.setMediaItem(mediaItem, startPositionMs)
+            } else {
+                player?.setMediaItem(mediaItem)
+            }
             player?.prepare()
             player?.play()
         }
@@ -110,7 +128,7 @@ class VideoPlayerManager(
             // 清空 PlayerView 引用，避免残留 player
             playerView?.player = null
             playerView = null
-            listener = null
+            listeners.clear()
             isPlaying = false
             currentPosition = 0
             duration = 0
@@ -187,7 +205,7 @@ class VideoPlayerManager(
 
         player?.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                listener?.onPlaybackStateChanged(playbackState)
+                listeners.forEach { it.onPlaybackStateChanged(playbackState) }
                 if (playbackState == Player.STATE_READY) {
                     duration = player?.duration ?: 0
                 }
@@ -195,15 +213,17 @@ class VideoPlayerManager(
 
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
-                listener?.onIsPlayingChanged(playing)
+                listeners.forEach { it.onIsPlayingChanged(playing) }
             }
 
             override fun onVideoSizeChanged(videoSize: VideoSize) {
-                listener?.onVideoSizeChanged(videoSize.width, videoSize.height)
+                listeners.forEach { it.onVideoSizeChanged(videoSize.width, videoSize.height) }
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                listener?.onError(error.message ?: "Unknown error")
+                listeners.forEach {
+                    it.onError(error.message ?: "Unknown error")
+                }
             }
         })
     }

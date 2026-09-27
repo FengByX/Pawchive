@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:show_buffering="always"
-            app:resize_mode="fill"
+            app:resize_mode="fit"
             app:use_controller="false" />
 
     </FrameLayout>

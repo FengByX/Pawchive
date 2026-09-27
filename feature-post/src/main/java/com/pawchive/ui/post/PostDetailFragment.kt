@@ -1177,11 +1177,14 @@ class PostDetailFragment : Fragment() {
         val dialog = FullscreenVideoDialog.newInstance(
             url, fileName, position, isPlaying, videoPlayerManager.playbackSpeed
         )
+        // 全屏复用内嵌播放器实例（保留缓冲与位置，进入/退出都无需重新加载）
+        dialog.setSharedPlayer(videoPlayerManager)
         dialog.setListener(object : FullscreenVideoDialog.FullscreenVideoListener {
             override fun onFullscreenClosed(position: Long, isPlaying: Boolean) {
-                // 退出全屏：从退出位置继续播放
+                // 退出全屏：把播放器重新接回内嵌 PlayerView，从退出位置继续播放
                 isFullscreen = false
                 if (binding.videoPlayerContainer.visibility == View.VISIBLE) {
+                    videoPlayerManager.attachPlayerView(binding.playerView)
                     videoPlayerManager.seekTo(position)
                     if (isPlaying) {
                         videoPlayerManager.resume()

@@ -54,8 +54,20 @@ class FullscreenVideoDialog : DialogFragment() {
 
     private var videoPlayerManager: VideoPlayerManager? = null
 
+    /**
+     * 宿主（内嵌播放页）传来的播放器实例。全屏直接复用而非新建：
+     * 保留已缓冲数据与精确播放位置，进入全屏秒开、退出秒回，
+     * 避免新建 ExoPlayer 把同一视频从头重新下载（加载明显变慢的根因）。
+     */
+    private var sharedManager: VideoPlayerManager? = null
+    private var usingSharedPlayer = false
+
     /** 进入全屏前的播放倍速（FEATURE：记住上次倍速，全屏恢复不重置）。 */
     private var initialSpeed: Float = 1.0f
+
+    fun setSharedPlayer(manager: VideoPlayerManager) {
+        sharedManager = manager
+    }
 
     companion object {
         fun newInstance(
@@ -123,46 +135,62 @@ class FullscreenVideoDialog : DialogFragment() {
 
     @OptIn(UnstableApi::class)
     private fun setupVideoPlayer() {
-        videoPlayerManager = VideoPlayerManager(requireContext(), initialSpeed)
-        videoPlayerManager?.attachPlayerView(playerView)
-        videoPlayerManager?.setListener(object : VideoPlayerManager.VideoPlayerListener {
-            override fun onPlaybackStateChanged(state: Int) {
-                when (state) {
-                    Player.STATE_READY -> {
-                        val duration = videoPlayerManager?.duration ?: 0
-                        if (duration > 0) {
-                            seekbarVideo.max = duration.toInt()
-                            tvDuration.text = videoPlayerManager?.formatTime(duration)
-                        }
-                        // 关键修复：STATE_READY 在缓冲恢复后会多次触发，
-                        // 旧实现每次都 seekTo(currentPosition)，导致用户拖动进度条后
-                        // 缓冲结束就被强行拉回进入全屏时的位置，无法正常跳转。
-                        // 改为仅在首次 READY 时 seek 一次。
-                        if (!hasSeekedToInitial && currentPosition > 0) {
-                            videoPlayerManager?.seekTo(currentPosition)
-                            hasSeekedToInitial = true
-                        }
-                        if (isPlaying) {
-                            videoPlayerManager?.resume()
-                        }
+        val shared = sharedManager?.takeIf { it.player != null }
+        if (shared != null) {
+            // 复用内嵌播放器：已在播放位置、已缓冲，无需 prepare/seek
+            usingSharedPlayer = true
+            videoPlayerManager = shared
+            shared.attachPlayerView(playerView)
+            shared.addListener(playerListener)
+            // 进入全屏前正在播放则继续播（宿主打开全屏前会先 pause）
+            if (isPlaying) {
+                shared.resume()
+            }
+        } else {
+            // 兜底（宿主播放器已不存在，如进程恢复）：自建播放器并直接从记忆位置起播
+            videoPlayerManager = VideoPlayerManager(requireContext(), initialSpeed)
+            videoPlayerManager?.attachPlayerView(playerView)
+            videoPlayerManager?.setListener(playerListener)
+            videoPlayerManager?.play(videoUrl, currentPosition)
+        }
+    }
+
+    private val playerListener = object : VideoPlayerManager.VideoPlayerListener {
+        override fun onPlaybackStateChanged(state: Int) {
+            when (state) {
+                Player.STATE_READY -> {
+                    val duration = videoPlayerManager?.duration ?: 0
+                    if (duration > 0) {
+                        seekbarVideo.max = duration.toInt()
+                        tvDuration.text = videoPlayerManager?.formatTime(duration)
                     }
-                    Player.STATE_ENDED -> {
-                        btnPlayPause.setImageResource(R.drawable.ic_play)
+                    // 关键修复：STATE_READY 在缓冲恢复后会多次触发，
+                    // 旧实现每次都 seekTo(currentPosition)，导致用户拖动进度条后
+                    // 缓冲结束就被强行拉回进入全屏时的位置，无法正常跳转。
+                    // 改为仅在首次 READY 时 seek 一次。
+                    if (!hasSeekedToInitial && currentPosition > 0) {
+                        videoPlayerManager?.seekTo(currentPosition)
+                        hasSeekedToInitial = true
+                    }
+                    if (isPlaying) {
+                        videoPlayerManager?.resume()
                     }
                 }
+                Player.STATE_ENDED -> {
+                    btnPlayPause.setImageResource(R.drawable.ic_play)
+                }
             }
+        }
 
-            override fun onIsPlayingChanged(playing: Boolean) {
-                btnPlayPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
-            }
+        override fun onIsPlayingChanged(playing: Boolean) {
+            btnPlayPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
+        }
 
-            override fun onVideoSizeChanged(width: Int, height: Int) {}
+        override fun onVideoSizeChanged(width: Int, height: Int) {}
 
-            override fun onError(message: String) {
-                Toast.makeText(context, "${getString(R.string.video_play_failed)}: $message", Toast.LENGTH_SHORT).show()
-            }
-        })
-        videoPlayerManager?.play(videoUrl)
+        override fun onError(message: String) {
+            Toast.makeText(context, "${getString(R.string.video_play_failed)}: $message", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupListeners() {
@@ -244,10 +272,18 @@ class FullscreenVideoDialog : DialogFragment() {
         // 退出全屏前把当前位置与播放状态回调给宿主，宿主据此恢复原视频播放
         val position = videoPlayerManager?.currentPosition ?: 0L
         val playing = videoPlayerManager?.isPlaying ?: false
-        listener?.onFullscreenClosed(position, playing)
-        listener = null
 
-        videoPlayerManager?.release()
+        if (usingSharedPlayer) {
+            // 复用模式：只解绑全屏视图、摘除自己的监听，绝不 release（播放器要还给宿主继续播）。
+            // 必须先解绑再回调——宿主在回调里重新 attachPlayerView，若顺序颠倒会把刚接回的视图又清空
+            videoPlayerManager?.removeListener(playerListener)
+            videoPlayerManager?.detachPlayerView()
+            listener?.onFullscreenClosed(position, playing)
+        } else {
+            listener?.onFullscreenClosed(position, playing)
+            videoPlayerManager?.release()
+        }
+        listener = null
         videoPlayerManager = null
         super.onDestroyView()
     }
