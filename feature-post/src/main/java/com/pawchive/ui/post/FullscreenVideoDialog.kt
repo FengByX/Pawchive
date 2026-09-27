@@ -14,10 +14,15 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.pawchive.common.R
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class FullscreenVideoDialog : DialogFragment() {
 
@@ -49,6 +54,8 @@ class FullscreenVideoDialog : DialogFragment() {
     private var isPlaying: Boolean = false
     // 标记是否已在首次 STATE_READY 时 seek 到进入全屏的位置，避免缓冲恢复时反复 seek
     private var hasSeekedToInitial: Boolean = false
+    // 用户正在拖动进度条时暂停自动同步，避免轮询与手势互抢
+    private var isUserSeeking: Boolean = false
     // 进入全屏前 Activity 的方向，退出时恢复（Bug 17）
     private var previousOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
@@ -129,6 +136,7 @@ class FullscreenVideoDialog : DialogFragment() {
 
         setupVideoPlayer()
         setupListeners()
+        startProgressTicker()
 
         return view
     }
@@ -217,9 +225,12 @@ class FullscreenVideoDialog : DialogFragment() {
                 }
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = true
+            }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = false
                 val progress = seekBar?.progress ?: 0
                 videoPlayerManager?.seekTo(progress.toLong())
                 tvCurrentTime.text = videoPlayerManager?.formatTime(progress.toLong())
@@ -229,6 +240,35 @@ class FullscreenVideoDialog : DialogFragment() {
         playerView.setOnClickListener {
             val controls = view?.findViewById<View>(R.id.video_controller_bar)
             controls?.visibility = if (controls.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }
+    }
+
+    /**
+     * 进度条自动同步（200ms 轮询，与内嵌页同一机制）。
+     * 全屏页此前没有任何同步逻辑，进度条只在用户拖动时被动更新；
+     * 复用播放器模式下 STATE_READY 不会重放，max/时长标签也在这里兜底初始化。
+     */
+    private fun startProgressTicker() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    videoPlayerManager?.player?.let { p ->
+                        val dur = p.duration
+                        if (dur > 0) {
+                            if (seekbarVideo.max != dur.toInt()) {
+                                seekbarVideo.max = dur.toInt()
+                                tvDuration.text = videoPlayerManager?.formatTime(dur)
+                            }
+                            if (!isUserSeeking) {
+                                seekbarVideo.progress = p.currentPosition.toInt().coerceIn(0, seekbarVideo.max)
+                                seekbarVideo.secondaryProgress = p.bufferedPosition.toInt().coerceIn(0, seekbarVideo.max)
+                                tvCurrentTime.text = videoPlayerManager?.formatTime(p.currentPosition)
+                            }
+                        }
+                    }
+                    delay(200)
+                }
+            }
         }
     }
 
