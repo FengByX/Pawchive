@@ -58,7 +58,7 @@
     <string name="scale_value_percent">%1$d%%</string>
 
     <!-- FEATURE 設定項目拡張（バッチ1） -->
-    <string name="lang_follow_system">システム設定に従う</string>
+    <string name="lang_follow_system">システム</string>
     <string name="media_section">メディア再生</string>
     <string name="video_resume_label">続きから再生</string>
     <string name="video_resume_desc">動画を前回の位置から再開します</string>

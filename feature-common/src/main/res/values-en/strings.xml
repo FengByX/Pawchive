@@ -58,7 +58,7 @@
     <string name="scale_value_percent">%1$d%%</string>
 
     <!-- FEATURE settings extension (batch 1) -->
-    <string name="lang_follow_system">Follow System</string>
+    <string name="lang_follow_system">System</string>
     <string name="media_section">Media Playback</string>
     <string name="video_resume_label">Resume Playback</string>
     <string name="video_resume_desc">Continue videos from where you left off</string>
