@@ -48,3 +48,17 @@ updates:
       - "ci"
     commit-message:
       prefix: "chore(ci)"
+    # 仅允许同主版本内的常规升级；跨主版本（输入参数/Node 运行时可能不兼容）
+    # 随季度计划人工执行。Actions 引用已固定 commit SHA，dependabot 仍可识别
+    # 版本并提交升级（以新 SHA 替换旧 SHA）。
+    ignore:
+      - dependency-name: "actions/checkout"
+        versions: [">=5"]
+      - dependency-name: "actions/setup-java"
+        versions: [">=5"]
+      - dependency-name: "actions/upload-artifact"
+        versions: [">=5"]
+      - dependency-name: "gradle/actions/setup-gradle"
+        versions: [">=5"]
+      - dependency-name: "actions/dependency-review-action"
+        versions: [">=6"]
