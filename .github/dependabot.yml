@@ -25,6 +25,16 @@ updates:
         versions: ["5.x"]
       - dependency-name: "com.google.devtools.ksp"
         versions: ["3.x"]
+      # 工具链（AGP / Gradle wrapper）升级随季度计划人工执行
+      - dependency-name: "agp"
+        versions: [">=9.4"]
+      - dependency-name: "com.android.tools.build:gradle"
+        versions: [">=9.4"]
+      - dependency-name: "gradle-wrapper"
+        versions: [">=9.6"]
+      # androidx.core 1.19.1+ 要求 compileSdk 37，随下次 compileSdk 升级一并放开
+      - dependency-name: "androidx.core:core-ktx"
+        versions: [">=1.19"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
