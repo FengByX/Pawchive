@@ -117,9 +117,24 @@
                     app:iconPadding="2dp"
                     app:backgroundTint="?attr/colorErrorContainer"
                     android:textColor="?attr/colorOnErrorContainer"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/btn_share_creator"
                     app:layout_constraintTop_toBottomOf="@+id/iv_creator_avatar"
                     android:layout_marginTop="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <!-- 分享作者主页（FEAT-CREATOR-SHARE：复制ID/复制链接/浏览器打开） -->
+                <ImageButton
+                    android:id="@+id/btn_share_creator"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_share"
+                    android:contentDescription="@string/share_creator"
+                    app:tint="?attr/colorOnSurface"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/iv_creator_avatar"
+                    android:layout_marginTop="12dp"
                     app:layout_constraintBottom_toBottomOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
@@ -186,6 +201,35 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="8dp" />
+
+            <!-- Similar Artists Section (FEAT-SIMILAR-CREATORS，横向头像卡片) -->
+            <TextView
+                android:id="@+id/tv_similar_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="16dp"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:text="@string/similar_artists"
+                android:visibility="gone" />
+
+            <HorizontalScrollView
+                android:id="@+id/scroll_similar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/layout_similar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp" />
+            </HorizontalScrollView>
 
             <!-- Posts Section Header -->
             <LinearLayout

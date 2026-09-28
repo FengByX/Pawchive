@@ -1,14 +1,23 @@
 package com.pawchive.ui.creator
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.Html
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +31,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.load
+import com.google.android.material.imageview.ShapeableImageView
 import com.pawchive.common.R
+import com.pawchive.core.model.SimilarCreator
 import com.pawchive.data.repository.AuthRepository
 import com.pawchive.data.repository.BlockedCreatorManager
 import com.pawchive.data.repository.BookmarkManager
@@ -97,6 +108,7 @@ class CreatorProfileFragment : Fragment() {
             setupBookmarkButton()
             setupSubscribeButton()
             setupBlockButton()
+            setupShareButton()
             setupLoadMoreButton()
             setupSortButton()
             setupSearchView()
@@ -172,6 +184,8 @@ class CreatorProfileFragment : Fragment() {
                     text = Html.fromHtml(announcement.content ?: "", Html.FROM_HTML_MODE_COMPACT)
                     setTextColor(requireContext().getColor(R.color.text_secondary))
                     textSize = 13f
+                    // 公告内容可自由选中复制（FEAT-CREATOR-ANNOUNCE-COPY）
+                    setTextIsSelectable(true)
                     background = requireContext().getDrawable(R.drawable.comment_bg)
                     setPadding(12, 12, 12, 12)
                 }
@@ -207,8 +221,79 @@ class CreatorProfileFragment : Fragment() {
             binding.tvLinksHeader.visibility = View.GONE
         }
 
+        // 收藏图标合并云端状态（BUG-IMPORT-STATE）：云端收藏的作者即使本地无记录也显示已收藏
+        updateBookmarkIcon(
+            bookmarkManager.isCreatorBookmarked(service, creatorId) || state.cloudFavorited
+        )
+
+        renderSimilarCreators(state.similarCreators)
+
         applySort(state.posts)
         updateLoadMoreButton(state.hasMore)
+    }
+
+    /** 相似作者横向卡片（FEAT-SIMILAR-CREATORS）；为空时整段隐藏。 */
+    private fun renderSimilarCreators(creators: List<SimilarCreator>) {
+        binding.layoutSimilar.removeAllViews()
+        if (creators.isEmpty()) {
+            binding.tvSimilarHeader.visibility = View.GONE
+            binding.scrollSimilar.visibility = View.GONE
+            return
+        }
+        binding.tvSimilarHeader.visibility = View.VISIBLE
+        binding.scrollSimilar.visibility = View.VISIBLE
+
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        val ripple = TypedValue().also {
+            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, it, true)
+        }.resourceId
+
+        for (creator in creators) {
+            val item = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                val pad = (8 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(ripple)
+                setOnClickListener {
+                    (activity as? AppNavigator)?.openCreatorProfile(creator.service, creator.id)
+                }
+            }
+
+            val avatar = ShapeableImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    (48 * density).toInt(), (48 * density).toInt()
+                )
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                shapeAppearanceModel = shapeAppearanceModel.toBuilder()
+                    .setAllCornerSizes(12 * density)
+                    .build()
+                load("https://pawchive.pw/icons/${creator.service}/${creator.id}") {
+                    crossfade(true)
+                    placeholder(R.drawable.ic_image)
+                    error(R.drawable.ic_image_off)
+                }
+            }
+            item.addView(avatar)
+
+            val name = TextView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    (64 * density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = (4 * density).toInt() }
+                text = creator.name
+                textSize = 11f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER_HORIZONTAL
+                setTextColor(context.getColor(R.color.text_secondary))
+            }
+            item.addView(name)
+
+            binding.layoutSimilar.addView(item)
+        }
     }
 
     private fun setupRecyclerView() {
@@ -320,12 +405,15 @@ class CreatorProfileFragment : Fragment() {
     }
 
     private fun setupBookmarkButton() {
-        val isBookmarked = bookmarkManager.isCreatorBookmarked(service, creatorId)
+        // 初次展示合并云端收藏状态（BUG-IMPORT-STATE）
+        val isBookmarked = bookmarkManager.isCreatorBookmarked(service, creatorId) ||
+            viewModel.uiState.value.cloudFavorited
         updateBookmarkIcon(isBookmarked)
 
         binding.btnCreatorBookmark.setOnClickListener {
             hideKeyboard()
-            val newStatus = !bookmarkManager.isCreatorBookmarked(service, creatorId)
+            val cloudFavorited = viewModel.uiState.value.cloudFavorited
+            val newStatus = !(bookmarkManager.isCreatorBookmarked(service, creatorId) || cloudFavorited)
             if (newStatus) {
                 bookmarkManager.bookmarkCreator(service, creatorId)
                 if (authRepository.isLoggedIn()) {
@@ -359,6 +447,9 @@ class CreatorProfileFragment : Fragment() {
                                 getString(R.string.connection_error),
                                 Toast.LENGTH_SHORT
                             ).show()
+                        } else {
+                            // 云端移除成功后同步清掉合并状态，避免后续重渲染把图标又翻回已收藏
+                            viewModel.onCreatorUnfavorited()
                         }
                     }
                 }
@@ -475,8 +566,55 @@ class CreatorProfileFragment : Fragment() {
         )
     }
 
-    private fun setupBlockButton() {
-        val isBlocked = blockedCreatorManager.isCreatorBlocked(service, creatorId)
+    /**
+     * 分享作者主页（FEAT-CREATOR-SHARE）：复制作者 ID / 复制 Pawchive 主页链接 / 浏览器打开。
+     */
+    private fun setupShareButton() {
+        binding.btnShareCreator.setOnClickListener {
+            hideKeyboard()
+            val options = arrayOf(
+                getString(R.string.copy_creator_id),
+                getString(R.string.copy_profile_link),
+                getString(R.string.open_in_browser)
+            )
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.share_creator)
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> {
+                            copyToClipboard("pawchive_creator_id", creatorId)
+                            Toast.makeText(context, R.string.id_copied, Toast.LENGTH_SHORT).show()
+                        }
+                        1 -> {
+                            copyToClipboard("pawchive_creator_link", profileUrl())
+                            Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> openInBrowser(profileUrl())
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    /** 作者网页版主页链接（与站点路由 /{service}/user/{id} 一致）。 */
+    private fun profileUrl(): String = "https://pawchive.pw/$service/user/$creatorId"
+
+    private fun copyToClipboard(tag: String, text: String) {
+        val clipboard = requireContext()
+            .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(tag, text))
+    }
+
+    private fun openInBrowser(url: String) {
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }.onFailure {
+            Toast.makeText(context, R.string.browser_not_available, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupBlockButton() {        val isBlocked = blockedCreatorManager.isCreatorBlocked(service, creatorId)
         updateBlockButtonState(isBlocked)
 
         binding.btnBlockCreator.setOnClickListener {

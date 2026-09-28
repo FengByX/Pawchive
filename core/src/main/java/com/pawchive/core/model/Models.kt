@@ -21,14 +21,25 @@ data class CreatorProfile(
     val updated: String?
 )
 
+/** 相似作者（网页版 Similar Artists /recommended 页解析结果，FEAT-SIMILAR-CREATORS）。 */
+data class SimilarCreator(
+    val service: String,
+    val id: String,
+    val name: String
+)
+
 data class PostFile(
     val name: String?,
-    val path: String?
+    val path: String?,
+    /** true = 站点仅抓到预览（原图未导入文件服务器，直接下载必 404）。旧数据缺省为 null。 */
+    @SerializedName("preview_only") val previewOnly: Boolean? = null
 )
 
 data class Attachment(
     val name: String?,
-    val path: String?
+    val path: String?,
+    /** 语义同 [PostFile.previewOnly]。 */
+    @SerializedName("preview_only") val previewOnly: Boolean? = null
 )
 
 data class Post(

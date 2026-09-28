@@ -146,6 +146,13 @@
     <string name="posts">投稿</string>
     <string name="announcements">お知らせ</string>
     <string name="linked_accounts">連携アカウント</string>
+    <string name="similar_artists">類似のクリエイター</string>
+    <string name="share_creator">クリエイターを共有</string>
+    <string name="copy_creator_id">クリエイターIDをコピー</string>
+    <string name="copy_profile_link">プロフィールリンクをコピー</string>
+    <string name="open_in_browser">ブラウザで開く</string>
+    <string name="id_copied">IDをコピーしました</string>
+    <string name="link_copied">リンクをコピーしました</string>
     <string name="creator_last_updated">更新日：%1$s</string>
     <string name="collapse">折りたたむ</string>
     <string name="expand">展開</string>
@@ -317,6 +324,9 @@
     <string name="search_history_clear_all">すべて削除</string>
     <string name="done">完了</string>
     <string name="delete">削除</string>
+    <string name="delete_selected">選択を削除</string>
+    <string name="batch_delete_confirm">選択した %1$d 件のダウンロード記録を削除しますか？</string>
+    <string name="batch_delete_done">%1$d 件削除しました</string>
 
     <!-- Block Creator -->
     <string name="block_creator">ブロック</string>
@@ -355,6 +365,7 @@
     <string name="status_running">ダウンロード中 %1$d%%</string>
     <string name="status_completed">完了</string>
     <string name="status_failed">ダウンロード失敗</string>
+    <string name="error_preview_only_not_imported">サイトに元ファイルが未収録です（プレビューのみ）。インポート後に再試行できます</string>
     <string name="status_cancelled">キャンセル済み</string>
     <string name="status_paused">一時停止中 %1$d%%</string>
     <string name="action_resume">再開</string>

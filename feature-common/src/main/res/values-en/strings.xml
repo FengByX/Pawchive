@@ -146,6 +146,13 @@
     <string name="posts">Posts</string>
     <string name="announcements">Announcements</string>
     <string name="linked_accounts">Linked Accounts</string>
+    <string name="similar_artists">Similar Artists</string>
+    <string name="share_creator">Share creator</string>
+    <string name="copy_creator_id">Copy creator ID</string>
+    <string name="copy_profile_link">Copy profile link</string>
+    <string name="open_in_browser">Open in browser</string>
+    <string name="id_copied">ID copied</string>
+    <string name="link_copied">Link copied</string>
     <string name="creator_last_updated">Updated %1$s</string>
     <string name="collapse">Collapse</string>
     <string name="expand">Expand</string>
@@ -317,6 +324,9 @@
     <string name="search_history_clear_all">Clear All</string>
     <string name="done">Done</string>
     <string name="delete">Delete</string>
+    <string name="delete_selected">Delete selected</string>
+    <string name="batch_delete_confirm">Delete %1$d selected download records?</string>
+    <string name="batch_delete_done">Deleted %1$d records</string>
 
     <!-- Block Creator -->
     <string name="block_creator">Block</string>
@@ -355,6 +365,7 @@
     <string name="status_running">Downloading %1$d%%</string>
     <string name="status_completed">Completed</string>
     <string name="status_failed">Download failed</string>
+    <string name="error_preview_only_not_imported">Original file not yet imported by the site (preview only). Retry later.</string>
     <string name="status_cancelled">Cancelled</string>
     <string name="status_paused">Paused %1$d%%</string>
     <string name="action_resume">Resume</string>

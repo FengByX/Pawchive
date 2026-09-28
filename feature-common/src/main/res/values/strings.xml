@@ -147,6 +147,13 @@
     <string name="posts">帖子</string>
     <string name="announcements">公告</string>
     <string name="linked_accounts">关联账号</string>
+    <string name="similar_artists">相似作者</string>
+    <string name="share_creator">分享作者主页</string>
+    <string name="copy_creator_id">复制作者 ID</string>
+    <string name="copy_profile_link">复制主页链接</string>
+    <string name="open_in_browser">在浏览器打开</string>
+    <string name="id_copied">ID 已复制</string>
+    <string name="link_copied">链接已复制</string>
     <string name="creator_last_updated">更新于 %1$s</string>
     <string name="collapse">折叠</string>
     <string name="expand">展开</string>
@@ -318,6 +325,9 @@
     <string name="search_history_clear_all">全部删除</string>
     <string name="done">完成</string>
     <string name="delete">删除</string>
+    <string name="delete_selected">删除所选</string>
+    <string name="batch_delete_confirm">确定删除选中的 %1$d 条下载记录？</string>
+    <string name="batch_delete_done">已删除 %1$d 条记录</string>
 
     <!-- Block Creator -->
     <string name="block_creator">屏蔽</string>
@@ -356,6 +366,7 @@
     <string name="status_running">下载中 %1$d%%</string>
     <string name="status_completed">已完成</string>
     <string name="status_failed">下载失败</string>
+    <string name="error_preview_only_not_imported">站点尚未收录原图（仅预览），待站点导入后可重试</string>
     <string name="status_cancelled">已取消</string>
     <string name="status_paused">已暂停 %1$d%%</string>
     <string name="action_resume">继续</string>
