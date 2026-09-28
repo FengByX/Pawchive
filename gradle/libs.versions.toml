@@ -14,7 +14,7 @@ robolectric = "4.14.1"
 activityKtx = "1.8.2"
 fragmentKtx = "1.6.2"
 swiperefreshlayout = "1.1.0"
-workRuntime = "2.9.0"
+workRuntime = "2.12.0"
 # DI: Hilt + KSP（ARCH-003）
 # AGP 9.x 内置 Kotlin 2.2.10，需使用 AGP 9 官方推荐版本：
 # KSP >= 2.3.6，Hilt >= 2.59.2
