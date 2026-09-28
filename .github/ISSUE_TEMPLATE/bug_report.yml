@@ -1,0 +1,61 @@
+name: Bug 报告
+description: 应用功能异常、崩溃、下载失败等问题的报告
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈 🐾 提交前请先搜索已有 issue 避免重复。
+        使用咨询请到 [Discussions](https://github.com/FengByX/Pawchive/discussions)。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 简洁描述遇到了什么问题
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 …
+        2. 点击 …
+        3. 出现 …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App 版本
+      description: 「账户 → 检查更新」可见，如 v1.7.5
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android 版本与机型
+      placeholder: 如 Android 14 / Pixel 7
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-info
+    attributes:
+      label: 错误信息 / 截图
+      description: |
+        下载问题请附上「下载中心 → 失败」条目显示的完整错误信息；
+        崩溃问题如有崩溃日志请一并粘贴
+    validations:
+      required: false
