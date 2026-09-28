@@ -40,3 +40,6 @@ lint_log_dir/
 
 # Kotlin 编译器临时目录
 .kotlin/
+
+# 发布签名配置（本机/CI 生成，不入库）
+keystore.properties
