@@ -56,12 +56,17 @@ class BackupManagerTest {
         readingProgressManager = ReadingProgressManager(context)
         downloadHistoryManager = DownloadHistoryManager(context, db.downloadHistoryDao())
         settingsManager = SettingsManager(context)
+        val subscriptionRepository = CreatorSubscriptionRepository(
+            db.creatorSubscriptionDao(),
+            db.contentUpdateDao()
+        )
         backupManager = BackupManager(
             Gson(),
             bookmarkManager,
             blockedCreatorManager,
             readingProgressManager,
             downloadHistoryManager,
+            subscriptionRepository,
             settingsManager
         )
         // 测试方法间共享同一 Application 的 DataStore/Room，先清空保证用例独立

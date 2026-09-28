@@ -113,6 +113,8 @@ class BookmarkManager @Inject constructor(
     }
 
     fun isPostBookmarked(service: String, creatorId: String, postId: String): Boolean {
+        // ensureLoaded：冷启动异步加载未完成时缓存为空，直接读会误判"未收藏"（BUG-IMPORT-STATE）
+        ensureLoaded()
         return cache[getPostKey(service, creatorId, postId)] ?: false
     }
 
@@ -187,6 +189,8 @@ class BookmarkManager @Inject constructor(
     }
 
     fun isCreatorBookmarked(service: String, creatorId: String): Boolean {
+        // ensureLoaded：同 isPostBookmarked，避免冷启动竞态误判"未收藏"（BUG-IMPORT-STATE）
+        ensureLoaded()
         return cache[getCreatorKey(service, creatorId)] ?: false
     }
 

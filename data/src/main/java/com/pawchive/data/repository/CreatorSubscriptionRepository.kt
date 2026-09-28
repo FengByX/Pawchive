@@ -107,6 +107,28 @@ class CreatorSubscriptionRepository @Inject constructor(
         updateDao.deleteForCreator(service, creatorId)
     }
 
+    /**
+     * 批量导入订阅（ARCH-FEATURE-005 备份恢复，覆盖语义）。
+     *
+     * 备份里的 lastPostId 一并恢复，避免导入后首次同步把订阅基线之前的历史帖
+     * 全部当成"新帖"推送通知；未提供基线的条目置 null（首次同步只初始化基线不通知）。
+     */
+    suspend fun importAll(refs: List<CreatorSubscriptionRef>) {
+        subscriptionDao.clearAll()
+        val now = System.currentTimeMillis()
+        refs.forEach { ref ->
+            subscriptionDao.upsert(
+                CreatorSubscriptionEntity(
+                    service = ref.service,
+                    creatorId = ref.creatorId,
+                    name = ref.name,
+                    lastPostId = ref.lastPostId,
+                    subscribedAt = now
+                )
+            )
+        }
+    }
+
     suspend fun markRead(id: Long) = updateDao.markRead(id)
 
     suspend fun markAllRead() = updateDao.markAllRead()

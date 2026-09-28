@@ -28,4 +28,8 @@ interface CreatorSubscriptionDao {
 
     @Query("DELETE FROM creator_subscriptions WHERE service = :service AND creatorId = :creatorId")
     suspend fun delete(service: String, creatorId: String)
+
+    /** 清空全部订阅（备份导入覆盖语义用）。 */
+    @Query("DELETE FROM creator_subscriptions")
+    suspend fun clearAll()
 }

@@ -11,6 +11,14 @@ import javax.inject.Singleton
 /** 创作者引用（备份 JSON 用；导出原始字段，避免字符串拼接解析错位）。 */
 data class CreatorRef(val service: String, val creatorId: String)
 
+/** 订阅引用（备份 JSON 用；恢复"订阅更新"状态，含增量基线避免导入后误报新帖）。 */
+data class CreatorSubscriptionRef(
+    val service: String,
+    val creatorId: String,
+    val name: String? = null,
+    val lastPostId: String? = null
+)
+
 /** 可备份的设置项（设备绑定项与运行态策略值不导出：下载目录 Uri、缓存阈值、上次清理时间）。 */
 data class BackupSettings(
     val language: String? = null,
@@ -32,6 +40,8 @@ data class BackupBundle(
     val bookmarkedPosts: List<Post> = emptyList(),
     val bookmarkedCreators: List<CreatorRef> = emptyList(),
     val blockedCreators: List<CreatorRef> = emptyList(),
+    // 可选字段（旧备份文件缺失时 Gson 解析为空列表，保持向后兼容）
+    val subscriptions: List<CreatorSubscriptionRef> = emptyList(),
     val readingProgress: ReadingProgressSnapshot = ReadingProgressSnapshot(),
     val downloadHistory: List<DownloadRecord> = emptyList(),
     val settings: BackupSettings = BackupSettings()
@@ -42,7 +52,8 @@ data class BackupImportResult(
     val bookmarks: Int = 0,
     val creators: Int = 0,
     val blocked: Int = 0,
-    val downloads: Int = 0
+    val downloads: Int = 0,
+    val subscriptions: Int = 0
 )
 
 /**
@@ -60,6 +71,7 @@ class BackupManager @Inject constructor(
     private val blockedCreatorManager: BlockedCreatorManager,
     private val readingProgressManager: ReadingProgressManager,
     private val downloadHistoryManager: DownloadHistoryManager,
+    private val subscriptionRepository: CreatorSubscriptionRepository,
     private val settingsManager: SettingsManager
 ) {
 
@@ -72,6 +84,15 @@ class BackupManager @Inject constructor(
                 .map { CreatorRef(it.first, it.second) },
             blockedCreators = blockedCreatorManager.getBlockedCreators()
                 .map { CreatorRef(it.first, it.second) },
+            subscriptions = subscriptionRepository.getSubscriptions()
+                .map {
+                    CreatorSubscriptionRef(
+                        service = it.service,
+                        creatorId = it.creatorId,
+                        name = it.name,
+                        lastPostId = it.lastPostId
+                    )
+                },
             readingProgress = readingProgressManager.exportAll(),
             downloadHistory = downloadHistoryManager.getAllRecordsFromDb().map { sanitizeDownload(it) },
             settings = BackupSettings(
@@ -102,6 +123,7 @@ class BackupManager @Inject constructor(
             bundle.bookmarkedCreators.map { it.service to it.creatorId }
         )
         blockedCreatorManager.importAll(bundle.blockedCreators.map { it.service to it.creatorId })
+        subscriptionRepository.importAll(bundle.subscriptions)
         readingProgressManager.importAll(bundle.readingProgress)
         downloadHistoryManager.importAll(bundle.downloadHistory)
         applySettings(bundle.settings)
@@ -110,7 +132,8 @@ class BackupManager @Inject constructor(
             bookmarks = bundle.bookmarkedPosts.size,
             creators = bundle.bookmarkedCreators.size,
             blocked = bundle.blockedCreators.size,
-            downloads = bundle.downloadHistory.size
+            downloads = bundle.downloadHistory.size,
+            subscriptions = bundle.subscriptions.size
         )
     }
 
