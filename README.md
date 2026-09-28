@@ -101,6 +101,129 @@
 | **构建工具** | Gradle 9.5.0 + AGP 9.3.2 | 版本目录（`libs.versions.toml`）统一管理 |
 | **质量门禁** | Kover 0.9.9 | 核心层（core + data）行覆盖率 ≥ 45% |
 
+### 架构总览
+
+模块协作与数据流向图（点击节点可跳转对应源文件）：
+
+```mermaid
+flowchart TD
+
+subgraph group_ui["App and features"]
+  node_app["Main app<br/>[MainActivity.kt]"]
+  node_home["Home feed<br/>[HomeFragment.kt]"]
+  node_search["Search UI<br/>[SearchFragment.kt]"]
+  node_post["Post details"]
+  node_account["Account and creator<br/>[AccountFragment.kt]"]
+  node_settings["Settings"]
+  node_downloads_ui["Download center UI"]
+end
+
+subgraph group_content["Content access"]
+  node_api["Platform API<br/>[PawchiveApi.kt]"]
+  node_clearance["Challenge clearance"]
+  node_offline[("Offline search")]
+end
+
+subgraph group_library["Saved library"]
+  node_archive["Offline archive"]
+  node_bookmarks["Bookmarks<br/>[BookmarkManager.kt]"]
+  node_session[("Account sessions<br/>[SessionManager.kt]")]
+  node_subscriptions["Creator subscriptions"]
+end
+
+subgraph group_operations["Background operations"]
+  node_rules["Download rules"]
+  node_enqueue["Download enqueue"]
+  node_download["Download execution<br/>[DownloadCenter.kt]"]
+  node_http_download["HTTP transfer"]
+  node_notifications["Download notifications"]
+  node_download_service["Foreground service"]
+  node_workers["Scheduled work"]
+  node_updates["Release checker<br/>[UpdateChecker.kt]"]
+end
+
+subgraph group_platform["Core platform"]
+  node_settings_store[("Preferences<br/>[SettingsManager.kt]")]
+  node_database[("Room database")]
+end
+
+node_user(("App user"))
+node_creator_service{{"Pawchive platform"}}
+node_github{{"GitHub releases"}}
+node_android{{"Android system"}}
+
+node_user -->|"opens"| node_app
+node_app -->|"shows tab"| node_home
+node_app -->|"shows tab"| node_search
+node_app -->|"shows tab"| node_downloads_ui
+node_user -->|"opens content"| node_post
+node_user -->|"manages account"| node_account
+node_user -->|"configures"| node_settings
+node_home -->|"loads feed"| node_api
+node_search -->|"searches online"| node_api
+node_api -->|"requests content"| node_creator_service
+node_api -->|"obtains clearance"| node_clearance
+node_search -->|"searches archive"| node_offline
+node_post -->|"saves content"| node_bookmarks
+node_bookmarks -->|"indexes saved posts"| node_archive
+node_archive -->|"stores archive"| node_database
+node_offline -->|"queries index"| node_database
+node_account -->|"manages sessions"| node_session
+node_settings -->|"manages subscriptions"| node_subscriptions
+node_subscriptions -->|"persists subscriptions"| node_database
+node_post -->|"applies rules"| node_rules
+node_rules -->|"enqueues matches"| node_enqueue
+node_enqueue -->|"adds tasks"| node_download
+node_download -->|"transfers files"| node_http_download
+node_http_download -->|"writes files"| node_android
+node_download -->|"updates progress"| node_notifications
+node_notifications -->|"starts service"| node_download_service
+node_download_service -->|"forwards actions"| node_download
+node_downloads_ui -->|"manages tasks"| node_download
+node_workers -->|"checks creators"| node_subscriptions
+node_workers -->|"schedules work"| node_android
+node_updates -->|"checks releases"| node_github
+node_settings -->|"reads and writes"| node_settings_store
+
+click node_app "https://github.com/fengbyx/pawchive/blob/main/app/src/main/java/com/pawchive/ui/MainActivity.kt"
+click node_home "https://github.com/fengbyx/pawchive/blob/main/feature-home/src/main/java/com/pawchive/ui/home/HomeFragment.kt"
+click node_search "https://github.com/fengbyx/pawchive/blob/main/feature-search/src/main/java/com/pawchive/ui/search/SearchFragment.kt"
+click node_post "https://github.com/fengbyx/pawchive/blob/main/feature-post/src/main/java/com/pawchive/ui/post/PostDetailFragment.kt"
+click node_account "https://github.com/fengbyx/pawchive/blob/main/feature-account/src/main/java/com/pawchive/ui/account/AccountFragment.kt"
+click node_settings "https://github.com/fengbyx/pawchive/blob/main/feature-settings/src/main/java/com/pawchive/ui/settings/SettingsFragment.kt"
+click node_downloads_ui "https://github.com/fengbyx/pawchive/blob/main/feature-downloads/src/main/java/com/pawchive/ui/downloads/DownloadsFragment.kt"
+click node_api "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/api/PawchiveApi.kt"
+click node_clearance "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/api/CloudflareManager.kt"
+click node_offline "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/db/OfflineArchiveFts.kt"
+click node_archive "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/OfflineArchiveRepository.kt"
+click node_bookmarks "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/BookmarkManager.kt"
+click node_session "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/store/SessionManager.kt"
+click node_subscriptions "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/CreatorSubscriptionRepository.kt"
+click node_rules "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/DownloadRuleEngine.kt"
+click node_enqueue "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/DownloadEnqueuer.kt"
+click node_download "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/DownloadCenter.kt"
+click node_http_download "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/repository/HttpDownloadManager.kt"
+click node_notifications "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/download/DownloadNotificationController.kt"
+click node_download_service "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/download/DownloadNotificationService.kt"
+click node_workers "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/work/ContentUpdateWorker.kt"
+click node_updates "https://github.com/fengbyx/pawchive/blob/main/data/src/main/java/com/pawchive/data/github/UpdateChecker.kt"
+click node_settings_store "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/store/SettingsManager.kt"
+click node_database "https://github.com/fengbyx/pawchive/blob/main/core/src/main/java/com/pawchive/core/db/PawchiveDatabase.kt"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_app,node_home,node_search,node_post,node_account,node_settings,node_downloads_ui,node_user toneBlue
+class node_api,node_clearance,node_offline toneAmber
+class node_archive,node_bookmarks,node_session,node_subscriptions toneMint
+class node_rules,node_enqueue,node_download,node_http_download,node_notifications,node_download_service,node_workers,node_updates toneRose
+class node_settings_store,node_database,node_creator_service,node_github,node_android toneIndigo
+```
+
 ---
 
 ## 核心技术亮点
