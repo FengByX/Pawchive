@@ -148,6 +148,39 @@ class DownloadCenter @Inject constructor(
         url: String, fileName: String, mimeType: String
     ): String = enqueueDownload(url, fileName, mimeType, DownloadType.ATTACHMENT)
 
+    /**
+     * preview_only 文件（站点仅收录预览、原图未导入，直接下载必 404）不发起下载，
+     * 落一条带原因的 FAILED 记录（FEAT-PREVIEW-ONLY-SKIP）；
+     * 站点补齐后在下载中心"失败"分类重试即可走正常下载。
+     */
+    override suspend fun enqueuePreviewOnlySkipped(
+        url: String,
+        fileName: String,
+        mimeType: String,
+        type: DownloadType
+    ): String = enqueueMutex.withLock {
+        val key = dedupFingerprint(url, fileName, mimeType, type)
+        // 同指纹已有任意状态记录（此前真实下载过/失败过）时不重复落"跳过"记录
+        historyManager.findByDedupKey(key)?.let { existing ->
+            Log.d(TAG, "enqueuePreviewOnlySkipped: dedup hit, returning existing record ${existing.id}")
+            return@withLock existing.id
+        }
+        val record = DownloadRecord(
+            id = UUID.randomUUID().toString(),
+            url = url,
+            fileName = fileName,
+            mimeType = mimeType,
+            type = type,
+            dedupKey = key,
+            status = DownloadStatus.FAILED,
+            errorMessage = DownloadRecord.ERROR_PREVIEW_ONLY,
+            createdAt = System.currentTimeMillis()
+        )
+        historyManager.upsert(record)
+        Log.i(TAG, "enqueuePreviewOnlySkipped: record=${record.id} url=$url file=$fileName")
+        record.id
+    }
+
     private suspend fun enqueueDownload(
         url: String,
         fileName: String,

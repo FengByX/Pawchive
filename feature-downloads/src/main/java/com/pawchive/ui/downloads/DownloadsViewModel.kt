@@ -109,6 +109,27 @@ class DownloadsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 批量删除（FEAT-DOWNLOAD-MULTISELECT）：逐条走 [DownloadCenter.removeHistory]
+     * （内部先取消进行中任务再移记录），完成后一次性 Toast 反馈。
+     */
+    fun removeRecords(ids: Collection<String>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            var removed = 0
+            ids.forEach { id ->
+                runCatching { downloadCenter.removeHistory(id) }
+                    .onSuccess { removed++ }
+                    .onFailure { e -> Log.w(TAG, "removeRecords failed: $id", e) }
+            }
+            _uiState.value = _uiState.value.copy(
+                toastMessage = getApplication<Application>().getString(
+                    R.string.batch_delete_done, removed
+                )
+            )
+        }
+    }
+
     fun clearAllHistory() {
         viewModelScope.launch {
             downloadCenter.clearAllHistory()

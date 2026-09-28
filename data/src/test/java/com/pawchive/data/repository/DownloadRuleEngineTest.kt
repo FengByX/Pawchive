@@ -191,10 +191,43 @@ class DownloadRuleEngineTest {
         assertEquals(1, engine.enqueueMatches(post).size)
     }
 
+    @Test
+    fun `enqueueMatches skips preview-only files without enqueueing downloads`() = runBlocking {
+        // FEAT-PREVIEW-ONLY-SKIP：preview_only=true 的文件（站点仅收录预览、原图未导入）
+        // 不发起下载，走 enqueuePreviewOnlySkipped 落带原因的记录
+        insertRule(fileType = DownloadRuleFileType.ALL)
+        val post = postWith(
+            file = PostFile("a.jpg", "/1/a.jpg", previewOnly = true),
+            attachments = listOf(
+                Attachment("b.png", "/1/b.png", previewOnly = true),
+                Attachment("c.png", "/1/c.png", previewOnly = null)
+            )
+        )
+
+        val count = engine.enqueueMatches(post)
+
+        // 三条都有记录 id，但 preview_only 的两条走"跳过"，只有 c.png 真正入队
+        assertEquals(3, count.size)
+        assertEquals(
+            listOf("IMAGE:https://file.pawchive.pw/data/1/c.png"),
+            enqueuer.enqueued.map { "${it.type}:${it.url}" }
+        )
+        assertEquals(
+            listOf(
+                "IMAGE:https://file.pawchive.pw/data/1/a.jpg",
+                "IMAGE:https://file.pawchive.pw/data/1/b.png"
+            ),
+            enqueuer.skipped
+        )
+    }
+
     private class FakeDownloadEnqueuer : DownloadEnqueuer {
         data class EnqueuedCall(val type: String, val url: String, val fileName: String)
 
         val enqueued = mutableListOf<EnqueuedCall>()
+
+        /** enqueuePreviewOnlySkipped 调用记录（type:url），FEAT-PREVIEW-ONLY-SKIP。 */
+        val skipped = mutableListOf<String>()
 
         override suspend fun enqueueImageDownload(url: String, fileName: String, mimeType: String): String {
             enqueued.add(EnqueuedCall("IMAGE", url, fileName))
@@ -209,6 +242,16 @@ class DownloadRuleEngineTest {
         override suspend fun enqueueAttachmentDownload(url: String, fileName: String, mimeType: String): String {
             enqueued.add(EnqueuedCall("ATTACHMENT", url, fileName))
             return "att-${enqueued.size}"
+        }
+
+        override suspend fun enqueuePreviewOnlySkipped(
+            url: String,
+            fileName: String,
+            mimeType: String,
+            type: DownloadType
+        ): String {
+            skipped.add("$type:$url")
+            return "skip-${skipped.size}"
         }
     }
 }

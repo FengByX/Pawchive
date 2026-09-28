@@ -14,6 +14,15 @@
         android:padding="12dp"
         android:gravity="center_vertical">
 
+        <!-- 多选模式勾选框（FEAT-DOWNLOAD-MULTISELECT，仅多选时显示） -->
+        <CheckBox
+            android:id="@+id/cbSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:minWidth="0dp"
+            android:visibility="gone" />
+
         <ImageView
             android:id="@+id/ivTypeIcon"
             android:layout_width="32dp"

@@ -53,6 +53,21 @@ class DownloadsFragment : Fragment() {
         setupToolbar()
 
         observeUiState()
+
+        // 返回键：多选模式下先退出多选，再交给系统处理
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (adapter.isSelectionMode()) {
+                        exitSelectionMode()
+                    } else {
+                        isEnabled = false
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+            }
+        )
     }
 
     private fun setupRecyclerView() {
@@ -67,7 +82,11 @@ class DownloadsFragment : Fragment() {
             },
             onOpen = viewModel::openFile,
             onShare = viewModel::shareFile,
-            onDelete = { record -> viewModel.removeRecord(record.id) }
+            onDelete = { record -> viewModel.removeRecord(record.id) },
+            onSelectionCountChanged = {
+                if (adapter.isSelectionMode()) updateSelectionBar()
+            },
+            onEnterSelectionMode = { enterSelectionMode() }
         )
         binding.rvDownloads.layoutManager = LinearLayoutManager(requireContext())
         binding.rvDownloads.adapter = adapter
@@ -102,6 +121,58 @@ class DownloadsFragment : Fragment() {
             (activity as? AppNavigator)?.navigateToHomeTab()
         }
         binding.btnClearAll.setOnClickListener { showClearAllDialog() }
+        setupSelectionBar()
+    }
+
+    /**
+     * 多选 ActionBar（FEAT-DOWNLOAD-MULTISELECT）：退出 / 全选切换 / 批量删除。
+     */
+    private fun setupSelectionBar() {
+        binding.btnExitSelection.setOnClickListener { exitSelectionMode() }
+        binding.btnSelectAll.setOnClickListener {
+            if (adapter.isAllSelected()) adapter.clearSelection() else adapter.selectAll()
+            updateSelectionBar()
+        }
+        binding.btnDeleteSelected.setOnClickListener { showDeleteSelectedDialog() }
+    }
+
+    private fun enterSelectionMode() {
+        adapter.setSelectionMode(true)
+        binding.selectionActionBar.visibility = View.VISIBLE
+        binding.toolbarRow.visibility = View.GONE
+        updateSelectionBar()
+    }
+
+    private fun exitSelectionMode() {
+        adapter.setSelectionMode(false)
+        binding.selectionActionBar.visibility = View.GONE
+        binding.toolbarRow.visibility = View.VISIBLE
+    }
+
+    private fun updateSelectionBar() {
+        val count = adapter.getSelectedCount()
+        binding.tvSelectedCount.text = getString(R.string.batch_selected_count, count)
+        binding.btnSelectAll.text = getString(
+            if (adapter.isAllSelected()) R.string.select_none else R.string.select_all
+        )
+        binding.btnDeleteSelected.isEnabled = count > 0
+    }
+
+    private fun showDeleteSelectedDialog() {
+        val selected = adapter.getSelectedIds()
+        if (selected.isEmpty()) {
+            Toast.makeText(context, R.string.batch_none_selected, Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_selected)
+            .setMessage(getString(R.string.batch_delete_confirm, selected.size))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.removeRecords(selected)
+                exitSelectionMode()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showClearAllDialog() {
@@ -120,6 +191,8 @@ class DownloadsFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     adapter.submitList(state.records)
+                    // 列表刷新（下载完成/失败等）后同步多选计数与全选状态
+                    if (adapter.isSelectionMode()) updateSelectionBar()
                     val empty = state.records.isEmpty()
                     binding.layoutEmpty.visibility = if (empty) View.VISIBLE else View.GONE
                     binding.swipeRefresh.visibility = if (empty) View.GONE else View.VISIBLE

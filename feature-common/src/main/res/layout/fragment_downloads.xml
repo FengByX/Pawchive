@@ -6,7 +6,60 @@
     android:orientation="vertical"
     android:background="?android:attr/colorBackground">
 
+    <!-- 多选 ActionBar（FEAT-DOWNLOAD-MULTISELECT，长按记录进入多选后显示） -->
     <LinearLayout
+        android:id="@+id/selectionActionBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btnExitSelection"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_close"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cancel_selection"
+            android:scaleType="centerInside"
+            app:tint="?attr/colorOnSurface" />
+
+        <TextView
+            android:id="@+id/tvSelectedCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp"
+            android:paddingHorizontal="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSelectAll"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/select_all"
+            android:textSize="14sp"
+            android:paddingHorizontal="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteSelected"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:minHeight="40dp"
+            android:text="@string/delete_selected"
+            android:textSize="14sp"
+            android:paddingHorizontal="12dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/toolbarRow"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"

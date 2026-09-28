@@ -20,13 +20,18 @@ import com.pawchive.common.databinding.ItemDownloadBinding
  * - PENDING / RUNNING：取消按钮
  * - COMPLETED：打开、分享、删除按钮
  * - FAILED / CANCELLED：重试、删除按钮
+ *
+ * 多选模式（FEAT-DOWNLOAD-MULTISELECT）：长按任意条目进入，勾选框替代操作按钮，
+ * 点击整行切换选中；退出多选后恢复常规交互。
  */
 class DownloadHistoryAdapter(
     private val onCancel: (DownloadRecord) -> Unit,
     private val onRetry: (DownloadRecord) -> Unit,
     private val onOpen: (DownloadRecord) -> Unit,
     private val onShare: (DownloadRecord) -> Unit,
-    private val onDelete: (DownloadRecord) -> Unit
+    private val onDelete: (DownloadRecord) -> Unit,
+    private val onSelectionCountChanged: () -> Unit = {},
+    private val onEnterSelectionMode: () -> Unit = {}
 ) : ListAdapter<DownloadRecord, DownloadHistoryAdapter.ViewHolder>(DIFF_CALLBACK) {
 
     companion object {
@@ -37,6 +42,49 @@ class DownloadHistoryAdapter(
             override fun areContentsTheSame(oldItem: DownloadRecord, newItem: DownloadRecord): Boolean =
                 oldItem == newItem
         }
+    }
+
+    // 选中集合：按 record.id 记录，跨列表刷新保持（已删除的 id 在删除时统一消费）
+    private val selectedIds = LinkedHashSet<String>()
+
+    private var selectionMode = false
+
+    fun isSelectionMode(): Boolean = selectionMode
+
+    fun setSelectionMode(enabled: Boolean) {
+        if (selectionMode == enabled) return
+        selectionMode = enabled
+        if (!enabled) selectedIds.clear()
+        notifyDataSetChanged()
+    }
+
+    fun getSelectedIds(): Set<String> = selectedIds.toSet()
+
+    fun getSelectedCount(): Int = selectedIds.size
+
+    fun isAllSelected(): Boolean =
+        currentList.isNotEmpty() && currentList.all { it.id in selectedIds }
+
+    fun selectAll() {
+        currentList.forEach { selectedIds.add(it.id) }
+        notifyDataSetChanged()
+        onSelectionCountChanged()
+    }
+
+    fun clearSelection() {
+        if (selectedIds.isEmpty()) return
+        selectedIds.clear()
+        if (selectionMode) notifyDataSetChanged()
+        onSelectionCountChanged()
+    }
+
+    private fun toggleSelection(record: DownloadRecord) {
+        if (!selectedIds.remove(record.id)) {
+            selectedIds.add(record.id)
+        }
+        val position = currentList.indexOfFirst { it.id == record.id }
+        if (position >= 0) notifyItemChanged(position)
+        onSelectionCountChanged()
     }
 
     inner class ViewHolder(private val binding: ItemDownloadBinding) :
@@ -58,6 +106,39 @@ class DownloadHistoryAdapter(
                 else -> {
                     binding.progressBar.visibility = View.GONE
                 }
+            }
+
+            if (selectionMode) {
+                bindSelectionMode(record)
+            } else {
+                bindNormalMode(record, context)
+            }
+        }
+
+        /** 多选模式：隐藏操作按钮，显示勾选框，整行点击切换选中。 */
+        private fun bindSelectionMode(record: DownloadRecord) {
+            binding.btnAction.visibility = View.GONE
+            binding.btnOpen.visibility = View.GONE
+            binding.btnShare.visibility = View.GONE
+            binding.btnDelete.visibility = View.GONE
+            binding.cbSelect.visibility = View.VISIBLE
+            // 先解除监听再置位，避免绑定期间误触发 toggle
+            binding.cbSelect.setOnCheckedChangeListener(null)
+            binding.cbSelect.isChecked = record.id in selectedIds
+            binding.cbSelect.setOnCheckedChangeListener { _, _ -> toggleSelection(record) }
+            binding.root.setOnClickListener { toggleSelection(record) }
+            binding.root.setOnLongClickListener(null)
+        }
+
+        private fun bindNormalMode(record: DownloadRecord, context: android.content.Context) {
+            binding.cbSelect.visibility = View.GONE
+            binding.cbSelect.setOnCheckedChangeListener(null)
+            binding.root.setOnClickListener(null)
+            // 长按进入多选模式并选中当前条目（与搜索页批量操作交互一致）
+            binding.root.setOnLongClickListener {
+                onEnterSelectionMode()
+                toggleSelection(record)
+                true
             }
 
             // 按状态切换操作按钮
@@ -117,7 +198,13 @@ class DownloadHistoryAdapter(
                 DownloadStatus.COMPLETED -> ctx.getString(R.string.status_completed)
                 DownloadStatus.FAILED -> {
                     val base = ctx.getString(R.string.status_failed)
-                    if (!record.errorMessage.isNullOrBlank()) "$base: ${record.errorMessage}" else base
+                    when {
+                        // "跳过下载"标记：站点仅收录预览、原图未导入（FEAT-PREVIEW-ONLY-SKIP）
+                        record.errorMessage == DownloadRecord.ERROR_PREVIEW_ONLY ->
+                            ctx.getString(R.string.error_preview_only_not_imported)
+                        !record.errorMessage.isNullOrBlank() -> "$base: ${record.errorMessage}"
+                        else -> base
+                    }
                 }
                 DownloadStatus.CANCELLED -> ctx.getString(R.string.status_cancelled)
             }

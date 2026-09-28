@@ -52,6 +52,10 @@ interface DownloadHistoryDao {
     @Query("SELECT * FROM download_records WHERE dedupKey = :dedupKey AND status IN ('PENDING', 'RUNNING', 'PAUSED') LIMIT 1")
     suspend fun findActiveByDedupKey(dedupKey: String): DownloadRecord?
 
+    /** 按去重指纹查最近一条记录（任意状态；"跳过下载"记录去重用，FEAT-PREVIEW-ONLY-SKIP）。 */
+    @Query("SELECT * FROM download_records WHERE dedupKey = :dedupKey ORDER BY createdAt DESC LIMIT 1")
+    suspend fun findByDedupKey(dedupKey: String): DownloadRecord?
+
     /** 插入或覆盖指定记录（主键冲突时替换）。 */
     @Upsert
     suspend fun upsert(record: DownloadRecord)

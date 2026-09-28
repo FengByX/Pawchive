@@ -43,7 +43,16 @@ data class DownloadRecord(
     @SerializedName("completedAt") val completedAt: Long = 0L,
     @SerializedName("filePath") val filePath: String? = null,
     @SerializedName("errorMessage") val errorMessage: String? = null
-)
+) {
+    companion object {
+        /**
+         * errorMessage 标记值：站点仅收录预览（preview_only），原图未导入文件服务器，
+         * 下载必然 404 —— 入队时直接跳过并以此标记落记录（FEAT-PREVIEW-ONLY-SKIP）。
+         * 存储层保存稳定标记，UI 层映射为本地化文案（DownloadHistoryAdapter / 帖子页 Toast）。
+         */
+        const val ERROR_PREVIEW_ONLY = "preview_only_not_imported"
+    }
+}
 
 enum class DownloadType {
     IMAGE,

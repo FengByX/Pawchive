@@ -74,20 +74,20 @@ class DownloadRuleEngine @Inject constructor(
         val rules = ruleRepository.getEnabledRules()
         if (rules.isEmpty()) return emptyList()
 
-        // 归一化主文件（PostFile）与附件（Attachment）为 (文件名, 路径) 列表
-        val files = buildList<Pair<String, String>> {
+        // 归一化主文件（PostFile）与附件（Attachment）为 (文件名, 路径, previewOnly) 列表
+        val files = buildList<Triple<String, String, Boolean?>> {
             post.file?.let { file ->
                 val name = file.name.orEmpty()
-                if (name.isNotBlank()) add(name to file.path.orEmpty())
+                if (name.isNotBlank()) add(Triple(name, file.path.orEmpty(), file.previewOnly))
             }
             post.attachments.orEmpty().forEach { attachment ->
                 val name = attachment.name.orEmpty()
-                if (name.isNotBlank()) add(name to attachment.path.orEmpty())
+                if (name.isNotBlank()) add(Triple(name, attachment.path.orEmpty(), attachment.previewOnly))
             }
         }
 
         val recordIds = mutableListOf<String>()
-        for ((name, path) in files) {
+        for ((name, path, previewOnly) in files) {
             val type = detectType(name) ?: continue
             val matched = rules.any { rule ->
                 (rule.creatorId == null || rule.creatorId == post.user) &&
@@ -97,6 +97,14 @@ class DownloadRuleEngine @Inject constructor(
             if (!matched) continue
 
             val url = buildFileUrl(path)
+            // preview_only：站点仅收录预览、原图未导入，直接下载必 404（FEAT-PREVIEW-ONLY-SKIP）。
+            // 跳过下载、落一条带原因的记录，站点补齐后在下载中心重试即可。
+            if (previewOnly == true) {
+                recordIds.add(
+                    downloadEnqueuer.enqueuePreviewOnlySkipped(url, name, guessMimeType(name), type)
+                )
+                continue
+            }
             val recordId = when (type) {
                 DownloadType.IMAGE -> downloadEnqueuer.enqueueImageDownload(url, name)
                 DownloadType.VIDEO -> downloadEnqueuer.enqueueVideoDownload(url, name)

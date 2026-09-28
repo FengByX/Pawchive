@@ -32,6 +32,7 @@ import coil.load
 import coil.request.ImageRequest
 import com.pawchive.common.R
 import com.pawchive.core.api.ApiClient
+import com.pawchive.core.model.DownloadRecord
 import com.pawchive.core.model.DownloadStatus
 import com.pawchive.core.model.DownloadType
 import com.pawchive.core.model.Post
@@ -315,7 +316,11 @@ class PostDetailFragment : Fragment() {
                             }
                             DownloadStatus.FAILED -> {
                                 notifiedRecordIds.add(record.id)
-                                val err = record.errorMessage ?: getString(R.string.save_failed)
+                                val err = if (record.errorMessage == DownloadRecord.ERROR_PREVIEW_ONLY) {
+                                    getString(R.string.error_preview_only_not_imported)
+                                } else {
+                                    record.errorMessage ?: getString(R.string.save_failed)
+                                }
                                 Toast.makeText(ctx, getString(R.string.download_notification_failed, err), Toast.LENGTH_LONG).show()
                             }
                             // RUNNING / PENDING / CANCELLED 不弹（运行中有通知栏进度，CANCELLED 通常是用户主动取消）
@@ -559,7 +564,7 @@ class PostDetailFragment : Fragment() {
                             // 走应用内下载中心（携带 Cloudflare 凭据/UA/Referer），避免外部浏览器过盾失败
                             setTextColor(resources.getColor(R.color.accent_light, null))
                             setOnClickListener {
-                                downloadFileByUrl(url, attachment.name ?: "file")
+                                downloadFileByUrl(url, attachment.name ?: "file", attachment.previewOnly == true)
                             }
                         } else {
                             // path 缺失：无法构造有效下载链接，置灰并提示
@@ -817,10 +822,19 @@ class PostDetailFragment : Fragment() {
                 // 表现为"点了保存但什么都没下载到"。
                 val fullUrl = buildFileUrl(file.path)
                 val mime = guessMimeType(name)
+                val previewOnly = file.previewOnly == true
                 viewLifecycleOwner.lifecycleScope.launch {
-                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, mime) }
+                    runCatching {
+                        if (previewOnly) {
+                            // 站点仅收录预览、原图未导入：跳过下载，落一条带原因的记录（FEAT-PREVIEW-ONLY-SKIP）
+                            downloadCenter.enqueuePreviewOnlySkipped(fullUrl, name, mime, DownloadType.IMAGE)
+                        } else {
+                            downloadCenter.enqueueImageDownload(fullUrl, name, mime)
+                        }
+                    }
                         // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
-                        .onSuccess { id -> trackingRecordIds.add(id) }
+                        // （跳过记录无状态迁移，不进跟踪集合，入队完成 Toast 已有提示）
+                        .onSuccess { id -> if (!previewOnly) trackingRecordIds.add(id) }
                         .onFailure { e ->
                             Log.w("PostDetailFragment", "enqueue image download failed: $fullUrl", e)
                         }
@@ -837,10 +851,17 @@ class PostDetailFragment : Fragment() {
                 // 此前对所有图片一律传 "image/jpeg"，PNG/GIF/WebP 会以错误 MIME
                 // 写入 MediaStore/SAF，导致部分相册与文件管理器识别异常。
                 val mime = guessMimeType(name)
+                val previewOnly = attachment.previewOnly == true
                 viewLifecycleOwner.lifecycleScope.launch {
-                    runCatching { downloadCenter.enqueueImageDownload(fullUrl, name, mime) }
+                    runCatching {
+                        if (previewOnly) {
+                            downloadCenter.enqueuePreviewOnlySkipped(fullUrl, name, mime, DownloadType.IMAGE)
+                        } else {
+                            downloadCenter.enqueueImageDownload(fullUrl, name, mime)
+                        }
+                    }
                         // BUG-002：跟踪 recordId
-                        .onSuccess { id -> trackingRecordIds.add(id) }
+                        .onSuccess { id -> if (!previewOnly) trackingRecordIds.add(id) }
                         .onFailure { e ->
                             Log.w("PostDetailFragment", "enqueue attachment image download failed: $fullUrl", e)
                         }
@@ -1574,17 +1595,31 @@ class PostDetailFragment : Fragment() {
 
     /**
      * 通过下载中心下载文件（携带 Cloudflare 凭据/UA/Referer），而非用外部浏览器打开导致过盾失败。
+     * [previewOnly] 为 true（站点仅收录预览、原图未导入）时跳过下载，
+     * 落一条带原因的记录（FEAT-PREVIEW-ONLY-SKIP），站点补齐后可重试。
      */
-    private fun downloadFileByUrl(url: String, fileName: String) {
+    private fun downloadFileByUrl(url: String, fileName: String, previewOnly: Boolean = false) {
         val ctx = context ?: return
         viewLifecycleOwner.lifecycleScope.launch {
             runCatching {
-                downloadCenter.enqueueAttachmentDownload(url, fileName, guessMimeType(fileName))
+                if (previewOnly) {
+                    downloadCenter.enqueuePreviewOnlySkipped(
+                        url, fileName, guessMimeType(fileName), DownloadType.ATTACHMENT
+                    )
+                } else {
+                    downloadCenter.enqueueAttachmentDownload(url, fileName, guessMimeType(fileName))
+                }
             }
                 // BUG-002：跟踪 recordId，observeDownloads() 据此弹完成/失败 Toast
+                // （跳过记录无状态迁移，不入跟踪集合，直接给一次性提示）
                 .onSuccess { id ->
-                    trackingRecordIds.add(id)
-                    Toast.makeText(ctx, getString(R.string.download_queued, fileName), Toast.LENGTH_SHORT).show()
+                    if (!previewOnly) trackingRecordIds.add(id)
+                    val msg = if (previewOnly) {
+                        getString(R.string.error_preview_only_not_imported)
+                    } else {
+                        getString(R.string.download_queued, fileName)
+                    }
+                    Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
                 }
                 .onFailure { e ->
                     Log.w("PostDetailFragment", "enqueue attachment download failed: $url", e)

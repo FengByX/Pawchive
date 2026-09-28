@@ -176,6 +176,13 @@ class DownloadHistoryManager @Inject constructor(
     }
 
     /**
+     * 按去重指纹查询最近一条记录（任意状态；"跳过下载"记录去重用，FEAT-PREVIEW-ONLY-SKIP）。
+     */
+    suspend fun findByDedupKey(dedupKey: String): DownloadRecord? {
+        return dao.findByDedupKey(dedupKey)
+    }
+
+    /**
      * 同步获取所有记录（基于内存缓存）。
      */
     fun getAllRecords(): List<DownloadRecord> = _records.value
