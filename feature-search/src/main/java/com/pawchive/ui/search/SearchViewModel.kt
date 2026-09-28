@@ -183,6 +183,10 @@ class SearchViewModel @Inject constructor(
      * - 缓存已就绪：立即过滤并返回 true
      * - 缓存未就绪：记住 query 等待缓存加载完自动重过滤，返回 false
      * - 缓存加载失败：显示错误提示，引导用户下拉刷新重试
+     *
+     * pixiv pid 搜索（FEAT-PID-SEARCH）：fanbox/pixiv 创作者的 id 即 pixiv 用户 id，
+     * 输入纯数字 pid 或粘贴 pixiv 主页链接（pixiv.net/users/12345）时，
+     * id 精确命中的创作者排到结果最前（kemono 同款体验）。
      */
     fun filterCreatorsLocal(query: String): Boolean {
         if (!_uiState.value.creatorsCacheLoaded) {
@@ -199,16 +203,38 @@ class SearchViewModel @Inject constructor(
             )
             return true
         }
+        val trimmed = query.trim()
+        val pid = extractPixivPid(trimmed)
+        val idQuery = pid ?: trimmed
         val filtered = allCreatorsCache.filter {
-            (it.name.contains(query, ignoreCase = true) || it.id.contains(query, ignoreCase = true))
+            (it.name.contains(trimmed, ignoreCase = true) || it.id.contains(idQuery, ignoreCase = true))
                     && !blockedCreatorManager.isCreatorBlocked(it.service, it.id)
         }
-        applyCreatorSort(filtered)
+        applyCreatorSort(filtered, exactId = pid)
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             emptyHintResId = if (filtered.isEmpty()) com.pawchive.common.R.string.no_creators_found else null
         )
         return true
+    }
+
+    /**
+     * 从查询中提取 pixiv pid：
+     * - 粘贴 pixiv 主页链接（pixiv.net/users/12345、pixiv.net/u/12345、user.php?id=12345）→ 取其中的数字
+     * - 纯数字（≥3 位）→ 视为 pid 本身
+     * - 其他输入 → null（按普通关键词处理）
+     */
+    private fun extractPixivPid(query: String): String? {
+        PIXIV_URL_PID.find(query)?.let { return it.groupValues[1] }
+        return if (query.matches(Regex("""\d{3,}"""))) query else null
+    }
+
+    private companion object {
+        /** pixiv 主页链接中的用户 id（/users/12345、/u/12345、user.php?id=12345）。 */
+        val PIXIV_URL_PID = Regex(
+            """pixiv\.net/(?:users/|u/|user\.php\?id=)(\d+)""",
+            RegexOption.IGNORE_CASE
+        )
     }
 
     /**
@@ -350,12 +376,18 @@ class SearchViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(postResults = filtered, isLoading = false)
     }
 
-    private fun applyCreatorSort(input: List<Creator>? = null) {
+    private fun applyCreatorSort(input: List<Creator>? = null, exactId: String? = null) {
         val source = input ?: _uiState.value.creatorResults
         val sorted = when (currentCreatorSort) {
             CreatorSortOption.NAME_ASC -> source.sortedBy { it.name.lowercase() }
             CreatorSortOption.NAME_DESC -> source.sortedByDescending { it.name.lowercase() }
         }
-        _uiState.value = _uiState.value.copy(creatorResults = sorted, isLoading = false)
+        // pid 精确命中置顶（FEAT-PID-SEARCH）：排序后稳定前移，其余保持原顺序
+        val ranked = if (exactId != null) {
+            sorted.filter { it.id == exactId } + sorted.filter { it.id != exactId }
+        } else {
+            sorted
+        }
+        _uiState.value = _uiState.value.copy(creatorResults = ranked, isLoading = false)
     }
 }
